@@ -1,6 +1,6 @@
 [package]
 name = "srvdb"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Srinivas Nampalli"]
 description = "Zero-Gravity Embedded Vector Database - Offline-first, RAM-efficient vector search"
@@ -31,7 +31,7 @@ thiserror = "2.0"
 rkyv = "0.8"
 
 # SIMD-accelerated vector operations
-simsimd = "6.0"
+simsimd = "=6.0"
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["extension-module"] }

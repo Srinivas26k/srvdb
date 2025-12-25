@@ -5,7 +5,7 @@
 use anyhow::{Context, Result};
 use memmap2::{MmapMut, MmapOptions};
 use std::fs::{File, OpenOptions};
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use crate::types::{EmbeddedVector, VectorHeader};
 
@@ -14,7 +14,7 @@ const VECTOR_SIZE: usize = 6144; // 1536 floats * 4 bytes = 6KB per vector
 pub struct VectorStorage {
     #[allow(dead_code)]
     file_path: PathBuf,
-    file: File,
+    writer: BufWriter<File>,
     mmap: Option<MmapMut>,
     count: u64,
 }
@@ -25,12 +25,15 @@ impl VectorStorage {
         let file_path = Path::new(db_path).join("vectors.bin");
         
         let exists = file_path.exists();
-        let mut file = OpenOptions::new()
+        let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
             .open(&file_path)
             .context("Failed to open vectors.bin")?;
+
+        // Wrap file in BufWriter with 8KB buffer (good balance for ingestion speed)
+        let mut writer = BufWriter::with_capacity(8192, file);
 
         if !exists {
             // Initialize new file with header
@@ -41,13 +44,16 @@ impl VectorStorage {
                     VectorHeader::SIZE,
                 )
             };
-            file.write_all(header_bytes)?;
-            file.flush()?;
+            writer.write_all(header_bytes)?;
+            writer.flush()?;
         }
 
+        // Get reference to underlying file for mmap
+        let file_ref = writer.get_ref();
+
         // Memory map the file
-        let mmap = if file.metadata()?.len() > 0 {
-            Some(unsafe { MmapOptions::new().map_mut(&file)? })
+        let mmap = if file_ref.metadata()?.len() > 0 {
+            Some(unsafe { MmapOptions::new().map_mut(file_ref)? })
         } else {
             None
         };
@@ -68,7 +74,7 @@ impl VectorStorage {
 
         Ok(Self {
             file_path,
-            file,
+            writer,
             mmap,
             count,
         })
@@ -81,12 +87,18 @@ impl VectorStorage {
         // Calculate new file size (header + all vectors)
         let new_size = VectorHeader::SIZE + ((self.count as usize + 1) * VECTOR_SIZE);
 
-        // Resize file
-        self.file.set_len(new_size as u64)?;
+        // Flush buffer before resizing and remapping
+        self.writer.flush()?;
 
-        // Remap with new size
+        // Get mutable reference to underlying file for resizing
+        let file = self.writer.get_mut();
+
+        // Resize file
+        file.set_len(new_size as u64)?;
+
+        // Remap with new size (need immutable reference for mmap)
         drop(self.mmap.take()); // Unmap first
-        let mut mmap = unsafe { MmapOptions::new().map_mut(&self.file)? };
+        let mut mmap = unsafe { MmapOptions::new().map_mut(file as &File)? };
 
         // Write vector data as raw bytes
         let offset = VectorHeader::SIZE + (self.count as usize * VECTOR_SIZE);
@@ -105,7 +117,7 @@ impl VectorStorage {
         };
         header.count = self.count;
 
-        // Flush to disk
+        // Flush mmap to disk (ensures header update is persisted)
         mmap.flush()?;
 
         self.mmap = Some(mmap);
@@ -146,10 +158,17 @@ impl VectorStorage {
 
     /// Force flush to disk
     pub fn flush(&mut self) -> Result<()> {
+        // Flush the buffer first
+        self.writer.flush()?;
+        
+        // Sync underlying file to disk
+        self.writer.get_ref().sync_all()?;
+        
+        // Flush mmap if present
         if let Some(ref mut mmap) = self.mmap {
             mmap.flush()?;
         }
-        self.file.sync_all()?;
+        
         Ok(())
     }
 }
