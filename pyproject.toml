@@ -1,0 +1,33 @@
+[build-system]
+requires = ["maturin>=1.0"]
+build-backend = "maturin"
+
+[project]
+name = "svdb"
+version = "1.0.0"
+description = "Zero-Gravity Embedded Vector Database - Offline-first, RAM-efficient vector search"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT OR Apache-2.0" }
+keywords = ["vector", "database", "embedding", "search", "quantization"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/svdb"
+Repository = "https://github.com/yourusername/svdb"
+Documentation = "https://github.com/yourusername/svdb/blob/main/README.md"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]

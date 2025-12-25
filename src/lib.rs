@@ -41,6 +41,9 @@ mod storage;
 mod search;
 mod metadata;
 
+// Python bindings module
+pub mod python_bindings;
+
 pub use storage::VectorStorage;
 pub use metadata::MetadataStore;
 
