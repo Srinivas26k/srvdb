@@ -10,6 +10,7 @@ use anyhow::Result;
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use crate::storage::VectorStorage;
+use crate::quantized_storage::QuantizedVectorStorage;
 use crate::types::EmbeddedVector;
 use simsimd::SpatialSimilarity;
 
@@ -99,6 +100,68 @@ pub fn search_batch(
     queries
         .par_iter()
         .map(|query| search_cosine(storage, query, k))
+        .collect()
+}
+
+// ============================================================================
+// PRODUCT QUANTIZATION SEARCH (ADC)
+// ============================================================================
+
+/// Optimized quantized search with Asymmetric Distance Computation
+pub fn search_quantized(
+    storage: &QuantizedVectorStorage,
+    query: &EmbeddedVector,
+    k: usize,
+) -> Result<Vec<(u64, f32)>> {
+    let count = storage.count() as usize;
+
+    if count == 0 {
+        return Ok(Vec::new());
+    }
+
+    let actual_k = k.min(count);
+
+    // Precompute distance table once (ADC optimization)
+    let dtable = storage.quantizer.compute_distance_table(query);
+
+    // Process in cache-friendly batches
+    let num_batches = (count + BATCH_SIZE - 1) / BATCH_SIZE;
+    
+    let all_similarities: Vec<(u64, f32)> = (0..num_batches)
+        .into_par_iter()
+        .flat_map(|batch_idx| {
+            let start = batch_idx * BATCH_SIZE;
+            let batch_size = BATCH_SIZE.min(count - start);
+            
+            // Get batch of quantized vectors (zero-copy)
+            if let Some(qvecs) = storage.get_batch(start as u64, batch_size) {
+                qvecs
+                    .iter()
+                    .enumerate()
+                    .map(|(i, qvec)| {
+                        let score = storage.quantizer.asymmetric_distance(qvec, &dtable);
+                        (start as u64 + i as u64, score)
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            }
+        })
+        .collect();
+
+    // Fast top-k selection
+    Ok(select_top_k(all_similarities, actual_k))
+}
+
+/// Batch quantized search
+pub fn search_quantized_batch(
+    storage: &QuantizedVectorStorage,
+    queries: &[EmbeddedVector],
+    k: usize,
+) -> Result<Vec<Vec<(u64, f32)>>> {
+    queries
+        .par_iter()
+        .map(|query| search_quantized(storage, query, k))
         .collect()
 }
 

@@ -21,12 +21,16 @@ pub use types::{Vector, SearchResult};
 mod storage;
 mod search;
 mod metadata;
+pub mod quantization; // Public for PQ access
+pub mod quantized_storage; // Public for quantized storage
 
 #[cfg(feature = "pyo3")]
 pub mod python_bindings;
 
 pub use storage::VectorStorage;
 pub use metadata::MetadataStore;
+pub use quantization::{ProductQuantizer, QuantizedVector};
+pub use quantized_storage::QuantizedVectorStorage;
 
 /// High-performance vector database trait
 pub trait VectorEngine {
@@ -42,8 +46,10 @@ pub trait VectorEngine {
 
 /// Main database implementation
 pub struct SvDB {
-    pub(crate) vector_storage: VectorStorage,
+    pub(crate) vector_storage: Option<VectorStorage>,
+    pub(crate) quantized_storage: Option<QuantizedVectorStorage>,
     pub(crate) metadata_store: MetadataStore,
+    pub(crate) config: types::QuantizationConfig,
 }
 
 impl VectorEngine for SvDB {
@@ -55,8 +61,10 @@ impl VectorEngine for SvDB {
         let metadata_store = MetadataStore::new(path)?;
 
         Ok(Self {
-            vector_storage,
+            vector_storage: Some(vector_storage),
+            quantized_storage: None,
             metadata_store,
+            config: types::QuantizationConfig::default(),
         })
     }
 
@@ -66,9 +74,22 @@ impl VectorEngine for SvDB {
         }
 
         let embedded = types::to_embedded_vector(&vec.data)?;
-        let id = self.vector_storage.append(&embedded)?;
+        
+        let id = if self.config.enabled {
+            if let Some(ref mut qstorage) = self.quantized_storage {
+                qstorage.append(&embedded)?
+            } else {
+                anyhow::bail!("Quantization enabled but quantized storage not initialized");
+            }
+        } else {
+            if let Some(ref mut vstorage) = self.vector_storage {
+                vstorage.append(&embedded)?
+            } else {
+                anyhow::bail!("Vector storage not initialized");
+            }
+        };
+        
         self.metadata_store.set(id, meta)?;
-
         Ok(id)
     }
 
@@ -90,8 +111,20 @@ impl VectorEngine for SvDB {
 
         let embedded = embedded?;
 
-        // Batch append vectors
-        let ids = self.vector_storage.append_batch(&embedded)?;
+        // Batch append vectors based on mode
+        let ids = if self.config.enabled {
+            if let Some(ref mut qstorage) = self.quantized_storage {
+                qstorage.append_batch(&embedded)?
+            } else {
+                anyhow::bail!("Quantization enabled but quantized storage not initialized");
+            }
+        } else {
+            if let Some(ref mut vstorage) = self.vector_storage {
+                vstorage.append_batch(&embedded)?
+            } else {
+                anyhow::bail!("Vector storage not initialized");
+            }
+        };
 
         // Store metadata
         for (id, meta) in ids.iter().zip(metas.iter()) {
@@ -107,7 +140,20 @@ impl VectorEngine for SvDB {
         }
 
         let embedded_query = types::to_embedded_vector(&query.data)?;
-        let results = search::search_cosine(&self.vector_storage, &embedded_query, k)?;
+        
+        let results = if self.config.enabled {
+            if let Some(ref qstorage) = self.quantized_storage {
+                search::search_quantized(qstorage, &embedded_query, k)?
+            } else {
+                anyhow::bail!("Quantization enabled but quantized storage not initialized");
+            }
+        } else {
+            if let Some(ref vstorage) = self.vector_storage {
+                search::search_cosine(vstorage, &embedded_query, k)?
+            } else {
+                anyhow::bail!("Vector storage not initialized");
+            }
+        };
 
         let mut enriched = Vec::with_capacity(results.len());
         for (id, score) in results {
@@ -130,7 +176,20 @@ impl VectorEngine for SvDB {
             .collect();
 
         let embedded_queries = embedded_queries?;
-        let batch_results = search::search_batch(&self.vector_storage, &embedded_queries, k)?;
+        
+        let batch_results = if self.config.enabled {
+            if let Some(ref qstorage) = self.quantized_storage {
+                search::search_quantized_batch(qstorage, &embedded_queries, k)?
+            } else {
+                anyhow::bail!("Quantization enabled but quantized storage not initialized");
+            }
+        } else {
+            if let Some(ref vstorage) = self.vector_storage {
+                search::search_batch(vstorage, &embedded_queries, k)?
+            } else {
+                anyhow::bail!("Vector storage not initialized");
+            }
+        };
 
         // Enrich with metadata
         batch_results
@@ -152,13 +211,65 @@ impl VectorEngine for SvDB {
     }
 
     fn persist(&mut self) -> Result<()> {
-        self.vector_storage.flush()?;
+        if let Some(ref mut vstorage) = self.vector_storage {
+            vstorage.flush()?;
+        }
+        if let Some(ref mut qstorage) = self.quantized_storage {
+            qstorage.flush()?;
+        }
         self.metadata_store.flush()?;
         Ok(())
     }
 
     fn count(&self) -> u64 {
-        self.vector_storage.count()
+        if self.config.enabled {
+            self.quantized_storage.as_ref().map(|s| s.count()).unwrap_or(0)
+        } else {
+            self.vector_storage.as_ref().map(|s| s.count()).unwrap_or(0)
+        }
+    }
+}
+
+// Additional PQ methods
+impl SvDB {
+    /// Create new database with Product Quantization
+    pub fn new_quantized(path: &str, training_vectors: &[Vector]) -> Result<Self> {
+        let db_path = Path::new(path);
+        std::fs::create_dir_all(db_path)?;
+        
+        // Convert training vectors
+        let embedded: Result<Vec<_>> = training_vectors
+            .iter()
+            .map(|v| {
+                if v.data.len() != 1536 {
+                    anyhow::bail!("All training vectors must be 1536-dimensional");
+                }
+                types::to_embedded_vector(&v.data)
+            })
+            .collect();
+        
+        let embedded = embedded?;
+        
+        let quantized_storage = crate::quantized_storage::QuantizedVectorStorage::new_with_training(
+            path,
+            &embedded
+        )?;
+        let metadata_store = MetadataStore::new(path)?;
+
+        let mut config = types::QuantizationConfig::default();
+        config.enabled = true;
+        
+        Ok(Self {
+            vector_storage: None,
+            quantized_storage: Some(quantized_storage),
+            metadata_store,
+            config,
+        })
+    }
+    
+    /// Get compression statistics
+    pub fn get_stats(&self) -> Option<quantized_storage::StorageStats> {
+        self.quantized_storage.as_ref().map(|s| s.get_stats())
     }
 }
 

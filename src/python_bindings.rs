@@ -53,6 +53,35 @@ impl SvDBPython {
             pending_flush: 0,
         })
     }
+    
+    /// Create new database with Product Quantization (32x compression)
+    #[staticmethod]
+    fn new_quantized(path: String, training_embeddings: Vec<Vec<f32>>) -> PyResult<Self> {
+        // Convert training embeddings to vectors
+        let training_vectors: Result<Vec<Vector>, _> = training_embeddings
+            .into_iter()
+            .map(|emb| {
+                if emb.len() != 1536 {
+                    return Err(PyValueError::new_err(
+                        format!("Training vector must be 1536-dim, got {}", emb.len())
+                    ));
+                }
+                Ok(Vector::new(emb))
+            })
+            .collect();
+        
+        let training_vectors = training_vectors?;
+        
+        let db = SvDB::new_quantized(&path, &training_vectors)
+            .map_err(|e| PyValueError::new_err(format!("Failed to initialize PQ: {}", e)))?;
+        
+        Ok(Self {
+            db,
+            id_map: FxHashMap::default(),
+            reverse_id_map: FxHashMap::default(),
+            pending_flush: 0,
+        })
+    }
 
     /// Optimized bulk add with automatic batching
     fn add(
@@ -103,14 +132,12 @@ impl SvDBPython {
         }
 
         // Batch insert (much faster)
-        let internal_ids = self.db.vector_storage.append_batch(&embedded_vectors)
+        let vectors: Vec<Vector> = embedded_vectors.iter().map(|arr| Vector::new(arr.to_vec())).collect();
+        let internal_ids = self.db.add_batch(&vectors, &enriched_metadatas)
             .map_err(|e| PyValueError::new_err(format!("Batch append failed: {}", e)))?;
 
-        // Store metadata and mappings
+        // Update mappings
         for (i, internal_id) in internal_ids.iter().enumerate() {
-            self.db.metadata_store.set(*internal_id, &enriched_metadatas[i])
-                .map_err(|e| PyValueError::new_err(format!("Metadata store failed: {}", e)))?;
-            
             self.id_map.insert(ids[i].clone(), *internal_id);
             self.reverse_id_map.insert(*internal_id, ids[i].clone());
         }
@@ -174,9 +201,13 @@ impl SvDBPython {
         let embedded_queries = embedded_queries?;
 
         // GIL-free batch search
+        let query_vectors: Vec<Vector> = embedded_queries.iter()
+            .map(|arr| Vector::new(arr.to_vec()))
+            .collect();
+        
         let results = Python::with_gil(|py| {
             py.allow_threads(|| {
-                crate::search::search_batch(&self.db.vector_storage, &embedded_queries, k)
+                self.db.search_batch(&query_vectors, k)
             })
         }).map_err(|e| PyValueError::new_err(format!("Batch search failed: {}", e)))?;
 
@@ -186,8 +217,8 @@ impl SvDBPython {
             .map(|batch| {
                 batch
                     .into_iter()
-                    .filter_map(|(id, score)| {
-                        self.reverse_id_map.get(&id).map(|s| (s.clone(), score))
+                    .filter_map(|result| {
+                        self.reverse_id_map.get(&result.id).map(|s| (s.clone(), result.score))
                     })
                     .collect()
             })
@@ -228,12 +259,34 @@ impl SvDBPython {
         Ok(self.id_map.keys().cloned().collect())
     }
 
+    /// Get compression statistics (only for PQ mode)
+    fn get_stats(&self) -> PyResult<Option<(u64, u64, f32)>> {
+        if let Some(stats) = self.db.get_stats() {
+            Ok(Some((
+                stats.vector_count,
+                stats.memory_bytes,
+                stats.compression_ratio,
+            )))
+        } else {
+            Ok(None)
+        }
+    }
+
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!(
-            "SvDB(vectors={}, pending_flush={})",
-            self.count().unwrap_or(0),
-            self.pending_flush
-        ))
+        if let Some(stats) = self.db.get_stats() {
+            Ok(format!(
+                "SvDB(vectors={}, memory={}MB, compression={:.1}x)",
+                stats.vector_count,
+                stats.memory_bytes / 1024 / 1024,
+                stats.compression_ratio
+            ))
+        } else {
+            Ok(format!(
+                "SvDB(vectors={}, pending_flush={})",
+                self.count().unwrap_or(0),
+                self.pending_flush
+            ))
+        }
     }
 }
 

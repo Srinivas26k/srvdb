@@ -33,6 +33,29 @@ impl SearchResult {
 /// Full precision embedded vector (1536 dimensions = 6144 bytes)
 pub type EmbeddedVector = [f32; 1536];
 
+/// Quantized vector (192 bytes - 32x compression via Product Quantization)
+pub type QuantizedVector = [u8; 192];
+
+/// Quantization configuration
+#[derive(Debug, Clone, Copy)]
+pub struct QuantizationConfig {
+    pub enabled: bool,
+    pub m: usize,        // Number of sub-quantizers (192)
+    pub k: usize,        // Centroids per sub-quantizer (256)
+    pub d_sub: usize,    // Dimensions per sub-space (8)
+}
+
+impl Default for QuantizationConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,  // Full precision by default
+            m: 192,
+            k: 256,
+            d_sub: 8,
+        }
+    }
+}
+
 /// Convert Vec<f32> to fixed-size array
 pub fn to_embedded_vector(data: &[f32]) -> anyhow::Result<EmbeddedVector> {
     if data.len() != 1536 {
@@ -50,12 +73,13 @@ pub struct VectorHeader {
     pub magic: u32,
     pub count: u64,
     pub version: u16,
-    pub reserved: [u8; 6],
+    pub quantized: bool,  // PQ enabled flag
+    pub reserved: [u8; 5],
 }
 
 impl VectorHeader {
     pub const MAGIC: u32 = 0x53764442; // "SvDB"
-    pub const VERSION: u16 = 2; // Version 2: Full precision
+    pub const VERSION: u16 = 3; // Version 3: PQ support
     pub const SIZE: usize = std::mem::size_of::<VectorHeader>();
 
     pub fn new() -> Self {
@@ -63,7 +87,18 @@ impl VectorHeader {
             magic: Self::MAGIC,
             count: 0,
             version: Self::VERSION,
-            reserved: [0; 6],
+            quantized: false,
+            reserved: [0; 5],
+        }
+    }
+    
+    pub fn new_quantized() -> Self {
+        Self {
+            magic: Self::MAGIC,
+            count: 0,
+            version: Self::VERSION,
+            quantized: true,
+            reserved: [0; 5],
         }
     }
 }

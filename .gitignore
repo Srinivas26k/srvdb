@@ -1,8 +1,3 @@
 /target
-svdb/BENCHMARK.md
-svdb/CRITICAL_FIX.md
-svdb/PYPI_QUICKSTART.md
-svdb/PYTHON_SUMMARY.md
-svdb/PYTHON.md
-svdb/SIMD_OPTIMIZATION.md
+*test_docs
 svdb/bench_release_db

@@ -1,10 +1,10 @@
 [package]
 name = "srvdb"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 authors = ["Srinivas Nampalli"]
 description = "Zero-Gravity Embedded Vector Database - Offline-first, RAM-efficient vector search"
-license = "MIT OR Apache-2.0"
+license = "GNU Affero General Public License v3.0"
 repository = "https://github.com/Srinivas26k/svdb"
 keywords = ["vector", "database", "embedding", "search", "quantization"]
 categories = ["database", "embedded"]
@@ -19,6 +19,10 @@ memmap2 = "0.9"
 redb = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+# Product Quantization
+bincode = "1.3"
+rand = "0.8"
 
 # SIMD acceleration
 simsimd = "6.2"
