@@ -121,7 +121,7 @@ fn generate_adversarial_data(n: usize, dim: usize) -> (Vec<Vec<f32>>, Vec<String
 fn generate_random_queries(n: usize, dim: usize) -> Vec<Vec<f32>> {
     (0..n).map(|_| rand::random()).map(|_| {
         let mut v = (0..dim).map(|_| rand::random()).collect::<Vec<f32>>();
-        let norm = (v.iter().map(|x| x*x).sum::<f32>().sqrt();
+        let norm = v.iter().map(|x| x*x).sum::<f32>().sqrt();
         for v in v.iter_mut() {
             *v /= norm;
         }

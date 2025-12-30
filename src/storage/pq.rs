@@ -12,7 +12,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use crate::quantization::{ProductQuantizer, QuantizedVector};
+use crate::utils::quantization::{ProductQuantizer, QuantizedVector};
 use crate::types::VectorHeader;
 
 const QVECTOR_SIZE: usize = std::mem::size_of::<QuantizedVector>();

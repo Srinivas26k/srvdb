@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Maintains **100% recall** on tested datasets.
 - **HNSW Indexing Integration**:
     - Added initial support for HNSW graph-based indexing for faster search (O(log n)).
+- **IVF-HNSW Hybrid Indexing**:
+    - Implemented **Inverted File System (IVF)** with HNSW refinement (`IVFIndex`).
+    - Uses **K-Means Clustering** to partition vector space into Voronoi cells.
+    - Two-stage search: **Coarse Search** (Centroids) + **Fine Search** (HNSW within partitions).
+    - Scalable to **100k+ vectors** with sub-20ms latency and minimal memory overhead.
+    - Python API: `db.set_mode("ivf")`, `db.configure_ivf()`, `db.train_ivf()`.
 
 ### 🐛 Bug Fixes
 - Fixed critical bug where SQ8 storage was wrapping explicit `f32` floats, negating compression benefits.
@@ -25,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed routing logic in `SvDB::add`, `SvDB::search`, and `SvDB::persist` to correctly handle `ScalarQuantizedStorage`.
 - Fixed multiple compilation errors related to type mismatches and missing imports during the v0.2.0 upgrade.
 - Fixed Python binding initialization for SQ8 mode (`new_scalar_quantized`).
+- Fixed **HNSW Panic** where inserting a node into a new top layer attempted to link to non-existent nodes.
+- Fixed persistence race condition where training data was not visible due to missing flush.
 
 ### ⚡ Performance
 - **Ingestion**: Optimized `add_batch` implementation for SQ8, achieving ~25k vectors/sec on standard hardware.

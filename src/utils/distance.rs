@@ -9,8 +9,8 @@
 use anyhow::Result;
 use rayon::prelude::*;
 use std::cmp::Ordering;
-use crate::storage::VectorStorage;
-use crate::quantized_storage::QuantizedVectorStorage;
+use crate::VectorStorage;
+use crate::storage::pq::QuantizedVectorStorage;
 use simsimd::SpatialSimilarity;
 
 const BATCH_SIZE: usize = 256; // Process 256 vectors at once for cache efficiency

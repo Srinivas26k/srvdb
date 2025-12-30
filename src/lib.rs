@@ -15,32 +15,48 @@
 use anyhow::Result;
 use std::path::Path;
 
-pub mod types;
-pub use types::{Vector, SearchResult};
+pub mod api;
+pub mod core;
+pub mod index;
+pub mod storage;
+pub mod utils;
 
-mod storage;
-mod search;
-mod metadata;
-pub mod quantization; // Public for PQ access
-pub mod quantized_storage; // Public for quantized storage
-pub mod hnsw; // Public for HNSW access
+// Re-export 'types' module alias for backward compatibility (crate::types::Vector)
+pub use core::types; 
+pub use core::types::{Vector, SearchResult, IndexType, QuantizationConfig};
+pub use core::strategy::IndexMode;
 
+// Feature Flags
 #[cfg(feature = "pyo3")]
-pub mod python_bindings;
+pub use api::python as python_bindings;
 
-pub mod strategy;
-pub mod auto_tune;
-pub mod ivf;
-pub mod ivf_storage;
-pub mod hybrid_search;
+// Strategy and AutoTune aliases
+pub use core::strategy;
+pub use core::auto_tune;
 
-pub use storage::VectorStorage;
+// Index Aliases
+pub use index::ivf;
+pub use index::hybrid as hybrid_search;
+pub use index::hnsw;
+
+// Storage Aliases
+pub use storage::flat::VectorStorage;
+pub use storage::pq::QuantizedVectorStorage;
+pub use storage::sq::ScalarQuantizedStorage;
+
+// Component Exports
+pub use index::hnsw::{HNSWIndex, HNSWConfig};
+pub use index::ivf::{IVFIndex, IVFConfig};
+pub use storage::flat::VectorStorage as DynamicVectorStorage; // Alias if needed
+pub use utils::quantization::{ProductQuantizer, QuantizedVector};
 pub use metadata::MetadataStore;
-pub use quantization::{ProductQuantizer, QuantizedVector};
-pub use quantized_storage::QuantizedVectorStorage;
-pub use hnsw::{HNSWIndex, HNSWConfig};
-pub use strategy::IndexMode;
-pub use ivf::{IVFIndex, IVFConfig};
+
+// Internal Legacy Aliases
+use utils::distance as search; 
+use storage::pq as quantized_storage;
+
+// Modules that are still inline (if any)
+mod metadata; // Still separate file or inline? metadata.rs exists.
 
 /// High-performance vector database trait
 pub trait VectorEngine {
@@ -57,16 +73,16 @@ pub trait VectorEngine {
 /// Main database implementation
 pub struct SvDB {
     pub(crate) path: std::path::PathBuf,
-    pub(crate) vector_storage: Option<VectorStorage>,
-    pub(crate) quantized_storage: Option<QuantizedVectorStorage>,
-    pub(crate) scalar_storage: Option<storage::ScalarQuantizedStorage>,
+    pub(crate) vector_storage: Option<storage::flat::VectorStorage>,
+    pub(crate) quantized_storage: Option<storage::pq::QuantizedVectorStorage>,
+    pub(crate) scalar_storage: Option<storage::sq::ScalarQuantizedStorage>,
     pub(crate) metadata_store: MetadataStore,
-    pub(crate) config: types::QuantizationConfig,
-    pub(crate) index_type: types::IndexType,
-    pub(crate) hnsw_index: Option<hnsw::HNSWIndex>,
-    pub(crate) hnsw_config: Option<hnsw::HNSWConfig>,
-    pub(crate) ivf_index: Option<IVFIndex>,
-    pub(crate) ivf_config: Option<IVFConfig>,
+    pub(crate) config: core::types::QuantizationConfig,
+    pub(crate) index_type: core::types::IndexType,
+    pub(crate) hnsw_index: Option<index::hnsw::HNSWIndex>,
+    pub(crate) hnsw_config: Option<index::hnsw::HNSWConfig>,
+    pub(crate) ivf_index: Option<index::ivf::IVFIndex>,
+    pub(crate) ivf_config: Option<index::ivf::IVFConfig>,
     pub current_mode: IndexMode,
 }
 
@@ -403,7 +419,7 @@ impl VectorEngine for SvDB {
             // SQ8 lacks a dedicated batch search for now, use loop
              let mut results = Vec::with_capacity(queries.len());
              for query in embedded_queries {
-                 results.push(scalar.search(&query, k)?);
+                 results.push(scalar.search(query.as_slice(), k)?);
              }
              results
         } else if self.config.enabled {
@@ -455,9 +471,8 @@ impl VectorEngine for SvDB {
             scalar.flush()?;
         }
         
-        // IVF Persistence
         if let Some(ref ivf) = self.ivf_index {
-            ivf_storage::IVFStorage::save(ivf, &self.path)?;
+            storage::ivf::IVFStorage::save(ivf, &self.path)?;
         }
         
         // HNSW Persistence
@@ -580,7 +595,7 @@ let _dimension = training_vectors[0].data.len();
             anyhow::bail!("Training vectors required for scalar quantization");
         }
 
-        let scalar_storage = crate::storage::ScalarQuantizedStorage::new_with_training(
+        let scalar_storage = ScalarQuantizedStorage::new_with_training(
             path,
             dimension,
             training_vectors,
@@ -688,7 +703,7 @@ let _dimension = training_vectors[0].data.len();
         
         let mut hnsw_cfg = hnsw_config;
         hnsw_cfg.use_quantization = true;
-        let hnsw_index = hnsw::HNSWIndex::new(hnsw_cfg.clone());
+        let _hnsw_index = index::hnsw::HNSWIndex::new(hnsw_cfg.clone());
         
         Ok(Self {
             path: db_path.to_path_buf(),
@@ -698,7 +713,7 @@ let _dimension = training_vectors[0].data.len();
             metadata_store,
             config,
             index_type: types::IndexType::HNSWQuantized,
-            hnsw_index: Some(hnsw_index),
+            hnsw_index: Some(index::hnsw::HNSWIndex::new(hnsw_cfg.clone())),
             hnsw_config: Some(hnsw_cfg),
             ivf_index: None,
             ivf_config: None,

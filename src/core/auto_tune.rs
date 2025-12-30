@@ -196,7 +196,7 @@ fn migrate_to_hnsw(db: &mut SvDB) -> anyhow::Result<()> {
 }
 
 fn migrate_to_sq8(db: &mut SvDB) -> anyhow::Result<()> {
-    use crate::storage::ScalarQuantizedStorage;
+    use crate::ScalarQuantizedStorage;
     use crate::types::{QuantizationConfig, QuantizationMode, IndexType};
     
     // 1. Read all vectors (or sample) for training
