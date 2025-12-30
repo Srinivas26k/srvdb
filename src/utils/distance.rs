@@ -186,7 +186,7 @@ pub fn search_hnsw_quantized(
 mod tests {
     use super::*;
     use tempfile::TempDir;
-    use crate::storage::VectorStorage;
+    use crate::VectorStorage;
 
     #[test]
     fn test_batch_search() {
