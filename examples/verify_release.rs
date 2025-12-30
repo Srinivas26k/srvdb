@@ -1,5 +1,5 @@
 use srvdb::types::DatabaseConfig;
-use srvdb::{IndexMode, SvDB, Vector, VectorEngine};
+use srvdb::{IndexMode, SrvDB, Vector, VectorEngine};
 use std::path::Path;
 use std::time::Instant;
 
@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let config = DatabaseConfig::new(dim)?;
-    let mut db = SvDB::new_with_config(path_flat, config)?;
+    let mut db = SrvDB::new_with_config(path_flat, config)?;
     db.set_mode(IndexMode::Flat);
 
     let (vecs, ids) = generate_data(n_vecs, dim);
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let start_train = Instant::now();
     // Re-create DB for SQ8
-    let mut db_sq = SvDB::new_scalar_quantized(path_sq, dim, &raw_vecs)?;
+    let mut db_sq = SrvDB::new_scalar_quantized(path_sq, dim, &raw_vecs)?;
     // Note: new_scalar_quantized trains AND initializes storage
     // But it does NOT ingest the vectors (it just uses them for training).
     // So we must add them.

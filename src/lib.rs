@@ -1,4 +1,4 @@
-//! # SvDB - Ultra-Fast Embedded Vector Database
+//! # SrvDB - Ultra-Fast Embedded Vector Database
 //!
 //! Production-grade vector database optimized for:
 //! - 100k+ vectors/sec ingestion
@@ -73,7 +73,7 @@ pub trait VectorEngine {
 }
 
 /// Main database implementation
-pub struct SvDB {
+pub struct SrvDB {
     pub(crate) path: std::path::PathBuf,
     pub(crate) vector_storage: Option<storage::flat::VectorStorage>,
     pub(crate) quantized_storage: Option<storage::pq::QuantizedVectorStorage>,
@@ -88,7 +88,7 @@ pub struct SvDB {
     pub current_mode: IndexMode,
 }
 
-impl SvDB {
+impl SrvDB {
     /// Set the indexing strategy mode.
     ///
     /// If `Auto` is selected, the database will analyze the system and dataset
@@ -212,7 +212,7 @@ impl SvDB {
     }
 }
 
-impl VectorEngine for SvDB {
+impl VectorEngine for SrvDB {
     fn new(path: &str) -> Result<Self> {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
@@ -503,7 +503,7 @@ impl VectorEngine for SvDB {
 }
 
 // Additional methods
-impl SvDB {
+impl SrvDB {
     /// Create new database with configuration
     pub fn new_with_config(path: &str, config: types::DatabaseConfig) -> Result<Self> {
         let db_path = Path::new(path);
@@ -743,7 +743,7 @@ mod tests {
     #[test]
     fn test_batch_operations() {
         let temp_dir = TempDir::new().unwrap();
-        let mut db = SvDB::new(temp_dir.path().to_str().unwrap()).unwrap();
+        let mut db = SrvDB::new(temp_dir.path().to_str().unwrap()).unwrap();
 
         let vectors: Vec<Vector> = (0..100)
             .map(|i| Vector::new(vec![i as f32 / 100.0; 1536]))
@@ -767,7 +767,7 @@ mod tests {
         use std::thread;
 
         let temp_dir = TempDir::new().unwrap();
-        let mut db = SvDB::new(temp_dir.path().to_str().unwrap()).unwrap();
+        let mut db = SrvDB::new(temp_dir.path().to_str().unwrap()).unwrap();
 
         // Add vectors
         let vectors: Vec<Vector> = (0..1000)

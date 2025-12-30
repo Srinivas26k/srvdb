@@ -146,7 +146,7 @@ pub struct VectorHeader {
 }
 
 impl VectorHeader {
-    pub const MAGIC: u32 = 0x53764442; // "SvDB"
+    pub const MAGIC: u32 = 0x53764442; // "SrvDB"
     pub const VERSION: u16 = 4; // Version 4: Dynamic dimensions
     pub const SIZE: usize = std::mem::size_of::<VectorHeader>();
 

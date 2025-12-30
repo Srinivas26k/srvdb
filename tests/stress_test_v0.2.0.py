@@ -41,7 +41,7 @@ def run_stress_test():
     # ---------------------------------------------------------
     print(f"\n[1/2] Building FLAT Index (Baseline)...")
     start_ram = get_ram_mb()
-    db_flat = srvdb.SvDBPython(DB_FLAT, dimension=DIMENSION)
+    db_flat = srvdb.SrvDBPython(DB_FLAT, dimension=DIMENSION)
     
     t0 = time.time()
     for i in range(0, N_VECTORS, BATCH_SIZE):
@@ -67,7 +67,7 @@ def run_stress_test():
     training_data = generate_batch(1000, DIMENSION)
     
     # Initialize SQ8
-    db_sq8 = srvdb.SvDBPython.new_scalar_quantized(
+    db_sq8 = srvdb.SrvDBPython.new_scalar_quantized(
         DB_SQ8, 
         dimension=DIMENSION, 
         training_vectors=training_data

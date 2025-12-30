@@ -14,7 +14,7 @@ This guide helps you upgrade from SrvDB v0.1.x to v0.2.0. This release introduce
 Old:
 ```rust
 // v0.1.x (Hardcoded 1536 dimensions)
-let mut db = SvDB::new("/path/to/db").unwrap();
+let mut db = SrvDB::new("/path/to/db").unwrap();
 ```
 
 New:
@@ -23,7 +23,7 @@ New:
 use srvdb::core::types::DatabaseConfig;
 
 let config = DatabaseConfig::new(1536)?; // Specify dimension
-let mut db = srvdb::SvDB::new_with_config("/path/to/db", config)?;
+let mut db = srvdb::SrvDB::new_with_config("/path/to/db", config)?;
 ```
 
 ### 2. Module Imports
@@ -51,14 +51,14 @@ You must now provide the `dimension` argument if you are not using the default (
 Old:
 ```python
 # v0.1.x
-db = srvdb.SvDBPython("./db")
+db = srvdb.SrvDBPython("./db")
 ```
 
 New:
 ```python
 # v0.2.0
 # Support for 384, 768, 1536, etc.
-db = srvdb.SvDBPython("./db", dimension=768)
+db = srvdb.SrvDBPython("./db", dimension=768)
 ```
 
 ### 2. New Modes
@@ -66,10 +66,10 @@ You can explicitly set modes like SQ8 or HNSW during init or runtime:
 
 ```python
 # Create SQ8 compressed database (4x smaller)
-db = srvdb.SvDBPython.new_scalar_quantized("./db", 768, training_vectors)
+db = srvdb.SrvDBPython.new_scalar_quantized("./db", 768, training_vectors)
 
 # Create HNSW index
-db = srvdb.SvDBPython("./db", 768, mode="hnsw")
+db = srvdb.SrvDBPython("./db", 768, mode="hnsw")
 ```
 
 ## Troubleshooting

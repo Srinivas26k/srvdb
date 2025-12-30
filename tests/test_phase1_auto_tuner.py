@@ -140,7 +140,7 @@ class TestAutoTuner:
             
             try:
                 # Initialize with AUTO mode
-                db = srvdb.SvDBPython(db_path, dimension=TEST_DIM, mode="auto")
+                db = srvdb.SrvDBPython(db_path, dimension=TEST_DIM, mode="auto")
                 
                 # Inject specific dataset size
                 # We use 'metadata' to simulate the index state if needed, 
@@ -198,7 +198,7 @@ class TestAutoTuner:
         
         try:
             print_info("Initializing SrvDB with mode='auto'...")
-            db = srvdb.SvDBPython(db_path, dimension=TEST_DIM, mode="auto") # Explicitly pass dim and mode
+            db = srvdb.SrvDBPython(db_path, dimension=TEST_DIM, mode="auto") # Explicitly pass dim and mode
             
             # Check if 'auto' is supported or if default is flat
             # Assuming 'mode' param exists based on v2.0.0 context
@@ -233,7 +233,7 @@ class TestAutoTuner:
         ids = [f"doc_{i}" for i in range(5_000)]
         
         try:
-            db = srvdb.SvDBPython(db_path, dimension=TEST_DIM)
+            db = srvdb.SrvDBPython(db_path, dimension=TEST_DIM)
             
             # Start with ingestion
             db.add(ids=ids, embeddings=vectors.tolist(), metadatas=ids)

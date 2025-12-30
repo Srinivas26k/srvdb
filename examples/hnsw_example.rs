@@ -1,3 +1,5 @@
+use srvdb::core::types::DatabaseConfig;
+use srvdb::index::hnsw::HNSWConfig;
 /// Example: Using HNSW for fast approximate nearest neighbor search
 ///
 /// This example demonstrates:
@@ -5,9 +7,7 @@
 /// 2. Adding vectors (automatically builds the graph)
 /// 3. Searching with O(log n) complexity
 /// 4. Comparing HNSW vs flat search performance
-use srvdb::{SvDB, VectorEngine};
-use srvdb::core::types::DatabaseConfig;
-use srvdb::index::hnsw::HNSWConfig;
+use srvdb::{SrvDB, VectorEngine};
 use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -46,21 +46,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n--- Part 1: Flat Search (baseline) ---");
     // Explicit config for Flat mode
     let config = DatabaseConfig::new(dim)?;
-    let mut db_flat = SvDB::new_with_config("./example_flat_db", config)?;
+    let mut db_flat = SrvDB::new_with_config("./example_flat_db", config)?;
 
     println!("Adding {} vectors...", n_vectors);
     let start = Instant::now();
     // Convert to slice of refs if needed? No, add_batch takes &[Vec<f32>]? Or &[Vector]?
     // Wait, refactored add_batch takes &[Vector].
     // So we need to convert Vec<f32> -> Vector.
-    // Actually, let's check lib.rs signature. 
+    // Actually, let's check lib.rs signature.
     // It takes &[Vector].
     // Helper function to wrap:
     let wrapped_vectors: Vec<srvdb::core::types::Vector> = vectors
         .iter()
         .map(|v| srvdb::core::types::Vector::new(v.clone()))
         .collect();
-    
+
     db_flat.add_batch(&wrapped_vectors, &metadata)?;
     let add_time = start.elapsed();
     println!("✓ Added in {:?}", add_time);
@@ -103,7 +103,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         hnsw_config.m, hnsw_config.ef_construction, hnsw_config.ef_search
     );
 
-    let mut db_hnsw = SvDB::new_with_hnsw("./example_hnsw_db", dim, hnsw_config)?;
+    let mut db_hnsw = SrvDB::new_with_hnsw("./example_hnsw_db", dim, hnsw_config)?;
 
     println!("Adding {} vectors (building HNSW graph)...", n_vectors);
     let start = Instant::now();

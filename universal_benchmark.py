@@ -181,9 +181,9 @@ def run_benchmark():
             if mode == 'pq':
                 # Train PQ on subset (1k or 10%)
                 train_subset = max(1000, len(train_vecs) // 10)
-                db = srvdb.SvDBPython.new_quantized(db_path, train_vecs[:train_subset].tolist())
+                db = srvdb.SrvDBPython.new_quantized(db_path, train_vecs[:train_subset].tolist())
             else:
-                db = srvdb.SvDBPython(db_path)
+                db = srvdb.SrvDBPython(db_path)
             
             init_time = time.time() - t0
             

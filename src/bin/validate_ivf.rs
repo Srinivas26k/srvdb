@@ -1,5 +1,5 @@
 use srvdb::ivf::IVFConfig;
-use srvdb::{IndexMode, SvDB, Vector, VectorEngine};
+use srvdb::{IndexMode, SrvDB, Vector, VectorEngine};
 use std::path::Path;
 use std::time::Instant;
 
@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         hnsw_config: Default::default(),
     };
 
-    let mut db = SvDB::new(db_path.to_str().unwrap())?;
+    let mut db = SrvDB::new(db_path.to_str().unwrap())?;
 
     // Ingest First
     println!("   -> Ingesting vectors...");
@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Reload DB to test persistence
     println!("\n[3/3] Persistence Check & Search...");
     drop(db);
-    let mut db_reloaded = SvDB::new(db_path.to_str().unwrap())?;
+    let mut db_reloaded = SrvDB::new(db_path.to_str().unwrap())?;
     // Ensure IVF mode is active (load logic should handle this, or we set it)
     db_reloaded.set_mode(IndexMode::Ivf); // Force mode if auto-detetion isn't strictly persisting "current_mode" pref (it persists index type though)
 

@@ -92,7 +92,7 @@ import srvdb
 import numpy as np
 
 # Initialize database
-db = srvdb.SvDBPython("./vectors")
+db = srvdb.SrvDBPython("./vectors")
 
 # Bulk insert
 ids = [f"doc_{i}" for i in range(10000)]
@@ -231,10 +231,10 @@ db.add(
 
 ```python
 # Flat mode (default)
-db = srvdb.SvDBPython(path: str)
+db = srvdb.SrvDBPython(path: str)
 
 # HNSW mode
-db = srvdb.SvDBPython.new_with_hnsw(
+db = srvdb.SrvDBPython.new_with_hnsw(
     path: str,
     m: int = 16,
     ef_construction: int = 200,
@@ -242,7 +242,7 @@ db = srvdb.SvDBPython.new_with_hnsw(
 )
 
 # HNSW + PQ mode
-db = srvdb.SvDBPython.new_with_hnsw_quantized(
+db = srvdb.SrvDBPython.new_with_hnsw_quantized(
     path: str,
     training_vectors: List[List[float]],
     m: int = 16,
@@ -251,7 +251,7 @@ db = srvdb.SvDBPython.new_with_hnsw_quantized(
 )
 
 # IVF-HNSW mode
-db = srvdb.SvDBPython(path: str)
+db = srvdb.SrvDBPython(path: str)
 db.set_mode("ivf")
 db.configure_ivf(nlist=1024, nprobe=16)
 db.train_ivf(ids, vectors)
@@ -306,7 +306,7 @@ db.train_ivf(
 
 ```python
 # High accuracy (slower, more memory)
-db = srvdb.SvDBPython.new_with_hnsw(
+db = srvdb.SrvDBPython.new_with_hnsw(
     path,
     m=32,              # More connections
     ef_construction=500,
@@ -314,7 +314,7 @@ db = srvdb.SvDBPython.new_with_hnsw(
 )
 
 # Balanced (recommended)
-db = srvdb.SvDBPython.new_with_hnsw(
+db = srvdb.SrvDBPython.new_with_hnsw(
     path,
     m=16,
     ef_construction=200,
@@ -322,7 +322,7 @@ db = srvdb.SvDBPython.new_with_hnsw(
 )
 
 # Fast (lower accuracy)
-db = srvdb.SvDBPython.new_with_hnsw(
+db = srvdb.SrvDBPython.new_with_hnsw(
     path,
     m=8,
     ef_construction=100,

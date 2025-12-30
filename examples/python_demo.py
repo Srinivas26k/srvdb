@@ -1,7 +1,7 @@
 """
-SvDB Python Example - ChromaDB-style API
+SrvDB Python Example - ChromaDB-style API
 
-Demonstrates using SvDB from Python with the familiar ChromaDB API pattern.
+Demonstrates using SrvDB from Python with the familiar ChromaDB API pattern.
 """
 
 import srvdb
@@ -10,8 +10,8 @@ import os
 import shutil
 
 def main():
-    print("🚀 SvDB Python Bindings Demo\n")
-    print(f"SvDB Version: {srvdb.__version__}\n")
+    print("🚀 SrvDB Python Bindings Demo\n")
+    print(f"SrvDB Version: {srvdb.__version__}\n")
 
     # Cleanup previous run
     if os.path.exists("./python_demo_db"):
@@ -21,7 +21,7 @@ def main():
     print("Initializing database...")
     # v0.2.0 requirement: dimension argument
     dim = 1536
-    db = srvdb.SvDBPython("./python_demo_db", dimension=dim)
+    db = srvdb.SrvDBPython("./python_demo_db", dimension=dim)
     print(f"✓ Created: {db}\n")
 
     # Prepare data
@@ -91,7 +91,7 @@ def main():
         
     print("Initializing SQ8 quantized database (4x compression)...")
     # SQ8 needs training data to init
-    db_sq = srvdb.SvDBPython.new_scalar_quantized("./python_sq8_db", dim, embeddings)
+    db_sq = srvdb.SrvDBPython.new_scalar_quantized("./python_sq8_db", dim, embeddings)
     print("✓ SQ8 Database initialized")
     
     db_sq.add(["sq_doc1"], [embeddings[0]], ['{"info": "minified"}'])

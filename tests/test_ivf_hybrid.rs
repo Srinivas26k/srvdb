@@ -1,4 +1,4 @@
-use srvdb::{IVFConfig, IndexMode, SvDB, VectorEngine};
+use srvdb::{IVFConfig, IndexMode, SrvDB, VectorEngine};
 use std::path::Path;
 use std::time::Instant;
 
@@ -29,7 +29,7 @@ fn test_ivf_pipeline() -> Result<(), Box<dyn std::error::Error>> {
 
     // Use standard constructor with config for dimension
     let config = srvdb::types::DatabaseConfig::new(dim).expect("Invalid config");
-    let mut db = SvDB::new_with_config(db_path.to_str().unwrap(), config)?;
+    let mut db = SrvDB::new_with_config(db_path.to_str().unwrap(), config)?;
 
     // Configure for IVF
     db.set_mode(IndexMode::Ivf);

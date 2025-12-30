@@ -1,21 +1,24 @@
-//! Basic example demonstrating SvDB v0.2.0 usage
+//! Basic example demonstrating SrvDB v0.2.0 usage
 
 use anyhow::Result;
-use srvdb::{SvDB, Vector, VectorEngine};
 use srvdb::core::types::DatabaseConfig;
+use srvdb::{SrvDB, Vector, VectorEngine};
 
 fn main() -> Result<()> {
-    println!("🚀 SvDB v0.2.0 - Zero-Gravity Vector Engine Demo\n");
+    println!("🚀 SrvDB v0.2.0 - Zero-Gravity Vector Engine Demo\n");
 
     // Initialize database configuration
     // 1536 is common for OpenAI embeddings
     let dimension = 1536;
     let config = DatabaseConfig::new(dimension)?;
 
-    println!("Initializing database at ./demo_db with {} dimensions...", dimension);
-    
+    println!(
+        "Initializing database at ./demo_db with {} dimensions...",
+        dimension
+    );
+
     // Create database with explicit config
-    let mut db = SvDB::new_with_config("./demo_db", config)?;
+    let mut db = SrvDB::new_with_config("./demo_db", config)?;
     println!("✓ Database initialized\n");
 
     // Create some example vectors

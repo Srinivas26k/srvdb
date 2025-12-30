@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 - Fixed critical bug where SQ8 storage was wrapping explicit `f32` floats, negating compression benefits.
 - Fixed `panic` in `select_top_k` when candidate set was empty.
-- Fixed routing logic in `SvDB::add`, `SvDB::search`, and `SvDB::persist` to correctly handle `ScalarQuantizedStorage`.
+- Fixed routing logic in `SrvDB::add`, `SrvDB::search`, and `SrvDB::persist` to correctly handle `ScalarQuantizedStorage`.
 - Fixed multiple compilation errors related to type mismatches and missing imports during the v0.2.0 upgrade.
 - Fixed Python binding initialization for SQ8 mode (`new_scalar_quantized`).
 - Fixed **HNSW Panic** where inserting a node into a new top layer attempted to link to non-existent nodes.
@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Zero-Copy**: Leveraged memory mapping (`mmap`) for instant startup and low memory footprint in SQ8 mode.
 
 ### 🛠 breaking Changes
-- `SvDB::new` and related constructors now require a `dimension` argument (or infer it from config).
+- `SrvDB::new` and related constructors now require a `dimension` argument (or infer it from config).
 - Python API updated to accept `dimension` in constructor.
 - Data format change: v0.2.0 storage format is not backward compatible with v0.1.x due to dynamic dimension header changes.
 

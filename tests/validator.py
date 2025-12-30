@@ -27,7 +27,7 @@ class SrvDBValidator:
         
         for dim in test_dims:
             try:
-                db = srvdb.SvDBPython(f"./test_db_{dim}", dimension=dim)
+                db = srvdb.SrvDBPython(f"./test_db_{dim}", dimension=dim)
                 
                 # Create and add test vector
                 vector = np.random.randn(dim).astype(np.float32)
@@ -71,7 +71,7 @@ class SrvDBValidator:
         training_vectors = vectors[:200].tolist()
         
         start_time = time.time()
-        db_sq8 = srvdb.SvDBPython.new_scalar_quantized(
+        db_sq8 = srvdb.SrvDBPython.new_scalar_quantized(
             "./test_sq8",
             dimension=dim,
             training_vectors=training_vectors
@@ -123,7 +123,7 @@ class SrvDBValidator:
         """Test 3: Validate improved error messages"""
         print("\n=== Test 3: Error Messages ===")
         
-        db = srvdb.SvDBPython("./test_errors", dimension=384)
+        db = srvdb.SrvDBPython("./test_errors", dimension=384)
         
         # Test 1: Dimension mismatch
         try:
@@ -139,7 +139,7 @@ class SrvDBValidator:
         
         # Test 2: Invalid dimension at creation
         try:
-            bad_db = srvdb.SvDBPython("./test_bad", dimension=50)
+            bad_db = srvdb.SrvDBPython("./test_bad", dimension=50)
             print("✗ Invalid dimension check FAILED")
             return False
         except ValueError as e:
@@ -148,7 +148,7 @@ class SrvDBValidator:
         
         # Test 3: Helpful common models hint
         try:
-            db2 = srvdb.SvDBPython("./test_errors2", dimension=1024)
+            db2 = srvdb.SrvDBPython("./test_errors2", dimension=1024)
             wrong_vec = np.random.randn(768).tolist()
             db2.add(["test"], [wrong_vec], ['{}'])
         except ValueError as e:
@@ -185,7 +185,7 @@ class SrvDBValidator:
         # Test SQ8
         print("\nTesting SQ8...")
         start = time.time()
-        db_sq8 = srvdb.SvDBPython.new_scalar_quantized(
+        db_sq8 = srvdb.SrvDBPython.new_scalar_quantized(
             "./bench_sq8", dim, training
         )
         sq8_train_time = time.time() - start
@@ -214,7 +214,7 @@ class SrvDBValidator:
         
         # Compare with Flat
         print("\nTesting Flat (baseline)...")
-        db_flat = srvdb.SvDBPython("./bench_flat", dimension=dim, mode='flat')
+        db_flat = srvdb.SrvDBPython("./bench_flat", dimension=dim, mode='flat')
         db_flat.add(ids, vectors.tolist(), metas)
         db_flat.persist()
         

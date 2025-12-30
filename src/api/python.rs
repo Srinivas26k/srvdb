@@ -8,8 +8,8 @@ use rustc_hash::FxHashMap;
 use serde_json;
 
 #[pyclass]
-pub struct SvDBPython {
-    db: crate::SvDB,
+pub struct SrvDBPython {
+    db: crate::SrvDB,
     id_map: FxHashMap<String, u64>,
     reverse_id_map: FxHashMap<u64, String>,
     dimension: usize,
@@ -17,7 +17,7 @@ pub struct SvDBPython {
 }
 
 #[pymethods]
-impl SvDBPython {
+impl SrvDBPython {
     /// Create new database with specified dimension (128-4096)
     ///
     /// Args:
@@ -26,8 +26,8 @@ impl SvDBPython {
     ///     mode: Index mode - 'flat', 'hnsw', 'sq8', 'pq' (default: 'flat')
     ///
     /// Examples:
-    ///     >>> db = srvdb.SvDBPython("./db", dimension=384)  # MiniLM
-    ///     >>> db = srvdb.SvDBPython("./db", dimension=768, mode='sq8')  # Cohere
+    ///     >>> db = srvdb.SrvDBPython("./db", dimension=384)  # MiniLM
+    ///     >>> db = srvdb.SrvDBPython("./db", dimension=768, mode='sq8')  # Cohere
     #[new]
     #[pyo3(signature = (path, dimension=1536, mode="flat"))]
     fn new(path: String, dimension: usize, mode: &str) -> PyResult<Self> {
@@ -76,7 +76,7 @@ impl SvDBPython {
             }
         }
 
-        let mut db = crate::SvDB::new_with_config(&path, config)
+        let mut db = crate::SrvDB::new_with_config(&path, config)
             .map_err(|e| PyRuntimeError::new_err(format!("Database init failed: {}", e)))?;
 
         // Apply Auto Strategy if requested
@@ -123,7 +123,7 @@ impl SvDBPython {
         // config.index_type = crate::types::IndexType::HNSW;
 
         let hnsw_config = crate::hnsw::HNSWConfig::new(m, ef_construction, ef_search);
-        let db = crate::SvDB::new_with_hnsw(&path, dimension, hnsw_config)
+        let db = crate::SrvDB::new_with_hnsw(&path, dimension, hnsw_config)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
         Ok(Self {
@@ -170,7 +170,7 @@ impl SvDBPython {
             }
         }
 
-        let db = crate::SvDB::new_scalar_quantized(&path, dimension, &training_vectors)
+        let db = crate::SrvDB::new_scalar_quantized(&path, dimension, &training_vectors)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
         Ok(Self {
@@ -424,7 +424,7 @@ impl SvDBPython {
         };
 
         Ok(format!(
-            "SvDB(dimension={}, mode='{}', {})",
+            "SrvDB(dimension={}, mode='{}', {})",
             self.dimension, self.index_type, stats
         ))
     }
@@ -436,7 +436,7 @@ impl SvDBPython {
 
 #[pymodule]
 fn srvdb(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<SvDBPython>()?;
+    m.add_class::<SrvDBPython>()?;
     m.add("__version__", "0.2.0")?;
     m.add(
         "__doc__",

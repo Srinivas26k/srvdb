@@ -140,28 +140,28 @@ def benchmark_mode(mode_name, db_path, train_vecs, train_ids, query_vecs, gt_ind
         
         # --- MODE SELECTOR ---
         if mode_name == 'flat':
-            db = srvdb.SvDBPython(db_path)
+            db = srvdb.SrvDBPython(db_path)
             
         elif mode_name == 'hnsw':
             # Assuming default HNSW params for simplicity, or use .new_with_hnsw
-            db = srvdb.SvDBPython(db_path) 
+            db = srvdb.SrvDBPython(db_path) 
             # Tuning EF later in search phase
             
         elif mode_name == 'sq8':
             # v0.2.0 API - Requires training vectors
-            if hasattr(srvdb.SvDBPython, 'new_scalar_quantized'):
+            if hasattr(srvdb.SrvDBPython, 'new_scalar_quantized'):
                 # Pass a subset of training vectors for initialization
                 train_subset = train_vecs[:1000].tolist()
-                db = srvdb.SvDBPython.new_scalar_quantized(db_path, config.dim, train_subset)
+                db = srvdb.SrvDBPython.new_scalar_quantized(db_path, config.dim, train_subset)
             else:
                 print("    [SKIP] SQ8 API not found in this version.")
                 return None
 
         elif mode_name == 'pq':
             # v0.2.0 API - PQ might not be exposed or is WIP
-            if hasattr(srvdb.SvDBPython, 'new_quantized'):
+            if hasattr(srvdb.SrvDBPython, 'new_quantized'):
                 train_subset = train_vecs[:2000].tolist()
-                db = srvdb.SvDBPython.new_quantized(db_path, train_subset)
+                db = srvdb.SrvDBPython.new_quantized(db_path, train_subset)
             else:
                 print("    [SKIP] PQ API not found (new_quantized missing).")
                 return None

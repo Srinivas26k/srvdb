@@ -4,7 +4,7 @@
 //! and updating the database configuration dynamically.
 
 use crate::strategy::{self, AutoTunerConfig, IndexMode};
-use crate::{SvDB, VectorEngine};
+use crate::{SrvDB, VectorEngine};
 
 /// Apply the auto-tuning strategy to the database instance.
 ///
@@ -13,7 +13,7 @@ use crate::{SvDB, VectorEngine};
 /// 2. Checks current dataset size.
 /// 3. Asks the Strategy Engine for the best mode.
 /// 4. Updates the database configuration.
-pub fn apply_auto_strategy(db: &mut SvDB) {
+pub fn apply_auto_strategy(db: &mut SrvDB) {
     // 1. Detect Hardware
     let ram_gb = detect_available_ram_gb();
     let config = AutoTunerConfig::new(ram_gb);
@@ -87,7 +87,7 @@ fn detect_available_ram_gb() -> f64 {
 ///
 /// Called during `persist()`. If the Auto-Tuner decides a new mode is better
 /// than the current one (e.g. Flat -> HNSW), this function performs the migration.
-pub fn check_and_migrate(db: &mut SvDB) -> anyhow::Result<()> {
+pub fn check_and_migrate(db: &mut SrvDB) -> anyhow::Result<()> {
     // Only migrate if we are in Auto mode
     if db.current_mode != IndexMode::Auto {
         return Ok(());
@@ -130,7 +130,7 @@ pub fn check_and_migrate(db: &mut SvDB) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn migrate_to_hnsw(db: &mut SvDB) -> anyhow::Result<()> {
+fn migrate_to_hnsw(db: &mut SrvDB) -> anyhow::Result<()> {
     use crate::hnsw::{HNSWConfig, HNSWIndex};
 
     // 1. Initialize HNSW
@@ -156,7 +156,7 @@ fn migrate_to_hnsw(db: &mut SvDB) -> anyhow::Result<()> {
         let _count = vstorage.count();
         // Since HNSW insert needs random access to vectors, and vstorage is on disk/mmap,
         // we can share a reference if we are careful.
-        // But `migrate_to_hnsw` takes `&mut SvDB`.
+        // But `migrate_to_hnsw` takes `&mut SrvDB`.
 
         // Workaround: We define distance fn using a read-only view if possible,
         // or effectively we just assume we can read from vstorage.
@@ -164,7 +164,7 @@ fn migrate_to_hnsw(db: &mut SvDB) -> anyhow::Result<()> {
 
         // We need to pass the closure to `index.insert`.
         // The closure needs access to `vstorage`.
-        // Since `index` is separate from `vstorage` in `SvDB`, we can split borrows?
+        // Since `index` is separate from `vstorage` in `SrvDB`, we can split borrows?
         // No, `db` is borrowed mutably.
         // We can temporarily take `vector_storage` out of `db`?
     } else {
@@ -204,7 +204,7 @@ fn migrate_to_hnsw(db: &mut SvDB) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn migrate_to_sq8(db: &mut SvDB) -> anyhow::Result<()> {
+fn migrate_to_sq8(db: &mut SrvDB) -> anyhow::Result<()> {
     use crate::types::{IndexType, QuantizationMode};
     use crate::ScalarQuantizedStorage;
 

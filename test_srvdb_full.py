@@ -28,7 +28,7 @@ def test_flat(ids, vecs, metas):
     print(f"\n[1/5] Testing FLAT Index (Baseline)...")
     
     # Init
-    db = srvdb.SvDBPython(path, dimension=DIM)
+    db = srvdb.SrvDBPython(path, dimension=DIM)
     # db.set_mode("flat") # precise method name depends on python bindings, usually exposed as set_mode
     
     # Ingest
@@ -49,7 +49,7 @@ def test_hnsw(ids, vecs, metas):
     cleanup(path)
     print(f"\n[2/5] Testing HNSW Index...")
     
-    db = srvdb.SvDBPython(path, dimension=DIM)
+    db = srvdb.SrvDBPython(path, dimension=DIM)
     db.set_mode("hnsw")
     # Configure HNSW if needed? defaults should work.
     
@@ -70,7 +70,7 @@ def test_sq8(ids, vecs, metas):
     print(f"\n[3/5] Testing SQ8 (Scalar Quantization)...")
     
     # SQ8 requires training vectors at initialization for this explicit constructor
-    db = srvdb.SvDBPython.new_scalar_quantized(path, DIM, vecs)
+    db = srvdb.SrvDBPython.new_scalar_quantized(path, DIM, vecs)
     
     t0 = time.time()
     db.add(ids, vecs, metas)
@@ -98,7 +98,7 @@ def test_ivf(ids, vecs, metas):
     print(f"\n[4/5] Testing IVF (Inverted File)...")
     
     # Workflow: Ingest Flat -> Switch Mode -> Train -> Search
-    db = srvdb.SvDBPython(path, dimension=DIM)
+    db = srvdb.SrvDBPython(path, dimension=DIM)
     db.add(ids, vecs, metas) # Ingest as flat first
     
     db.set_mode("ivf")
@@ -123,7 +123,7 @@ def test_auto(ids, vecs, metas):
     cleanup(path)
     print(f"\n[5/5] Testing Auto-Tune...")
     
-    db = srvdb.SvDBPython(path, dimension=DIM)
+    db = srvdb.SrvDBPython(path, dimension=DIM)
     db.set_mode("auto") 
     # Auto logic runs on ingestion or explicit check?
     # Currently `apply_auto_strategy` is run when `set_mode("auto")` is called.

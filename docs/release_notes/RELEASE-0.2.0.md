@@ -26,7 +26,7 @@ This release introduces a fully scalable **IVF-HNSW Hybrid Index**, designed to 
 ### Auto-Tuning Strategy ("Adaptive Core")
 SrvDB can now automatically select the best indexing strategy based on your hardware and dataset size:
 ```python
-db = srvdb.SvDBPython("./db", mode="auto")
+db = srvdb.SrvDBPython("./db", mode="auto")
 # Automatically selects:
 # - Flat: < 50k vectors
 # - HNSW: > 50k vectors (High RAM)
@@ -40,7 +40,7 @@ db = srvdb.SvDBPython("./db", mode="auto")
   db.configure_ivf(nlist=1024, nprobe=16)
   db.train_ivf()
   ```
-- **Explicit Configuration**: `SvDBPython(path, dimension=1536, mode="flat")`.
+- **Explicit Configuration**: `SrvDBPython(path, dimension=1536, mode="flat")`.
 
 ## 📊 Benchmarks
 
@@ -62,12 +62,12 @@ db = srvdb.SvDBPython("./db", mode="auto")
 ## 🔄 Migration Guide
 
 ### Breaking Changes
-1. **Constructor Signature**: `SvDB::new` now requires a `dimension` parameter (or infers it).
+1. **Constructor Signature**: `SrvDB::new` now requires a `dimension` parameter (or infers it).
    ```python
    # Old
-   db = srvdb.SvDB("./path")
+   db = srvdb.SrvDB("./path")
    # New
-   db = srvdb.SvDBPython("./path", dimension=1536)
+   db = srvdb.SrvDBPython("./path", dimension=1536)
    ```
 2. **File Format**: The storage format has changed to support dynamic headers. v0.1.x databases are **not compatible** and must be re-indexed.
 
