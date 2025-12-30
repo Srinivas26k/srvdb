@@ -7,14 +7,14 @@
 //! - db_path/ivf/partitions/part_0.graph
 //! - ...
 
+use crate::hnsw::HNSWIndex;
+use crate::ivf::{IVFConfig, IVFIndex};
+use crate::Vector;
 use anyhow::{Context, Result};
+use parking_lot::RwLock;
 use std::fs;
 use std::path::{Path, PathBuf};
-use crate::ivf::{IVFIndex, IVFConfig};
-use crate::hnsw::HNSWIndex;
 use std::sync::Arc;
-use parking_lot::RwLock;
-use crate::Vector;
 
 pub struct IVFStorage;
 
@@ -51,16 +51,20 @@ impl IVFStorage {
         // 3. Save Partitions (Parallelized)
         // Each partition is an HNSW graph
         use rayon::prelude::*;
-        index.partitions.par_iter().enumerate().for_each(|(i, partition)| {
-            let file_name = format!("part_{}.graph", i);
-            let file_path = partition_dir.join(file_name);
-            
-            // Acquire read lock to serialize
-            let graph = partition.read(); // Lock RwLock
-            if let Ok(bytes) = graph.to_bytes() {
-                let _ = fs::write(file_path, bytes); // Ignore write errors in parallel loop? ideally log them
-            }
-        });
+        index
+            .partitions
+            .par_iter()
+            .enumerate()
+            .for_each(|(i, partition)| {
+                let file_name = format!("part_{}.graph", i);
+                let file_path = partition_dir.join(file_name);
+
+                // Acquire read lock to serialize
+                let graph = partition.read(); // Lock RwLock
+                if let Ok(bytes) = graph.to_bytes() {
+                    let _ = fs::write(file_path, bytes); // Ignore write errors in parallel loop? ideally log them
+                }
+            });
 
         Ok(())
     }
@@ -84,19 +88,19 @@ impl IVFStorage {
         // 3. Load Partitions
         let partition_dir = Self::partition_dir(db_path);
         let mut partitions = Vec::with_capacity(config.nlist);
-        
+
         // Sequential load for simplicity/safety, could refer to config.nlist
         for i in 0..config.nlist {
             let file_name = format!("part_{}.graph", i);
             let file_path = partition_dir.join(file_name);
-            
+
             let graph = if file_path.exists() {
                 let bytes = fs::read(file_path)?;
                 HNSWIndex::from_bytes(&bytes)?
             } else {
                 HNSWIndex::new(config.hnsw_config.clone())
             };
-            
+
             partitions.push(Arc::new(RwLock::new(graph)));
         }
 

@@ -39,7 +39,11 @@ pub struct SearchResult {
 
 impl SearchResult {
     pub fn new(id: u64, score: f32, metadata: Option<String>) -> Self {
-        Self { id, score, metadata }
+        Self {
+            id,
+            score,
+            metadata,
+        }
     }
 }
 
@@ -56,7 +60,7 @@ impl DatabaseConfig {
         if !(128..=4096).contains(&dimension) {
             anyhow::bail!("Dimension must be between 128 and 4096, got {}", dimension);
         }
-        
+
         Ok(Self {
             dimension,
             quantization: QuantizationConfig::default(),
@@ -68,7 +72,7 @@ impl DatabaseConfig {
     pub fn validate(&self) -> anyhow::Result<()> {
         if self.quantization.enabled {
             // Ensure dimension is divisible by M for PQ
-            if self.dimension % self.quantization.m != 0 {
+            if !self.dimension.is_multiple_of(self.quantization.m) {
                 anyhow::bail!(
                     "Dimension {} must be divisible by M={} for Product Quantization",
                     self.dimension,
@@ -82,7 +86,7 @@ impl DatabaseConfig {
     /// Auto-tune PQ parameters based on dimension
     pub fn auto_tune_pq(&mut self) {
         // Heuristic: M = dim / 8 (8 dimensions per subquantizer)
-        let optimal_m = (self.dimension / 8).max(16).min(256);
+        let optimal_m = (self.dimension / 8).clamp(16, 256);
         self.quantization.m = optimal_m;
         self.quantization.d_sub = self.dimension / optimal_m;
     }
@@ -91,12 +95,12 @@ impl DatabaseConfig {
 /// Index type selection
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum IndexType {
-    Flat,              // Brute force O(n)
-    HNSW,              // Graph-based O(log n)
-    ScalarQuantized,   // SQ8 compression (4x)
-    ProductQuantized,  // PQ compression (32x)
-    HNSWQuantized,     // HNSW + PQ hybrid
-    IVF,               // Inverted File with HNSW Refinement
+    Flat,             // Brute force O(n)
+    HNSW,             // Graph-based O(log n)
+    ScalarQuantized,  // SQ8 compression (4x)
+    ProductQuantized, // PQ compression (32x)
+    HNSWQuantized,    // HNSW + PQ hybrid
+    IVF,              // Inverted File with HNSW Refinement
 }
 
 /// Quantization configuration with multiple modes
@@ -104,16 +108,16 @@ pub enum IndexType {
 pub struct QuantizationConfig {
     pub enabled: bool,
     pub mode: QuantizationMode,
-    pub m: usize,        // Number of sub-quantizers (PQ only)
-    pub k: usize,        // Centroids per sub-quantizer (PQ only)
-    pub d_sub: usize,    // Dimensions per sub-space (PQ only)
+    pub m: usize,     // Number of sub-quantizers (PQ only)
+    pub k: usize,     // Centroids per sub-quantizer (PQ only)
+    pub d_sub: usize, // Dimensions per sub-space (PQ only)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum QuantizationMode {
     None,
-    Scalar,    // SQ8: 4x compression, fast, 95%+ recall
-    Product,   // PQ: 32x compression, slower, 85-95% recall
+    Scalar,  // SQ8: 4x compression, fast, 95%+ recall
+    Product, // PQ: 32x compression, slower, 85-95% recall
 }
 
 impl Default for QuantizationConfig {
@@ -121,9 +125,9 @@ impl Default for QuantizationConfig {
         Self {
             enabled: false,
             mode: QuantizationMode::None,
-            m: 192,     // Will be auto-tuned
+            m: 192, // Will be auto-tuned
             k: 256,
-            d_sub: 8,   // Will be auto-tuned
+            d_sub: 8, // Will be auto-tuned
         }
     }
 }
@@ -134,7 +138,7 @@ impl Default for QuantizationConfig {
 pub struct VectorHeader {
     pub magic: u32,
     pub version: u16,
-    pub dimension: u16,       // NEW: Support 128-4096
+    pub dimension: u16, // NEW: Support 128-4096
     pub count: u64,
     pub quantization_mode: u8, // 0=None, 1=Scalar, 2=Product
     pub index_type: u8,        // 0=Flat, 1=HNSW, etc.
@@ -150,7 +154,7 @@ impl VectorHeader {
         if dimension > u16::MAX as usize {
             anyhow::bail!("Dimension {} exceeds maximum {}", dimension, u16::MAX);
         }
-        
+
         Ok(Self {
             magic: Self::MAGIC,
             version: Self::VERSION,
@@ -166,7 +170,7 @@ impl VectorHeader {
         if dimension > u16::MAX as usize {
             anyhow::bail!("Dimension {} exceeds maximum {}", dimension, u16::MAX);
         }
-        
+
         Ok(Self {
             magic: Self::MAGIC,
             version: Self::VERSION,
@@ -180,18 +184,21 @@ impl VectorHeader {
 
     pub fn validate(&self) -> anyhow::Result<()> {
         if self.magic != Self::MAGIC {
-            anyhow::bail!("Invalid magic number: expected 0x{:08X}, got 0x{:08X}", 
-                Self::MAGIC, self.magic);
+            anyhow::bail!(
+                "Invalid magic number: expected 0x{:08X}, got 0x{:08X}",
+                Self::MAGIC,
+                self.magic
+            );
         }
-        
+
         if self.version > Self::VERSION {
             anyhow::bail!("Unsupported version: {}", self.version);
         }
-        
+
         if !(128..=4096).contains(&(self.dimension as usize)) {
             anyhow::bail!("Invalid dimension: {}", self.dimension);
         }
-        
+
         Ok(())
     }
 }
@@ -219,7 +226,7 @@ impl ScalarQuantizer {
             if vec.len() != dimension {
                 anyhow::bail!("Inconsistent dimensions in training data");
             }
-            
+
             for (i, &val) in vec.iter().enumerate() {
                 min_vals[i] = min_vals[i].min(val);
                 max_vals[i] = max_vals[i].max(val);
@@ -235,17 +242,18 @@ impl ScalarQuantizer {
 
     /// Encode float32 vector to uint8 (4x compression)
     pub fn encode(&self, vector: &[f32]) -> Vec<u8> {
-        vector.iter()
+        vector
+            .iter()
             .enumerate()
             .map(|(i, &val)| {
                 let min = self.min_vals[i];
                 let max = self.max_vals[i];
                 let range = max - min;
-                
+
                 if range < 1e-10 {
                     return 0u8;
                 }
-                
+
                 let normalized = ((val - min) / range * 255.0).clamp(0.0, 255.0);
                 normalized as u8
             })
@@ -254,13 +262,14 @@ impl ScalarQuantizer {
 
     /// Decode uint8 vector back to approximate float32
     pub fn decode(&self, codes: &[u8]) -> Vec<f32> {
-        codes.iter()
+        codes
+            .iter()
             .enumerate()
             .map(|(i, &code)| {
                 let min = self.min_vals[i];
                 let max = self.max_vals[i];
                 let range = max - min;
-                
+
                 min + (code as f32 / 255.0) * range
             })
             .collect()
@@ -269,19 +278,17 @@ impl ScalarQuantizer {
     /// Asymmetric distance: compare quantized vector to full-precision query
     pub fn asymmetric_distance(&self, query: &[f32], codes: &[u8]) -> f32 {
         let decoded = self.decode(codes);
-        
+
         // Compute cosine similarity
-        let dot: f32 = query.iter().zip(decoded.iter())
-            .map(|(a, b)| a * b)
-            .sum();
-        
+        let dot: f32 = query.iter().zip(decoded.iter()).map(|(a, b)| a * b).sum();
+
         let query_norm: f32 = query.iter().map(|x| x * x).sum::<f32>().sqrt();
         let decoded_norm: f32 = decoded.iter().map(|x| x * x).sum::<f32>().sqrt();
-        
+
         if query_norm < 1e-10 || decoded_norm < 1e-10 {
             return 0.0;
         }
-        
+
         dot / (query_norm * decoded_norm)
     }
 }
@@ -294,7 +301,7 @@ mod tests {
     fn test_dynamic_dimensions() {
         let config = DatabaseConfig::new(384).unwrap();
         assert_eq!(config.dimension, 384);
-        
+
         // Test invalid dimensions
         assert!(DatabaseConfig::new(64).is_err());
         assert!(DatabaseConfig::new(5000).is_err());
@@ -304,7 +311,7 @@ mod tests {
     fn test_auto_tune_pq() {
         let mut config = DatabaseConfig::new(768).unwrap();
         config.auto_tune_pq();
-        
+
         // Should be divisible
         assert_eq!(768 % config.quantization.m, 0);
         assert_eq!(config.quantization.d_sub, 768 / config.quantization.m);
@@ -319,13 +326,13 @@ mod tests {
         ];
 
         let sq = ScalarQuantizer::train(&training).unwrap();
-        
+
         let test_vec = vec![0.15, 0.55, 0.95];
         let encoded = sq.encode(&test_vec);
         assert_eq!(encoded.len(), 3);
-        
+
         let decoded = sq.decode(&encoded);
-        
+
         // Check reconstruction error is small
         for (orig, dec) in test_vec.iter().zip(decoded.iter()) {
             assert!((orig - dec).abs() < 0.1);
@@ -336,7 +343,7 @@ mod tests {
     fn test_header_validation() {
         let header = VectorHeader::new(1536).unwrap();
         assert!(header.validate().is_ok());
-        
+
         // Test invalid dimension
         assert!(VectorHeader::new(50).is_err());
     }

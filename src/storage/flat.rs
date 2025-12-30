@@ -1,19 +1,18 @@
 //! Dynamic dimension vector storage for SrvDB v0.2.0
 //! Supports 128-4096 dimensions with zero-copy mmap reads
 
+use crate::types::VectorHeader;
 use anyhow::{Context, Result};
 use memmap2::{MmapMut, MmapOptions};
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
-use crate::types::VectorHeader;
 
 const BUFFER_SIZE: usize = 8 * 1024 * 1024; // 8MB buffer
 
 // Type alias for backward compatibility
 pub type VectorStorage = DynamicVectorStorage;
-
 
 pub struct DynamicVectorStorage {
     writer: BufWriter<File>,
@@ -35,11 +34,12 @@ impl DynamicVectorStorage {
     pub fn new(db_path: &str, dimension: usize) -> Result<Self> {
         let file_path = Path::new(db_path).join("vectors.bin");
         let exists = file_path.exists();
-        
+
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(&file_path)
             .context("Failed to open vectors.bin")?;
 
@@ -52,16 +52,17 @@ impl DynamicVectorStorage {
                 let mmap = unsafe { MmapOptions::new().map(&file)? };
                 let header = unsafe { &*(mmap.as_ptr() as *const VectorHeader) };
                 header.validate()?;
-                
+
                 count = header.count;
                 stored_dimension = header.dimension as usize;
-                
+
                 // Ensure dimension matches
                 if stored_dimension != dimension {
                     anyhow::bail!(
                         "Database dimension mismatch: expected {}, found {}. \
                         Cannot change dimension of existing database.",
-                        dimension, stored_dimension
+                        dimension,
+                        stored_dimension
                     );
                 }
             }
@@ -114,10 +115,7 @@ impl DynamicVectorStorage {
 
         // Zero-copy write
         let vector_bytes = unsafe {
-            std::slice::from_raw_parts(
-                vector.as_ptr() as *const u8,
-                self.vector_size_bytes,
-            )
+            std::slice::from_raw_parts(vector.as_ptr() as *const u8, self.vector_size_bytes)
         };
 
         self.writer.write_all(vector_bytes)?;
@@ -146,16 +144,14 @@ impl DynamicVectorStorage {
             }
 
             let vector_bytes = unsafe {
-                std::slice::from_raw_parts(
-                    vector.as_ptr() as *const u8,
-                    self.vector_size_bytes,
-                )
+                std::slice::from_raw_parts(vector.as_ptr() as *const u8, self.vector_size_bytes)
             };
             self.writer.write_all(vector_bytes)?;
             ids.push(start_id + i as u64);
         }
 
-        self.count.store(start_id + vectors.len() as u64, Ordering::Relaxed);
+        self.count
+            .store(start_id + vectors.len() as u64, Ordering::Relaxed);
         self.writer.flush()?;
 
         Ok(ids)
@@ -163,16 +159,16 @@ impl DynamicVectorStorage {
 
     pub fn flush(&mut self) -> Result<()> {
         let current_count = self.count.load(Ordering::Relaxed);
-        
+
         if current_count == self.last_flushed_count {
             return Ok(());
         }
 
         self.writer.flush()?;
-        
+
         let file = self.writer.get_mut();
         file.seek(SeekFrom::Start(0))?;
-        
+
         let mut header = VectorHeader::new(self.dimension)?;
         header.count = current_count;
         let header_bytes = unsafe {
@@ -184,12 +180,12 @@ impl DynamicVectorStorage {
         file.write_all(header_bytes)?;
         file.seek(SeekFrom::End(0))?;
         file.sync_all()?;
-        
+
         drop(self.mmap.take());
         if file.metadata()?.len() > VectorHeader::SIZE as u64 {
             self.mmap = Some(unsafe { MmapOptions::new().map_mut(file as &File)? });
         }
-        
+
         self.last_flushed_count = current_count;
         Ok(())
     }
@@ -210,17 +206,14 @@ impl DynamicVectorStorage {
         if index >= self.count.load(Ordering::Relaxed) {
             return None;
         }
-        
+
         let mmap = self.mmap.as_ref()?;
         let offset = VectorHeader::SIZE + (index as usize * self.vector_size_bytes);
-        
+
         if offset + self.vector_size_bytes <= mmap.len() {
             let slice = &mmap[offset..offset + self.vector_size_bytes];
             Some(unsafe {
-                std::slice::from_raw_parts(
-                    slice.as_ptr() as *const f32,
-                    self.dimension
-                )
+                std::slice::from_raw_parts(slice.as_ptr() as *const f32, self.dimension)
             })
         } else {
             None

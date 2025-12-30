@@ -1,3 +1,3 @@
-pub mod types;
-pub mod strategy;
 pub mod auto_tune;
+pub mod strategy;
+pub mod types;

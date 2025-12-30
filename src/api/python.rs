@@ -1,11 +1,11 @@
 //! Enhanced Python bindings for SrvDB v0.2.0
 //! Features: Dynamic dimensions, SQ8, better error messages
 
+use crate::VectorEngine;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::exceptions::{PyValueError, PyRuntimeError};
 use rustc_hash::FxHashMap;
 use serde_json;
-use crate::VectorEngine;
 
 #[pyclass]
 pub struct SvDBPython {
@@ -19,12 +19,12 @@ pub struct SvDBPython {
 #[pymethods]
 impl SvDBPython {
     /// Create new database with specified dimension (128-4096)
-    /// 
+    ///
     /// Args:
     ///     path: Database directory
     ///     dimension: Vector dimension (default: 1536)
     ///     mode: Index mode - 'flat', 'hnsw', 'sq8', 'pq' (default: 'flat')
-    /// 
+    ///
     /// Examples:
     ///     >>> db = srvdb.SvDBPython("./db", dimension=384)  # MiniLM
     ///     >>> db = srvdb.SvDBPython("./db", dimension=768, mode='sq8')  # Cohere
@@ -85,10 +85,10 @@ impl SvDBPython {
         } else if mode.to_lowercase() == "sq8" || mode.to_lowercase() == "scalar" {
             db.current_mode = crate::IndexMode::Sq8;
         } else if mode.to_lowercase() == "hnsw" {
-             db.current_mode = crate::IndexMode::Hnsw;
+            db.current_mode = crate::IndexMode::Hnsw;
         } else if mode.to_lowercase() == "ivf" {
-             // We need to set mode explicitly to trigger IVF init
-             db.set_mode(crate::IndexMode::Ivf);
+            // We need to set mode explicitly to trigger IVF init
+            db.set_mode(crate::IndexMode::Ivf);
         }
 
         Ok(Self {
@@ -101,7 +101,7 @@ impl SvDBPython {
     }
 
     /// Create database with HNSW indexing
-    /// 
+    ///
     /// Args:
     ///     path: Database directory
     ///     dimension: Vector dimension
@@ -136,12 +136,12 @@ impl SvDBPython {
     }
 
     /// Create database with Scalar Quantization (4x compression)
-    /// 
+    ///
     /// Args:
     ///     path: Database directory
     ///     dimension: Vector dimension
     ///     training_vectors: Sample vectors for training (1000+ recommended)
-    /// 
+    ///
     /// Notes:
     ///     - 4x compression (float32 -> uint8)
     ///     - 95%+ recall typical
@@ -154,7 +154,7 @@ impl SvDBPython {
     ) -> PyResult<Self> {
         if training_vectors.is_empty() {
             return Err(PyValueError::new_err(
-                "Training vectors required. Provide 1000+ sample vectors for best results."
+                "Training vectors required. Provide 1000+ sample vectors for best results.",
             ));
         }
 
@@ -163,7 +163,9 @@ impl SvDBPython {
             if vec.len() != dimension {
                 return Err(PyValueError::new_err(format!(
                     "Training vector {} has dimension {}, expected {}",
-                    i, vec.len(), dimension
+                    i,
+                    vec.len(),
+                    dimension
                 )));
             }
         }
@@ -181,12 +183,12 @@ impl SvDBPython {
     }
 
     /// Add vectors to database
-    /// 
+    ///
     /// Args:
     ///     ids: List of string IDs
     ///     embeddings: List of vectors (each must match database dimension)
     ///     metadatas: List of JSON metadata strings
-    /// 
+    ///
     /// Returns:
     ///     Number of vectors added
     fn add(
@@ -197,7 +199,7 @@ impl SvDBPython {
     ) -> PyResult<usize> {
         if ids.len() != embeddings.len() || ids.len() != metadatas.len() {
             return Err(PyValueError::new_err(
-                "ids, embeddings, and metadatas must have same length"
+                "ids, embeddings, and metadatas must have same length",
             ));
         }
 
@@ -208,7 +210,10 @@ impl SvDBPython {
                     "Vector {} has dimension {}, expected {}. \
                     Database was created with dimension {}. \
                     Common models: 384 (MiniLM), 768 (MPNet), 1536 (OpenAI)",
-                    i, emb.len(), self.dimension, self.dimension
+                    i,
+                    emb.len(),
+                    self.dimension,
+                    self.dimension
                 )));
             }
         }
@@ -224,22 +229,20 @@ impl SvDBPython {
         }
 
         // Prepare vectors
-        let vectors: Vec<crate::Vector> = embeddings
-            .into_iter()
-            .map(|emb| crate::Vector::new(emb))
-            .collect();
+        let vectors: Vec<crate::Vector> = embeddings.into_iter().map(crate::Vector::new).collect();
 
         // Enrich metadata with IDs
-        let enriched_metas: Vec<String> = ids.iter()
+        let enriched_metas: Vec<String> = ids
+            .iter()
             .zip(metadatas.iter())
             .map(|(id, meta)| {
-                let mut obj: serde_json::Value = serde_json::from_str(meta)
-                    .unwrap_or(serde_json::json!({}));
-                
+                let mut obj: serde_json::Value =
+                    serde_json::from_str(meta).unwrap_or(serde_json::json!({}));
+
                 if let Some(obj) = obj.as_object_mut() {
                     obj.insert("__id__".to_string(), serde_json::Value::String(id.clone()));
                 }
-                
+
                 serde_json::to_string(&obj).unwrap()
             })
             .collect();
@@ -258,18 +261,19 @@ impl SvDBPython {
     }
 
     /// Search for k nearest neighbors
-    /// 
+    ///
     /// Args:
     ///     query: Query vector (must match database dimension)
     ///     k: Number of results
-    /// 
+    ///
     /// Returns:
     ///     List of (id, score) tuples sorted by score descending
     fn search(&mut self, query: Vec<f32>, k: usize) -> PyResult<Vec<(String, f32)>> {
         if query.len() != self.dimension {
             return Err(PyValueError::new_err(format!(
                 "Query dimension {} doesn't match database dimension {}",
-               query.len(), self.dimension
+                query.len(),
+                self.dimension
             )));
         }
 
@@ -278,15 +282,16 @@ impl SvDBPython {
             .map_err(|e| PyRuntimeError::new_err(format!("Auto-persist failed: {}", e)))?;
 
         let results = Python::with_gil(|py| {
-            py.allow_threads(|| {
-                VectorEngine::search(&self.db, &crate::Vector::new(query), k)
-            })
-        }).map_err(|e| PyRuntimeError::new_err(format!("Search failed: {}", e)))?;
+            py.allow_threads(|| VectorEngine::search(&self.db, &crate::Vector::new(query), k))
+        })
+        .map_err(|e| PyRuntimeError::new_err(format!("Search failed: {}", e)))?;
 
         Ok(results
             .into_iter()
             .filter_map(|r| {
-                self.reverse_id_map.get(&r.id).map(|id| (id.clone(), r.score))
+                self.reverse_id_map
+                    .get(&r.id)
+                    .map(|id| (id.clone(), r.score))
             })
             .collect())
     }
@@ -302,7 +307,9 @@ impl SvDBPython {
             if q.len() != self.dimension {
                 return Err(PyValueError::new_err(format!(
                     "Query {} dimension {} doesn't match database dimension {}",
-                    i, q.len(), self.dimension
+                    i,
+                    q.len(),
+                    self.dimension
                 )));
             }
         }
@@ -311,16 +318,12 @@ impl SvDBPython {
         VectorEngine::persist(&mut self.db)
             .map_err(|e| PyRuntimeError::new_err(format!("Auto-persist failed: {}", e)))?;
 
-        let query_vecs: Vec<crate::Vector> = queries
-            .into_iter()
-            .map(|q| crate::Vector::new(q))
-            .collect();
+        let query_vecs: Vec<crate::Vector> = queries.into_iter().map(crate::Vector::new).collect();
 
         let results = Python::with_gil(|py| {
-            py.allow_threads(|| {
-                VectorEngine::search_batch(&self.db, &query_vecs, k)
-            })
-        }).map_err(|e| PyRuntimeError::new_err(format!("Batch search failed: {}", e)))?;
+            py.allow_threads(|| VectorEngine::search_batch(&self.db, &query_vecs, k))
+        })
+        .map_err(|e| PyRuntimeError::new_err(format!("Batch search failed: {}", e)))?;
 
         Ok(results
             .into_iter()
@@ -328,7 +331,9 @@ impl SvDBPython {
                 batch
                     .into_iter()
                     .filter_map(|r| {
-                        self.reverse_id_map.get(&r.id).map(|id| (id.clone(), r.score))
+                        self.reverse_id_map
+                            .get(&r.id)
+                            .map(|id| (id.clone(), r.score))
                     })
                     .collect()
             })
@@ -336,7 +341,9 @@ impl SvDBPython {
     }
 
     fn get(&self, id: String) -> PyResult<Option<String>> {
-        let internal_id = self.id_map.get(&id)
+        let internal_id = self
+            .id_map
+            .get(&id)
             .ok_or_else(|| PyValueError::new_err(format!("ID not found: {}", id)))?;
 
         VectorEngine::get_metadata(&self.db, *internal_id)
@@ -371,14 +378,14 @@ impl SvDBPython {
             "sq8" | "scalar" => self.db.set_mode(crate::IndexMode::Sq8),
             "ivf" => self.db.set_mode(crate::IndexMode::Ivf),
             "auto" => self.db.set_mode(crate::IndexMode::Auto),
-             _ => return Err(PyValueError::new_err(format!("Invalid mode: {}", mode))),
+            _ => return Err(PyValueError::new_err(format!("Invalid mode: {}", mode))),
         }
         self.index_type = mode;
         Ok(())
     }
 
     /// Configure IVF parameters
-    /// 
+    ///
     /// Args:
     ///     nlist: Number of partitions (centroids)
     ///     nprobe: Number of partitions to search (search quality vs speed)
@@ -391,7 +398,8 @@ impl SvDBPython {
             tolerance: 0.001,
             hnsw_config: Default::default(),
         };
-        self.db.configure_ivf(config)
+        self.db
+            .configure_ivf(config)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
@@ -399,11 +407,8 @@ impl SvDBPython {
     fn train_ivf(&mut self) -> PyResult<()> {
         // Python holds the GIL, but training is heavy. Release GIL?
         // Yes, allow threads.
-        Python::with_gil(|py| {
-            py.allow_threads(|| {
-                self.db.train_ivf()
-            })
-        }).map_err(|e| PyRuntimeError::new_err(format!("IVF Training failed: {}", e)))
+        Python::with_gil(|py| py.allow_threads(|| self.db.train_ivf()))
+            .map_err(|e| PyRuntimeError::new_err(format!("IVF Training failed: {}", e)))
     }
 
     fn info(&self) -> PyResult<String> {
@@ -433,15 +438,16 @@ impl SvDBPython {
 fn srvdb(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SvDBPython>()?;
     m.add("__version__", "0.2.0")?;
-    m.add("__doc__", 
+    m.add(
+        "__doc__",
         "SrvDB v0.2.0 - Production Vector Database\n\n\
         Features:\n\
         - Dynamic dimensions (128-4096)\n\
         - Multiple index types (Flat, HNSW, SQ8, PQ)\n\
         - 4-32x compression with SQ8/PQ\n\
         - Sub-5ms latency\n\
-        - <100MB memory for 10k vectors"
+        - <100MB memory for 10k vectors",
     )?;
-    
+
     Ok(())
 }

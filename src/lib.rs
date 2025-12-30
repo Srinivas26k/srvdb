@@ -22,22 +22,22 @@ pub mod storage;
 pub mod utils;
 
 // Re-export 'types' module alias for backward compatibility (crate::types::Vector)
-pub use core::types; 
-pub use core::types::{Vector, SearchResult, IndexType, QuantizationConfig};
 pub use core::strategy::IndexMode;
+pub use core::types;
+pub use core::types::{IndexType, QuantizationConfig, SearchResult, Vector};
 
 // Feature Flags
 #[cfg(feature = "pyo3")]
 pub use api::python as python_bindings;
 
 // Strategy and AutoTune aliases
-pub use core::strategy;
 pub use core::auto_tune;
+pub use core::strategy;
 
 // Index Aliases
-pub use index::ivf;
-pub use index::hybrid as hybrid_search;
 pub use index::hnsw;
+pub use index::hybrid as hybrid_search;
+pub use index::ivf;
 
 // Storage Aliases
 pub use storage::flat::VectorStorage;
@@ -45,22 +45,24 @@ pub use storage::pq::QuantizedVectorStorage;
 pub use storage::sq::ScalarQuantizedStorage;
 
 // Component Exports
-pub use index::hnsw::{HNSWIndex, HNSWConfig};
-pub use index::ivf::{IVFIndex, IVFConfig};
+pub use index::hnsw::{HNSWConfig, HNSWIndex};
+pub use index::ivf::{IVFConfig, IVFIndex};
+pub use metadata::MetadataStore;
 pub use storage::flat::VectorStorage as DynamicVectorStorage; // Alias if needed
 pub use utils::quantization::{ProductQuantizer, QuantizedVector};
-pub use metadata::MetadataStore;
 
 // Internal Legacy Aliases
-use utils::distance as search; 
 use storage::pq as quantized_storage;
+use utils::distance as search;
 
 // Modules that are still inline (if any)
 mod metadata; // Still separate file or inline? metadata.rs exists.
 
 /// High-performance vector database trait
 pub trait VectorEngine {
-    fn new(path: &str) -> Result<Self> where Self: Sized;
+    fn new(path: &str) -> Result<Self>
+    where
+        Self: Sized;
     fn add(&mut self, vec: &Vector, meta: &str) -> Result<u64>;
     fn add_batch(&mut self, vecs: &[Vector], metas: &[String]) -> Result<Vec<u64>>;
     fn search(&self, query: &Vector, k: usize) -> Result<Vec<SearchResult>>;
@@ -88,12 +90,12 @@ pub struct SvDB {
 
 impl SvDB {
     /// Set the indexing strategy mode.
-    /// 
+    ///
     /// If `Auto` is selected, the database will analyze the system and dataset
     /// to choose the best internal configuration.
     pub fn set_mode(&mut self, mode: IndexMode) {
         self.current_mode = mode;
-        
+
         if mode == IndexMode::Auto {
             println!("SrvDB Adaptive Core active. Analyzing environment...");
             auto_tune::apply_auto_strategy(self);
@@ -103,16 +105,16 @@ impl SvDB {
                 IndexMode::Flat => {
                     self.index_type = types::IndexType::Flat;
                     self.config.enabled = false;
-                },
+                }
                 IndexMode::Hnsw => {
                     self.index_type = types::IndexType::HNSW;
                     self.config.enabled = false;
-                },
+                }
                 IndexMode::Sq8 => {
                     self.index_type = types::IndexType::ScalarQuantized;
                     self.config.enabled = true;
                     self.config.mode = types::QuantizationMode::Scalar;
-                },
+                }
                 IndexMode::Ivf => {
                     // IVF requires separate training/setup, usually triggers training immediately
                     // or sets flag for next persist/train call.
@@ -122,7 +124,7 @@ impl SvDB {
                         self.ivf_index = Some(IVFIndex::new(config.clone()));
                         self.ivf_config = Some(config);
                     }
-                },
+                }
                 IndexMode::Auto => {} // Handled above
             }
         }
@@ -131,82 +133,82 @@ impl SvDB {
     /// Configure IVF parameters
     pub fn configure_ivf(&mut self, config: ivf::IVFConfig) -> Result<()> {
         if self.current_mode == IndexMode::Ivf {
-             // If already initialized, we might need to rebuild or just update config?
-             // For now, simpler: just update config and re-init empty index if needed.
-             self.ivf_config = Some(config.clone());
-             self.ivf_index = Some(ivf::IVFIndex::new(config));
+            // If already initialized, we might need to rebuild or just update config?
+            // For now, simpler: just update config and re-init empty index if needed.
+            self.ivf_config = Some(config.clone());
+            self.ivf_index = Some(ivf::IVFIndex::new(config));
         } else {
-             self.ivf_config = Some(config);
-             // When set_mode(Ivf) is called later, it should use this config.
-             // But set_mode logic currently does `if ivf_index.is_none() { default }`.
-             // I should check set_mode.
+            self.ivf_config = Some(config);
+            // When set_mode(Ivf) is called later, it should use this config.
+            // But set_mode logic currently does `if ivf_index.is_none() { default }`.
+            // I should check set_mode.
         }
         Ok(())
     }
 
     /// Train the IVF index using current data
 
-    /// 
+    ///
     /// 1. Samples vectors from storage
     /// 2. Runs K-Means clustering
     /// 3. Re-indexes all data into partitions
     pub fn train_ivf(&mut self) -> Result<()> {
-         if self.ivf_index.is_none() {
-             anyhow::bail!("IVF mode not enabled. Call set_mode(IndexMode::Ivf) first.");
-         }
-         
-         let count = self.vector_storage.as_ref().map(|s| s.count()).unwrap_or(0);
-         if count < 10 { // Lower limit for testing
+        if self.ivf_index.is_none() {
+            anyhow::bail!("IVF mode not enabled. Call set_mode(IndexMode::Ivf) first.");
+        }
+
+        let count = self.vector_storage.as_ref().map(|s| s.count()).unwrap_or(0);
+        if count < 10 { // Lower limit for testing
              // anyhow::bail!("Not enough data to train IVF");
              // Allow small training for unit tests?
-         }
-         
-         // 1. Load Training Data (ALL for now, or sample)
-         let mut training_data = Vec::with_capacity(count as usize);
-         
-         // Ensure data is synced to mmap
-         if let Some(ref mut vstorage) = self.vector_storage {
-             vstorage.flush()?;
-         }
+        }
 
-         if let Some(ref vstorage) = self.vector_storage {
-             let train_limit = std::cmp::min(count, 10_000);
-             for i in 0..train_limit {
-                 if let Some(vec) = vstorage.get(i) {
-                     training_data.push(Vector::new(vec.to_vec()));
-                 }
-             }
-         }
-         
-         // 2. Train
-         if let Some(ref mut ivf) = self.ivf_index {
-             ivf.train(&training_data)?;
-         }
-         
-         // 3. Re-index / Populate Partitions
-         println!("IVF: Populating partitions...");
-         if let Some(ref ivf) = self.ivf_index {
-             if let Some(ref vstorage) = self.vector_storage {
-                 let distance_fn = |a_id: u64, b_id: u64| -> f32 {
-                     if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
-                         1.0 - search::cosine_similarity(a, b)
-                     } else {
-                         f32::MAX
-                     }
-                 };
-                 
-                 use rayon::prelude::*;
-                 (0..count).into_par_iter().for_each(|id| {
-                     if let Some(vec_data) = vstorage.get(id) {
-                         let vec = Vector::new(vec_data.to_vec());
-                         let _ = ivf.add(id, &vec, &distance_fn);
-                     }
-                 });
-             }
-         }
-         
-         println!("IVF: Training complete.");
-         Ok(())
+        // 1. Load Training Data (ALL for now, or sample)
+        let mut training_data = Vec::with_capacity(count as usize);
+
+        // Ensure data is synced to mmap
+        if let Some(ref mut vstorage) = self.vector_storage {
+            vstorage.flush()?;
+        }
+
+        if let Some(ref vstorage) = self.vector_storage {
+            let train_limit = std::cmp::min(count, 10_000);
+            for i in 0..train_limit {
+                if let Some(vec) = vstorage.get(i) {
+                    training_data.push(Vector::new(vec.to_vec()));
+                }
+            }
+        }
+
+        // 2. Train
+        if let Some(ref mut ivf) = self.ivf_index {
+            ivf.train(&training_data)?;
+        }
+
+        // 3. Re-index / Populate Partitions
+        println!("IVF: Populating partitions...");
+        if let Some(ref ivf) = self.ivf_index {
+            if let Some(ref vstorage) = self.vector_storage {
+                let distance_fn = |a_id: u64, b_id: u64| -> f32 {
+                    if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
+                        1.0 - search::cosine_similarity(a, b)
+                    } else {
+                        f32::MAX
+                    }
+                };
+
+                use rayon::prelude::*;
+                (0..count).into_par_iter().for_each(|id| {
+                    if let Some(vec_data) = vstorage.get(id) {
+                        let vec = Vector::new(vec_data.to_vec());
+                        let _ = ivf.add(id, &vec, &distance_fn);
+                    }
+                });
+            }
+        }
+
+        println!("IVF: Training complete.");
+        Ok(())
     }
 }
 
@@ -244,14 +246,12 @@ impl VectorEngine for SvDB {
             } else {
                 anyhow::bail!("Quantization enabled but quantized storage not initialized");
             }
+        } else if let Some(ref mut vstorage) = self.vector_storage {
+            vstorage.append(&vec.data)?
         } else {
-            if let Some(ref mut vstorage) = self.vector_storage {
-                vstorage.append(&vec.data)?
-            } else {
-                anyhow::bail!("Vector storage not initialized");
-            }
+            anyhow::bail!("Vector storage not initialized");
         };
-        
+
         // Insert into HNSW graph if enabled
         if let Some(ref hnsw) = self.hnsw_index {
             // Only support HNSW for non-quantized storage for now
@@ -268,31 +268,31 @@ impl VectorEngine for SvDB {
                 }
             }
         }
-        
+
         // Insert into IVF if enabled
         if let Some(ref ivf) = self.ivf_index {
-             // We need distance to centroids
-             // But adding to IVF usually implies adding to *partitions*
-             // HNSW partition insert needs distance fn
-             if let Some(ref vstorage) = self.vector_storage {
-                 // Check if index is trained
-                 if !ivf.centroids.is_empty() {
-                     let distance_fn = |a_id: u64, b_id: u64| -> f32 {
-                         if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
-                             1.0 - search::cosine_similarity(a, b)
-                         } else {
-                             f32::MAX
-                         }
-                     };
-                     // Find partition and insert
-                     // Note: IVF usually needs vector data to find partition
-                     if let Some(vec_data) = vstorage.get(id) {
-                         let vec_obj = Vector::new(vec_data.to_vec());
-                         // We ignore error if not trained yet? Or fail?
-                         let _ = ivf.add(id, &vec_obj, &distance_fn);
-                     }
-                 }
-             }
+            // We need distance to centroids
+            // But adding to IVF usually implies adding to *partitions*
+            // HNSW partition insert needs distance fn
+            if let Some(ref vstorage) = self.vector_storage {
+                // Check if index is trained
+                if !ivf.centroids.is_empty() {
+                    let distance_fn = |a_id: u64, b_id: u64| -> f32 {
+                        if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
+                            1.0 - search::cosine_similarity(a, b)
+                        } else {
+                            f32::MAX
+                        }
+                    };
+                    // Find partition and insert
+                    // Note: IVF usually needs vector data to find partition
+                    if let Some(vec_data) = vstorage.get(id) {
+                        let vec_obj = Vector::new(vec_data.to_vec());
+                        // We ignore error if not trained yet? Or fail?
+                        let _ = ivf.add(id, &vec_obj, &distance_fn);
+                    }
+                }
+            }
         }
 
         self.metadata_store.set(id, meta)?;
@@ -305,10 +305,7 @@ impl VectorEngine for SvDB {
         }
 
         // Convert all vectors to Vec<f32>
-        let embedded: Vec<Vec<f32>> = vecs
-            .iter()
-            .map(|v| v.data.clone())
-            .collect();
+        let embedded: Vec<Vec<f32>> = vecs.iter().map(|v| v.data.clone()).collect();
 
         // Batch append vectors based on mode
         let ids = if let Some(ref mut scalar) = self.scalar_storage {
@@ -319,12 +316,10 @@ impl VectorEngine for SvDB {
             } else {
                 anyhow::bail!("Quantization enabled but quantized storage not initialized");
             }
+        } else if let Some(ref mut vstorage) = self.vector_storage {
+            vstorage.append_batch(&embedded)?
         } else {
-            if let Some(ref mut vstorage) = self.vector_storage {
-                vstorage.append_batch(&embedded)?
-            } else {
-                anyhow::bail!("Vector storage not initialized");
-            }
+            anyhow::bail!("Vector storage not initialized");
         };
 
         // Store metadata
@@ -344,39 +339,44 @@ impl VectorEngine for SvDB {
                 } else {
                     anyhow::bail!("Quantization enabled but quantized storage not initialized");
                 }
+            } else if let Some(ref vstorage) = self.vector_storage {
+                search::search_hnsw(vstorage, hnsw, &query.data, k)?
             } else {
-                if let Some(ref vstorage) = self.vector_storage {
-                    search::search_hnsw(vstorage, hnsw, &query.data, k)?
-                } else {
-                    anyhow::bail!("Vector storage not initialized");
-                }
+                anyhow::bail!("Vector storage not initialized");
             };
-            raw_results.into_iter().map(|(id, score)| SearchResult::new(id, score, None)).collect()
+            raw_results
+                .into_iter()
+                .map(|(id, score)| SearchResult::new(id, score, None))
+                .collect()
         } else if let Some(ref ivf) = self.ivf_index {
             // IVF Search
             if ivf.centroids.is_empty() {
                 // Fallback if not trained
                 let raw_results = if let Some(ref vstorage) = self.vector_storage {
-                     search::search_cosine(vstorage, &query.data, k)?
+                    search::search_cosine(vstorage, &query.data, k)?
                 } else {
-                     anyhow::bail!("Vector storage not initialized");
+                    anyhow::bail!("Vector storage not initialized");
                 };
-                raw_results.into_iter().map(|(id, score)| SearchResult::new(id, score, None)).collect()
+                raw_results
+                    .into_iter()
+                    .map(|(id, score)| SearchResult::new(id, score, None))
+                    .collect()
+            } else if let Some(ref vstorage) = self.vector_storage {
+                let distance_fn = |a_id: u64, b_id: u64| -> f32 {
+                    if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
+                        1.0 - search::cosine_similarity(a, b)
+                    } else {
+                        f32::MAX
+                    }
+                };
+                let results = hybrid_search::search(ivf, query, k, &distance_fn)?;
+                // Convert HybridSearchResult to SearchResult
+                results
+                    .into_iter()
+                    .map(|r| SearchResult::new(r.id, r.score, None))
+                    .collect()
             } else {
-                if let Some(ref vstorage) = self.vector_storage {
-                    let distance_fn = |a_id: u64, b_id: u64| -> f32 {
-                         if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
-                             1.0 - search::cosine_similarity(a, b)
-                         } else {
-                             f32::MAX
-                         }
-                    };
-                    let results = hybrid_search::search(ivf, query, k, &distance_fn)?;
-                    // Convert HybridSearchResult to SearchResult
-                    results.into_iter().map(|r| SearchResult::new(r.id, r.score, None)).collect()
-                } else {
-                    anyhow::bail!("Vector storage required for IVF search");
-                }
+                anyhow::bail!("Vector storage required for IVF search");
             }
         } else {
             // Flat search (O(n))
@@ -386,54 +386,53 @@ impl VectorEngine for SvDB {
                 if let Some(ref qstorage) = self.quantized_storage {
                     search::search_quantized(qstorage, &query.data, k)?
                 } else {
-                     anyhow::bail!("Product Quantization enabled but storage not initialized");
+                    anyhow::bail!("Product Quantization enabled but storage not initialized");
                 }
+            } else if let Some(ref vstorage) = self.vector_storage {
+                search::search_cosine(vstorage, &query.data, k)?
             } else {
-                if let Some(ref vstorage) = self.vector_storage {
-                    search::search_cosine(vstorage, &query.data, k)?
-                } else {
-                     anyhow::bail!("Vector storage not initialized");
-                }
+                anyhow::bail!("Vector storage not initialized");
             };
-            raw_results.into_iter().map(|(id, score)| SearchResult::new(id, score, None)).collect()
+            raw_results
+                .into_iter()
+                .map(|(id, score)| SearchResult::new(id, score, None))
+                .collect()
         };
 
         // Enrich with metadata
-        let enriched_results: Result<Vec<SearchResult>> = results.into_iter().map(|mut res| {
-             if let Ok(Some(meta)) = self.metadata_store.get(res.id) {
-                 res.metadata = Some(meta);
-             }
-             Ok(res)
-        }).collect();
+        let enriched_results: Result<Vec<SearchResult>> = results
+            .into_iter()
+            .map(|mut res| {
+                if let Ok(Some(meta)) = self.metadata_store.get(res.id) {
+                    res.metadata = Some(meta);
+                }
+                Ok(res)
+            })
+            .collect();
 
         enriched_results
     }
 
     fn search_batch(&self, queries: &[Vector], k: usize) -> Result<Vec<Vec<SearchResult>>> {
-        let embedded_queries: Vec<Vec<f32>> = queries
-            .iter()
-            .map(|q| q.data.clone())
-            .collect();
-        
+        let embedded_queries: Vec<Vec<f32>> = queries.iter().map(|q| q.data.clone()).collect();
+
         let batch_results = if let Some(ref scalar) = self.scalar_storage {
             // SQ8 lacks a dedicated batch search for now, use loop
-             let mut results = Vec::with_capacity(queries.len());
-             for query in embedded_queries {
-                 results.push(scalar.search(query.as_slice(), k)?);
-             }
-             results
+            let mut results = Vec::with_capacity(queries.len());
+            for query in embedded_queries {
+                results.push(scalar.search(query.as_slice(), k)?);
+            }
+            results
         } else if self.config.enabled {
             if let Some(ref qstorage) = self.quantized_storage {
                 search::search_quantized_batch(qstorage, &embedded_queries, k)?
             } else {
                 anyhow::bail!("Quantization enabled but quantized storage not initialized");
             }
+        } else if let Some(ref vstorage) = self.vector_storage {
+            search::search_batch(vstorage, &embedded_queries, k)?
         } else {
-            if let Some(ref vstorage) = self.vector_storage {
-                search::search_batch(vstorage, &embedded_queries, k)?
-            } else {
-                anyhow::bail!("Vector storage not initialized");
-            }
+            anyhow::bail!("Vector storage not initialized");
         };
 
         // Enrich with metadata
@@ -444,7 +443,11 @@ impl VectorEngine for SvDB {
                     .into_iter()
                     .map(|(id, score)| {
                         let metadata = self.metadata_store.get(id)?;
-                        Ok(SearchResult { id, score, metadata })
+                        Ok(SearchResult {
+                            id,
+                            score,
+                            metadata,
+                        })
                     })
                     .collect()
             })
@@ -470,18 +473,18 @@ impl VectorEngine for SvDB {
         if let Some(ref mut scalar) = self.scalar_storage {
             scalar.flush()?;
         }
-        
+
         if let Some(ref ivf) = self.ivf_index {
             storage::ivf::IVFStorage::save(ivf, &self.path)?;
         }
-        
+
         // HNSW Persistence
         if let Some(ref hnsw) = self.hnsw_index {
             let graph_path = self.path.join("hnsw.graph");
             let bytes = hnsw.to_bytes()?;
             std::fs::write(graph_path, bytes)?;
         }
-        
+
         self.metadata_store.flush()?;
         Ok(())
     }
@@ -513,18 +516,18 @@ impl SvDB {
         // Check for existing HNSW index
         let graph_path = db_path.join("hnsw.graph");
         let (hnsw_index, hnsw_config, final_index_type) = if graph_path.exists() {
-             match std::fs::read(&graph_path) {
-                 Ok(bytes) => {
-                     match hnsw::HNSWIndex::from_bytes(&bytes) {
-                         Ok(index) => (Some(index), None, types::IndexType::HNSW), // Config is inside index
-                         Err(e) => {
-                             eprintln!("Failed to load HNSW graph: {}", e);
-                             (None, None, config.index_type)
-                         }
-                     }
-                 },
-                 Err(_) => (None, None, config.index_type)
-             }
+            match std::fs::read(&graph_path) {
+                Ok(bytes) => {
+                    match hnsw::HNSWIndex::from_bytes(&bytes) {
+                        Ok(index) => (Some(index), None, types::IndexType::HNSW), // Config is inside index
+                        Err(e) => {
+                            eprintln!("Failed to load HNSW graph: {}", e);
+                            (None, None, config.index_type)
+                        }
+                    }
+                }
+                Err(_) => (None, None, config.index_type),
+            }
         } else {
             (None, None, config.index_type)
         };
@@ -549,27 +552,24 @@ impl SvDB {
     pub fn new_quantized(path: &str, training_vectors: &[Vector]) -> Result<Self> {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
-        
+
         if training_vectors.is_empty() {
             anyhow::bail!("Training vectors required for quantization");
         }
-let _dimension = training_vectors[0].data.len();
-        
+        let _dimension = training_vectors[0].data.len();
+
         // Convert training vectors to Vec<Vec<f32>>
-        let embedded: Vec<Vec<f32>> = training_vectors
-            .iter()
-            .map(|v| v.data.clone())
-            .collect();
-        
-        let quantized_storage = crate::quantized_storage::QuantizedVectorStorage::new_with_training(
-            path,
-            &embedded
-        )?;
+        let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
+
+        let quantized_storage =
+            crate::quantized_storage::QuantizedVectorStorage::new_with_training(path, &embedded)?;
         let metadata_store = MetadataStore::new(path)?;
 
-        let mut config = types::QuantizationConfig::default();
-        config.enabled = true;
-        
+        let config = types::QuantizationConfig {
+            enabled: true,
+            ..Default::default()
+        };
+
         Ok(Self {
             path: db_path.to_path_buf(),
             vector_storage: None,
@@ -585,9 +585,13 @@ let _dimension = training_vectors[0].data.len();
             current_mode: IndexMode::Flat, // PQ is technically a flat scan of compressed vectors
         })
     }
-    
+
     /// Create new database with Scalar Quantization (SQ8)
-    pub fn new_scalar_quantized(path: &str, dimension: usize, training_vectors: &[Vec<f32>]) -> Result<Self> {
+    pub fn new_scalar_quantized(
+        path: &str,
+        dimension: usize,
+        training_vectors: &[Vec<f32>],
+    ) -> Result<Self> {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
@@ -595,16 +599,15 @@ let _dimension = training_vectors[0].data.len();
             anyhow::bail!("Training vectors required for scalar quantization");
         }
 
-        let scalar_storage = ScalarQuantizedStorage::new_with_training(
-            path,
-            dimension,
-            training_vectors,
-        )?;
-        
+        let scalar_storage =
+            ScalarQuantizedStorage::new_with_training(path, dimension, training_vectors)?;
+
         let metadata_store = MetadataStore::new(path)?;
-        let mut config = types::QuantizationConfig::default();
-        config.enabled = true;
-        config.mode = types::QuantizationMode::Scalar;
+        let config = types::QuantizationConfig {
+            enabled: true,
+            mode: types::QuantizationMode::Scalar,
+            ..Default::default()
+        };
 
         Ok(Self {
             path: db_path.to_path_buf(),
@@ -621,24 +624,28 @@ let _dimension = training_vectors[0].data.len();
             current_mode: IndexMode::Sq8,
         })
     }
-    
+
     /// Get compression statistics
     pub fn get_stats(&self) -> Option<quantized_storage::StorageStats> {
         self.quantized_storage.as_ref().map(|s| s.get_stats())
     }
-    
+
     /// Create new database with HNSW indexing (full precision vectors)
-    /// 
+    ///
     /// # Arguments
     /// * `path` - Database directory path
     /// * `hnsw_config` - HNSW configuration (M, ef_construction, ef_search)
-    /// 
+    ///
     /// # Performance
     /// - Search: O(log n) instead of O(n)
     /// - Memory: +200 bytes per vector for graph structure
     /// - 10k vectors: 4ms → 0.5ms (8x faster)
     /// - 100k vectors: 40ms → 1ms (40x faster)
-    pub fn new_with_hnsw(path: &str, dimension: usize, hnsw_config: hnsw::HNSWConfig) -> Result<Self> {
+    pub fn new_with_hnsw(
+        path: &str,
+        dimension: usize,
+        hnsw_config: hnsw::HNSWConfig,
+    ) -> Result<Self> {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
@@ -661,18 +668,18 @@ let _dimension = training_vectors[0].data.len();
             current_mode: IndexMode::Hnsw,
         })
     }
-    
+
     /// Create new database with HNSW + Product Quantization (hybrid mode)
-    /// 
+    ///
     /// Combines the benefits of both:
     /// - HNSW: O(log n) search complexity
     /// - PQ: 32x memory compression (6KB → 192 bytes)
-    /// 
+    ///
     /// # Arguments
     /// * `path` - Database directory path
     /// * `training_vectors` - Vectors for PQ training (recommend 5k-10k samples)
     /// * `hnsw_config` - HNSW configuration
-    /// 
+    ///
     /// # Performance
     /// - Memory: 192 bytes (PQ) + 200 bytes (HNSW) = 392 bytes/vector (16x compression)
     /// - Search: 200x faster than flat for 1M vectors
@@ -684,27 +691,23 @@ let _dimension = training_vectors[0].data.len();
     ) -> Result<Self> {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
-        
+
         // Convert training vectors
-        let embedded: Vec<Vec<f32>> = training_vectors
-            .iter()
-            .map(|v| v.data.clone())
-            .collect();
-        
-        
-        let quantized_storage = crate::quantized_storage::QuantizedVectorStorage::new_with_training(
-            path,
-            &embedded
-        )?;
+        let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
+
+        let quantized_storage =
+            crate::quantized_storage::QuantizedVectorStorage::new_with_training(path, &embedded)?;
         let metadata_store = MetadataStore::new(path)?;
-        
-        let mut config = types::QuantizationConfig::default();
-        config.enabled = true;
-        
+
+        let config = types::QuantizationConfig {
+            enabled: true,
+            ..Default::default()
+        };
+
         let mut hnsw_cfg = hnsw_config;
         hnsw_cfg.use_quantization = true;
         let _hnsw_index = index::hnsw::HNSWIndex::new(hnsw_cfg.clone());
-        
+
         Ok(Self {
             path: db_path.to_path_buf(),
             vector_storage: None,
@@ -720,9 +723,9 @@ let _dimension = training_vectors[0].data.len();
             current_mode: IndexMode::Hnsw,
         })
     }
-    
+
     /// Set ef_search parameter at runtime to tune recall/speed tradeoff
-    /// 
+    ///
     /// Higher values = better recall but slower search
     /// Typical values: 50-200
     pub fn set_ef_search(&mut self, ef_search: usize) {
@@ -746,9 +749,7 @@ mod tests {
             .map(|i| Vector::new(vec![i as f32 / 100.0; 1536]))
             .collect();
 
-        let metas: Vec<String> = (0..100)
-            .map(|i| format!(r#"{{"id": {}}}"#, i))
-            .collect();
+        let metas: Vec<String> = (0..100).map(|i| format!(r#"{{"id": {}}}"#, i)).collect();
 
         let ids = db.add_batch(&vectors, &metas).unwrap();
         assert_eq!(ids.len(), 100);

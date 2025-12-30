@@ -7,15 +7,15 @@
 //! - K-means clustering for codebook training
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::f32;
 
 /// Configuration for Product Quantization
-pub const M: usize = 192;           // Number of sub-quantizers
-pub const K: usize = 256;           // Centroids per sub-quantizer (fits in u8)
-pub const D_SUB: usize = 8;         // Dimensions per sub-space (1536 / 192)
-pub const DIM: usize = 1536;        // Total dimensions
+pub const M: usize = 192; // Number of sub-quantizers
+pub const K: usize = 256; // Centroids per sub-quantizer (fits in u8)
+pub const D_SUB: usize = 8; // Dimensions per sub-space (1536 / 192)
+pub const DIM: usize = 1536; // Total dimensions
 
 /// Quantized vector representation (192 bytes)
 pub type QuantizedVector = [u8; M];
@@ -23,13 +23,13 @@ pub type QuantizedVector = [u8; M];
 /// Distance lookup table for Asymmetric Distance Computation
 #[derive(Debug, Clone)]
 pub struct DistanceTable {
-    pub tables: Vec<[f32; K]>,  // M tables, each with K distances
+    pub tables: Vec<[f32; K]>, // M tables, each with K distances
 }
 
 /// Codebook for a single sub-quantizer
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Codebook {
-    pub centroids: Vec<[f32; D_SUB]>,  // K centroids
+    pub centroids: Vec<[f32; D_SUB]>, // K centroids
 }
 
 /// Normalize a vector to unit length (L2 norm = 1.0)
@@ -53,7 +53,7 @@ impl Codebook {
         // Use vectors as-is (don't normalize sub-vectors)
         // Cosine similarity will be computed via magnitude normalization in distance calculation
         let mut centroids = Self::kmeans_plusplus_init(vectors, k);
-        
+
         for _ in 0..max_iter {
             // Assignment step
             let assignments: Vec<usize> = vectors
@@ -76,12 +76,12 @@ impl Codebook {
             let mut converged = true;
             for i in 0..k {
                 if counts[i] > 0 {
-                    for j in 0..D_SUB {
-                        new_centroids[i][j] /= counts[i] as f32;
+                    for val in new_centroids[i].iter_mut().take(D_SUB) {
+                        *val /= counts[i] as f32;
                     }
                     // Normalize centroids to unit length for proper cosine similarity
                     normalize_vector(&mut new_centroids[i]);
-                    
+
                     // Check convergence
                     if Self::euclidean_distance(&centroids[i], &new_centroids[i]) > 1e-6 {
                         converged = false;
@@ -94,7 +94,7 @@ impl Codebook {
             }
 
             centroids = new_centroids;
-            
+
             if converged {
                 break;
             }
@@ -147,22 +147,22 @@ impl Codebook {
     fn nearest_centroid(vec: &[f32; D_SUB], centroids: &[[f32; D_SUB]]) -> usize {
         // Calculate magnitude of input vector
         let vec_magnitude: f32 = vec.iter().map(|x| x * x).sum::<f32>().sqrt();
-        
+
         if vec_magnitude < 1e-10 {
             return 0; // Default to first centroid if zero vector
         }
-        
+
         centroids
             .iter()
             .enumerate()
             .map(|(i, c)| {
                 // Compute centroid magnitude
                 let c_magnitude: f32 = c.iter().map(|x| x * x).sum::<f32>().sqrt();
-                
+
                 if c_magnitude < 1e-10 {
                     return (i, -1.0); // Very low similarity for zero centroid
                 }
-                
+
                 // Compute cosine similarity
                 let dot: f32 = vec.iter().zip(c.iter()).map(|(a, b)| a * b).sum();
                 let cosine = dot / (vec_magnitude * c_magnitude);
@@ -199,28 +199,26 @@ impl Codebook {
     #[inline]
     pub fn compute_distances(&self, query_sub: &[f32; D_SUB]) -> [f32; K] {
         // Calculate magnitude of query sub-vector
-        let query_magnitude: f32 = query_sub.iter()
-            .map(|x| x * x)
-            .sum::<f32>()
-            .sqrt();
-        
+        let query_magnitude: f32 = query_sub.iter().map(|x| x * x).sum::<f32>().sqrt();
+
         let mut distances = [0.0f32; K];
-        
+
         // If query magnitude is near zero, return zeros
         if query_magnitude < 1e-10 {
             return distances;
         }
-        
+
         for (i, centroid) in self.centroids.iter().enumerate() {
             // Compute dot product (centroid is normalized to unit length)
-            let dot_product: f32 = query_sub.iter()
+            let dot_product: f32 = query_sub
+                .iter()
                 .zip(centroid.iter())
                 .map(|(a, b)| a * b)
                 .sum();
-            
+
             // Divide by query magnitude to get cosine (centroid magnitude is 1.0)
             let cosine = dot_product / query_magnitude;
-            
+
             // Negate because we minimize distance but want to maximize similarity
             distances[i] = -cosine;
         }
@@ -244,14 +242,17 @@ impl ProductQuantizer {
             anyhow::bail!("Training data cannot be empty");
         }
 
-        println!("Training Product Quantizer with M={}, K={}, D_sub={}", M, K, D_SUB);
+        println!(
+            "Training Product Quantizer with M={}, K={}, D_sub={}",
+            M, K, D_SUB
+        );
 
         // Train codebook for each sub-quantizer
         let codebooks: Result<Vec<Codebook>> = (0..M)
             .into_par_iter()
             .map(|m_idx| {
                 println!("Training sub-quantizer {}/{}", m_idx + 1, M);
-                
+
                 // Extract and normalize sub-vectors for this sub-quantizer
                 let sub_vectors: Vec<[f32; D_SUB]> = training_data
                     .iter()
@@ -282,22 +283,23 @@ impl ProductQuantizer {
     #[inline]
     pub fn encode(&self, vector: &[f32; DIM]) -> QuantizedVector {
         let mut quantized = [0u8; M];
-        
+
         for (m_idx, codebook) in self.codebooks.iter().enumerate() {
             let start = m_idx * D_SUB;
             let end = start + D_SUB;
             let mut sub_vec = [0.0f32; D_SUB];
             sub_vec.copy_from_slice(&vector[start..end]);
-            
+
             quantized[m_idx] = codebook.encode(&sub_vec);
         }
-        
+
         quantized
     }
 
     /// Compute distance table for asymmetric distance computation
     pub fn compute_distance_table(&self, query: &[f32; DIM]) -> DistanceTable {
-        let tables: Vec<[f32; K]> = self.codebooks
+        let tables: Vec<[f32; K]> = self
+            .codebooks
             .iter()
             .enumerate()
             .map(|(m_idx, codebook)| {
@@ -305,7 +307,7 @@ impl ProductQuantizer {
                 let end = start + D_SUB;
                 let mut query_sub = [0.0f32; D_SUB];
                 query_sub.copy_from_slice(&query[start..end]);
-                
+
                 codebook.compute_distances(&query_sub)
             })
             .collect();
@@ -370,10 +372,10 @@ mod tests {
             .collect();
 
         let pq = ProductQuantizer::train(&training, 10).unwrap();
-        
+
         let test_vec = [0.5f32; DIM];
         let quantized = pq.encode(&test_vec);
-        
+
         assert_eq!(quantized.len(), M);
         // All codes should be within valid range
         assert!(quantized.iter().all(|&c| (c as usize) < K));
@@ -390,13 +392,13 @@ mod tests {
             .collect();
 
         let pq = ProductQuantizer::train(&training, 5).unwrap();
-        
+
         let query = [1.0f32; DIM];
         let dtable = pq.compute_distance_table(&query);
-        
+
         let qvec = pq.encode(&[1.0f32; DIM]);
         let distance = pq.asymmetric_distance(&qvec, &dtable);
-        
+
         // Distance should be positive and reasonable
         assert!(distance > 0.0 && distance <= 1.0);
     }

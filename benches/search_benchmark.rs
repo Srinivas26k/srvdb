@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use srvdb::{SvDB, VectorEngine, Vector};
 use rand::Rng;
+use srvdb::{SvDB, Vector, VectorEngine};
 
 const DIM: usize = 1536;
 
@@ -35,7 +35,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             db.search(black_box(&query), black_box(10)).unwrap();
         })
     });
-    
+
     // Cleanup
     let _ = std::fs::remove_dir_all(db_path);
 }

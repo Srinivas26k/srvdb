@@ -1,13 +1,13 @@
 //! Scalar Quantized Storage (SQ8)
 //! 4x compression with direct u8 storage
 
+use crate::types::VectorHeader;
 use anyhow::{Context, Result};
 use memmap2::{MmapMut, MmapOptions};
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Seek, SeekFrom, Write};
 use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
-use crate::types::VectorHeader; // Will need fixing to crate::core::types
+use std::sync::atomic::{AtomicU64, Ordering}; // Will need fixing to crate::core::types
 
 const BUFFER_SIZE: usize = 8 * 1024 * 1024; // 8MB buffer
 
@@ -39,7 +39,7 @@ impl ScalarQuantizedStorage {
 
         // Train quantizer
         let quantizer = crate::types::ScalarQuantizer::train(training_data)?;
-        
+
         // Save quantizer
         let quantizer_path = Path::new(db_path).join("scalar_quantizer.bin");
         let quantizer_bytes = bincode::serialize(&quantizer)?;
@@ -48,11 +48,12 @@ impl ScalarQuantizedStorage {
         // Create quantized vectors file
         let file_path = Path::new(db_path).join("sq8_vectors.bin");
         let exists = file_path.exists();
-        
+
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(&file_path)
             .context("Failed to open sq8_vectors.bin")?;
 
@@ -65,12 +66,13 @@ impl ScalarQuantizedStorage {
                 let header = unsafe { &*(mmap.as_ptr() as *const VectorHeader) };
                 header.validate()?;
                 count = header.count;
-                
+
                 // Validate dimension
                 if header.dimension as usize != dimension {
                     anyhow::bail!(
                         "Dimension mismatch: expected {}, found {}",
-                        dimension, header.dimension
+                        dimension,
+                        header.dimension
                     );
                 }
             }
@@ -114,10 +116,7 @@ impl ScalarQuantizedStorage {
         let quantizer = bincode::deserialize(&quantizer_bytes)?;
 
         let file_path = Path::new(db_path).join("sq8_vectors.bin");
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(&file_path)?;
+        let mut file = OpenOptions::new().read(true).write(true).open(&file_path)?;
 
         let mut count = 0;
         if file.metadata()?.len() >= VectorHeader::SIZE as u64 {
@@ -157,13 +156,13 @@ impl ScalarQuantizedStorage {
         }
 
         let id = self.count.fetch_add(1, Ordering::Relaxed);
-        
+
         // Quantize to u8 (1 byte per dimension)
         let encoded = self.quantizer.encode(vector);
-        
+
         // Write u8 bytes directly (TRUE compression!)
         self.writer.write_all(&encoded)?;
-        
+
         if self.writer.buffer().len() > (BUFFER_SIZE * 9 / 10) {
             self.flush()?;
         }
@@ -183,14 +182,14 @@ impl ScalarQuantizedStorage {
     /// Get and decode vector from u8 storage
     pub fn get(&self, index: u64) -> Option<Vec<f32>> {
         let mmap = self.mmap.as_ref()?;
-        
+
         if index >= self.count.load(Ordering::Relaxed) {
             return None;
         }
 
         // Calculate offset: header + (index * dimension bytes for u8)
         let offset = VectorHeader::SIZE + (index as usize * self.dimension);
-        
+
         if offset + self.dimension <= mmap.len() {
             let encoded = &mmap[offset..offset + self.dimension];
             Some(self.quantizer.decode(encoded))
@@ -208,7 +207,7 @@ impl ScalarQuantizedStorage {
 
         let mut results = Vec::with_capacity(count);
         let mmap = self.mmap.as_ref().context("No mmap available")?;
-        
+
         for i in 0..count {
             let offset = VectorHeader::SIZE + (i * self.dimension);
             if offset + self.dimension <= mmap.len() {
@@ -231,18 +230,18 @@ impl ScalarQuantizedStorage {
 
     pub fn flush(&mut self) -> Result<()> {
         self.writer.flush()?;
-        
+
         // Update header count
         let current_count = self.count.load(Ordering::Relaxed);
         if current_count != self.last_flushed_count {
             {
                 let file = self.writer.get_mut();
                 file.seek(SeekFrom::Start(0))?;
-                
+
                 let mut header = VectorHeader::new(self.dimension)?;
                 header.count = current_count;
                 header.quantization_mode = 1; // SQ8 = 1
-                
+
                 let header_bytes = unsafe {
                     std::slice::from_raw_parts(
                         &header as *const VectorHeader as *const u8,
@@ -252,14 +251,14 @@ impl ScalarQuantizedStorage {
                 file.write_all(header_bytes)?;
                 file.sync_all()?;
                 file.seek(SeekFrom::End(0))?;
-            }  // Drop mutable borrow here
-            
+            } // Drop mutable borrow here
+
             // Now we can remap
             let file_ref = self.writer.get_ref();
             self.mmap = Some(unsafe { MmapOptions::new().map_mut(file_ref)? });
             self.last_flushed_count = current_count;
         }
-        
+
         Ok(())
     }
 }

@@ -8,33 +8,28 @@
 use serde::{Deserialize, Serialize};
 
 /// High-level indexing mode selected by the user or the Auto-Tuner.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum IndexMode {
-    /// Exact search (Brute Force). O(n). 
+    /// Exact search (Brute Force). O(n).
     /// Best for small datasets (<50k) where 100% recall is critical.
+    #[default]
     Flat,
-    
+
     /// Approximate search (HNSW). O(log n).
     /// Best for real-time applications requiring sub-10ms latency.
     Hnsw,
-    
+
     /// Scalar Quantization (SQ8). 4x Compression.
     /// Best for memory-constrained environments (e.g., Laptops, Edge).
     Sq8,
-    
+
     /// Inverted File with HNSW Refinement (IVF-HNSW).
     /// Best for massive datasets (>1M vectors).
     Ivf,
-    
-    /// The "Magic" mode. 
+
+    /// The "Magic" mode.
     /// SrvDB analyzes resources and data size to select the best strategy at runtime.
     Auto,
-}
-
-impl Default for IndexMode {
-    fn default() -> Self {
-        IndexMode::Flat
-    }
 }
 
 /// Configuration for the Auto-Tuning Engine.
@@ -43,11 +38,11 @@ impl Default for IndexMode {
 pub struct AutoTunerConfig {
     /// Total available system RAM in GB.
     pub available_ram_gb: f64,
-    
+
     /// Dataset size threshold to switch from Flat to HNSW/SQ8.
     /// Default: 50,000 vectors.
     pub dataset_size_threshold: usize,
-    
+
     /// Latency budget in milliseconds (P99).
     /// If projected latency > this, we prioritize HNSW.
     pub latency_budget_ms: f64,
@@ -75,9 +70,9 @@ impl AutoTunerConfig {
 }
 
 /// The Decision Engine.
-/// 
+///
 /// Analyzes constraints and returns the optimal IndexMode.
-/// 
+///
 /// # Logic Flow
 /// 1. **Safety First**: If RAM is critically low (<2GB) and dataset is large, force SQ8.
 /// 2. **Accuracy First**: If dataset is small (<50k), use Flat for 100% recall.
@@ -97,9 +92,9 @@ pub fn decide_mode(config: &AutoTunerConfig, dataset_size: usize) -> IndexMode {
     if config.available_ram_gb < 4.0 {
         return IndexMode::Sq8;
     }
-    
+
     // 3. Efficiency Mode (Medium RAM)
-    // Between 4GB and 16GB, it's a trade-off. 
+    // Between 4GB and 16GB, it's a trade-off.
     // If the dataset is massive (e.g. >1M), HNSW memory overhead is too high.
     // For now, let's say if we have < 8GB, we still prefer SQ8 to be safe for other apps.
     if config.available_ram_gb < 8.0 {

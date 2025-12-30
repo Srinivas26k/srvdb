@@ -1,7 +1,7 @@
-use std::time::Instant;
-use std::path::Path;
-use srvdb::{SvDB, IndexMode, VectorEngine, Vector};
 use srvdb::ivf::IVFConfig;
+use srvdb::{IndexMode, SvDB, Vector, VectorEngine};
+use std::path::Path;
+use std::time::Instant;
 
 /// Automated IVF-HNSW Validation Suite
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -13,15 +13,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if db_path.exists() {
         std::fs::remove_dir_all(db_path)?;
     }
-    
+
     let dim = 1536;
     let n_vectors = 10_000; // Reduced from 100k for faster dev-cycle validation (100k takes ~30s+)
 
-    println!("\n[1/3] Setup: Generating Adversarial Mix Dataset ({} vectors)...", n_vectors);
-    let (vectors_raw, ids): (Vec<Vec<f32>>, Vec<String>) = generate_adversarial_data(n_vectors, dim);
-    
+    println!(
+        "\n[1/3] Setup: Generating Adversarial Mix Dataset ({} vectors)...",
+        n_vectors
+    );
+    let (vectors_raw, ids): (Vec<Vec<f32>>, Vec<String>) =
+        generate_adversarial_data(n_vectors, dim);
+
     // Convert to srvdb::Vector
-    let vectors: Vec<Vector> = vectors_raw.iter().map(|data| Vector::new(data.clone())).collect();
+    let vectors: Vec<Vector> = vectors_raw
+        .iter()
+        .map(|data| Vector::new(data.clone()))
+        .collect();
 
     println!("\n[2/3] Training IVF Index (K-Means Clustering)...");
     let ivf_config = IVFConfig {
@@ -33,25 +40,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let mut db = SvDB::new(db_path.to_str().unwrap())?;
-    
+
     // Ingest First
     println!("   -> Ingesting vectors...");
     let start_ingest = Instant::now();
     db.add_batch(&vectors, &ids)?;
     db.persist()?; // Flush to disk for training visibility
     let ingest_time = start_ingest.elapsed();
-    println!("      Throughput: {:.2} vec/s", n_vectors as f64 / ingest_time.as_secs_f64());
+    println!(
+        "      Throughput: {:.2} vec/s",
+        n_vectors as f64 / ingest_time.as_secs_f64()
+    );
 
     // Configure and Train
     println!("   -> Switching to IVF and Training...");
     db.set_mode(IndexMode::Ivf);
     db.configure_ivf(ivf_config)?;
-    
+
     let start_train = Instant::now();
     db.train_ivf()?;
     let train_time = start_train.elapsed();
     println!("      Training Time: {:?}", train_time);
-    
+
     // Persist trained state
     db.persist()?;
 
@@ -64,24 +74,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // --- SEARCH TESTS ---
     println!("   -> Searching (IVF Mode)...");
-    
+
     // Prepare Query
     let query_vecs_raw = generate_random_queries(100, dim);
-    let query_vecs: Vec<Vector> = query_vecs_raw.iter().map(|data| Vector::new(data.clone())).collect();
-    
+    let query_vecs: Vec<Vector> = query_vecs_raw
+        .iter()
+        .map(|data| Vector::new(data.clone()))
+        .collect();
+
     let mut total_hits = 0;
     let mut latencies = Vec::new();
 
     for q in &query_vecs {
         let t_start = Instant::now();
-        
+
         let results = db_reloaded.search(q, 10)?;
-        
+
         let elapsed = t_start.elapsed();
         latencies.push(elapsed.as_millis());
-        
+
         if !results.is_empty() {
-             total_hits += 1;
+            total_hits += 1;
         }
     }
 
@@ -91,7 +104,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   -> Latency P99: {} ms", p99);
     println!("   -> Latency P50: {} ms", p50);
     println!("   -> Queries with Hits: {}/100", total_hits);
-    
+
     // Final Verdict
     println!("\n[FINAL VERDICT]:");
     if total_hits > 90 {
@@ -113,14 +126,16 @@ fn generate_adversarial_data(n: usize, dim: usize) -> (Vec<Vec<f32>>, Vec<String
     let mut rng = rand::thread_rng();
     let mut vecs = Vec::with_capacity(n);
     let mut ids = Vec::with_capacity(n);
-    
+
     for i in 0..n {
         ids.push(format!("vec_{}", i));
         let mut v: Vec<f32> = (0..dim).map(|_| rng.gen()).collect();
         // Normalize
-        let norm = v.iter().map(|x| x*x).sum::<f32>().sqrt();
+        let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
         if norm > 0.0 {
-            for x in v.iter_mut() { *x /= norm; }
+            for x in v.iter_mut() {
+                *x /= norm;
+            }
         }
         vecs.push(v);
     }
@@ -130,23 +145,29 @@ fn generate_adversarial_data(n: usize, dim: usize) -> (Vec<Vec<f32>>, Vec<String
 fn generate_random_queries(n: usize, dim: usize) -> Vec<Vec<f32>> {
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    (0..n).map(|_| {
-        let mut v: Vec<f32> = (0..dim).map(|_| rng.gen()).collect();
-        let norm: f32 = v.iter().map(|x| x*x).sum::<f32>().sqrt();
-        if norm > 0.0 {
-            for x in v.iter_mut() { *x /= norm; }
-        }
-        v
-    }).collect()
+    (0..n)
+        .map(|_| {
+            let mut v: Vec<f32> = (0..dim).map(|_| rng.gen()).collect();
+            let norm: f32 = v.iter().map(|x| x * x).sum::<f32>().sqrt();
+            if norm > 0.0 {
+                for x in v.iter_mut() {
+                    *x /= norm;
+                }
+            }
+            v
+        })
+        .collect()
 }
 
 fn percentile(data: &[u128], p: usize) -> u128 {
     let mut sorted = data.to_vec();
     sorted.sort();
-    if sorted.is_empty() { return 0; }
+    if sorted.is_empty() {
+        return 0;
+    }
     let index = (sorted.len() as f64 * p as f64 / 100.0) as usize;
-    if index >= sorted.len() { 
-        sorted[sorted.len() - 1] 
+    if index >= sorted.len() {
+        sorted[sorted.len() - 1]
     } else {
         sorted[index]
     }

@@ -5,12 +5,12 @@
 
 use anyhow::Result;
 use parking_lot::RwLock;
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use rand::Rng;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
-use crate::hnsw::{HNSWIndex, HNSWConfig, DistanceFunction};
+use crate::hnsw::{HNSWConfig, HNSWIndex};
 use crate::Vector;
 
 /// IVF Configuration
@@ -56,7 +56,9 @@ impl IVFIndex {
     pub fn new(config: IVFConfig) -> Self {
         let mut partitions = Vec::with_capacity(config.nlist);
         for _ in 0..config.nlist {
-            partitions.push(Arc::new(RwLock::new(HNSWIndex::new(config.hnsw_config.clone()))));
+            partitions.push(Arc::new(RwLock::new(HNSWIndex::new(
+                config.hnsw_config.clone(),
+            ))));
         }
 
         Self {
@@ -67,7 +69,7 @@ impl IVFIndex {
     }
 
     /// Train the centroids using K-Means clustering
-    /// 
+    ///
     /// This is a "Course Quantization" step.
     /// Returns the centroids and assigns the training vectors to partitions (though assignment isn't stored here).
     pub fn train(&mut self, training_data: &[Vector]) -> Result<()> {
@@ -77,8 +79,12 @@ impl IVFIndex {
 
         let k = self.config.nlist;
         let dim = training_data[0].dim();
-        
-        println!("IVF: Training {} centroids on {} vectors...", k, training_data.len());
+
+        println!(
+            "IVF: Training {} centroids on {} vectors...",
+            k,
+            training_data.len()
+        );
 
         // 1. Initialize Centroids (Random Point Pick)
         let mut rng = rand::thread_rng();
@@ -92,11 +98,12 @@ impl IVFIndex {
         for iter in 0..self.config.max_iterations {
             // Assignment Step: Assign each vector to nearest centroid
             // We sum vectors per cluster to recompute mean later
-            let assignments: Vec<(usize, Vec<f32>)> = training_data.par_iter()
+            let assignments: Vec<(usize, Vec<f32>)> = training_data
+                .par_iter()
                 .map(|vec| {
                     let mut best_dist = f32::MAX;
                     let mut best_k = 0;
-                    
+
                     // Simple linear scan for centroid finding (Simd optimized dot product would be better)
                     // Since K is small (e.g. 100-1000), this is acceptable.
                     for (i, center) in centroids.iter().enumerate() {
@@ -125,8 +132,8 @@ impl IVFIndex {
             for i in 0..k {
                 if counts[i] > 0 {
                     let factor = 1.0 / counts[i] as f32;
-                    for j in 0..dim {
-                        new_centroids[i][j] *= factor;
+                    for val in new_centroids[i].iter_mut().take(dim) {
+                        *val *= factor;
                     }
                 } else {
                     // Re-init empty cluster with random point to avoid dead clusters
@@ -138,7 +145,7 @@ impl IVFIndex {
             }
 
             centroids = new_centroids;
-            
+
             println!("  -> Iteration {}: diff = {:.4}", iter + 1, diff);
             if diff < self.config.tolerance {
                 println!("  -> Converged.");
@@ -154,15 +161,15 @@ impl IVFIndex {
     pub fn find_partition(&self, vector: &Vector) -> usize {
         let mut best_dist = f32::MAX;
         let mut best_k = 0;
-        
+
         for (i, center) in self.centroids.iter().enumerate() {
-            // We use the same distance metric as HNSW usually, assume Cosine/Euclidean 
+            // We use the same distance metric as HNSW usually, assume Cosine/Euclidean
             // Ideally should match config.
-            let dist = crate::search::cosine_similarity(&vector.data, &center.data); 
+            let dist = crate::search::cosine_similarity(&vector.data, &center.data);
             // Note: cosine_similarity is "higher is better", we need distance "lower is better"
             // So convert sim to dist: 1.0 - sim
             let dist = 1.0 - dist;
-            
+
             if dist < best_dist {
                 best_dist = dist;
                 best_k = i;
@@ -172,24 +179,29 @@ impl IVFIndex {
     }
 
     /// Add a vector to the index.
-    /// 
-    /// Note: This does NOT add it to global storage (vectors.bin), 
+    ///
+    /// Note: This does NOT add it to global storage (vectors.bin),
     /// it only adds the ID to the appropriate partition graph.
-    pub fn add(&self, id: u64, vector: &Vector, distance_fn: &impl Fn(u64, u64) -> f32) -> Result<()> {
+    pub fn add(
+        &self,
+        id: u64,
+        vector: &Vector,
+        distance_fn: &impl Fn(u64, u64) -> f32,
+    ) -> Result<()> {
         if self.centroids.is_empty() {
             anyhow::bail!("IVF Index not trained");
         }
 
         let partition_id = self.find_partition(vector);
-        
+
         let partition = &self.partitions[partition_id];
         partition.read().insert(id, distance_fn)?; // READ lock for HNSW, HNSW handles internal Write locks?
-        // Wait, HNSW insert needs to mutate the graph structure.
-        // HNSWIndex uses RwLocks internally for its nodes map. 
-        // HNSWIndex::insert takes &self (immutable reference).
-        // Check hnsw.rs line 181: pub fn insert<F>(&self, ...
-        // Yes, HNSWIndex is thread-safe with internal locking.
-        
+                                                   // Wait, HNSW insert needs to mutate the graph structure.
+                                                   // HNSWIndex uses RwLocks internally for its nodes map.
+                                                   // HNSWIndex::insert takes &self (immutable reference).
+                                                   // Check hnsw.rs line 181: pub fn insert<F>(&self, ...
+                                                   // Yes, HNSWIndex is thread-safe with internal locking.
+
         Ok(())
     }
 }
