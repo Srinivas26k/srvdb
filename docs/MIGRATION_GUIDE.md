@@ -4,6 +4,7 @@ This guide helps you upgrade from SrvDB v0.1.x to v0.2.0. This release introduce
 
 ## Major Changes
 
+- **Renaming**: `SvDB` is now `SrvDB`. Python class is `SrvDBPython`, Rust struct is `SrvDB`.
 - **Dynamic Dimension Support**: No longer hardcoded to 1536. You must specify dimensions explicitly.
 - **Module Restructuring**: Code has been moved to cleaner domain-specific modules (`core`, `index`, `storage`, `api`).
 - **New Index Types**: Added IVF (Hybrid) and SQ8 quantization support.

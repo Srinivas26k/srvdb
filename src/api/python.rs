@@ -68,6 +68,9 @@ impl SrvDBPython {
                 config.quantization.mode = crate::types::QuantizationMode::Product;
                 config.auto_tune_pq(); // Auto-calculate M and d_sub
             }
+            "ivf" => {
+                config.index_type = crate::types::IndexType::IVF;
+            }
             _ => {
                 return Err(PyValueError::new_err(format!(
                     "Invalid mode '{}'. Choose: 'flat', 'hnsw', 'sq8', 'pq', or 'auto'",
@@ -179,6 +182,59 @@ impl SrvDBPython {
             reverse_id_map: FxHashMap::default(),
             dimension,
             index_type: "sq8".to_string(),
+        })
+    }
+
+    /// Create database with Product Quantization (32x compression)
+    ///
+    /// Args:
+    ///     path: Database directory
+    ///     dimension: Vector dimension
+    ///     training_vectors: Sample vectors for training (1000+ recommended)
+    ///
+    /// Notes:
+    ///     - 32x compression (6KB -> 192 bytes)
+    ///     - Good recall with re-ranking
+    ///     - Supports any dimension divisible by M
+    #[staticmethod]
+    fn new_product_quantized(
+        path: String,
+        dimension: usize,
+        training_vectors: Vec<Vec<f32>>,
+    ) -> PyResult<Self> {
+        if training_vectors.is_empty() {
+             return Err(PyValueError::new_err(
+                "Training vectors required. Provide 1000+ sample vectors for best results.",
+            ));
+        }
+
+        // Validate dimensions
+        for (i, vec) in training_vectors.iter().enumerate() {
+            if vec.len() != dimension {
+                 return Err(PyValueError::new_err(format!(
+                    "Training vector {} has dimension {}, expected {}",
+                    i,
+                    vec.len(),
+                    dimension
+                )));
+            }
+        }
+
+        // Convert to internal Vector type
+        let internal_vectors: Vec<crate::Vector> = training_vectors
+            .into_iter()
+            .map(crate::Vector::new)
+            .collect();
+
+        let db = crate::SrvDB::new_quantized(&path, &internal_vectors)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+
+        Ok(Self {
+            db,
+            id_map: FxHashMap::default(),
+            reverse_id_map: FxHashMap::default(),
+            dimension,
+            index_type: "pq".to_string(),
         })
     }
 
@@ -368,6 +424,11 @@ impl SrvDBPython {
             }
         }
         Ok(deleted)
+    }
+
+    /// Get all IDs in the database
+    fn get_all_ids(&self) -> PyResult<Vec<String>> {
+        Ok(self.id_map.keys().cloned().collect())
     }
 
     /// Set index mode

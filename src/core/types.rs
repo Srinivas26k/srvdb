@@ -345,6 +345,7 @@ mod tests {
         assert!(header.validate().is_ok());
 
         // Test invalid dimension
-        assert!(VectorHeader::new(50).is_err());
+        let invalid_header = VectorHeader::new(50).unwrap();
+        assert!(invalid_header.validate().is_err());
     }
 }
