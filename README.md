@@ -399,9 +399,20 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
-GNU Affero General Public License v3.0
+SrvDB is open-source software licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**.
 
-For commercial licensing inquiries, contact: srinivasvarma764@gmail.com
+### 🟢 Open Source Use
+You are free to use SrvDB for personal projects, academic research, and open-source applications under the terms of the AGPLv3.
+
+### 🔴 Commercial & Cloud Use
+If you are building a proprietary application, a cloud service (SaaS), or embedding SrvDB in a commercial product where you cannot or do not wish to open-source your code, you must purchase a **Commercial License**.
+
+**Commercial Licensing Benefits:**
+* Exemption from AGPLv3 open-source requirements.
+* Priority support & direct access to the maintainer.
+* Legal assurance for enterprise deployment.
+
+For commercial licensing inquiries, please contact: **srinivasvarma764@gmail.com**
 
 ---
 
