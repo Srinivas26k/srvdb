@@ -86,6 +86,9 @@ impl SvDBPython {
             db.current_mode = crate::IndexMode::Sq8;
         } else if mode.to_lowercase() == "hnsw" {
              db.current_mode = crate::IndexMode::Hnsw;
+        } else if mode.to_lowercase() == "ivf" {
+             // We need to set mode explicitly to trigger IVF init
+             db.set_mode(crate::IndexMode::Ivf);
         }
 
         Ok(Self {
@@ -360,7 +363,49 @@ impl SvDBPython {
         Ok(deleted)
     }
 
-    /// Get database info
+    /// Set index mode
+    fn set_mode(&mut self, mode: String) -> PyResult<()> {
+        match mode.to_lowercase().as_str() {
+            "flat" => self.db.set_mode(crate::IndexMode::Flat),
+            "hnsw" => self.db.set_mode(crate::IndexMode::Hnsw),
+            "sq8" | "scalar" => self.db.set_mode(crate::IndexMode::Sq8),
+            "ivf" => self.db.set_mode(crate::IndexMode::Ivf),
+            "auto" => self.db.set_mode(crate::IndexMode::Auto),
+             _ => return Err(PyValueError::new_err(format!("Invalid mode: {}", mode))),
+        }
+        self.index_type = mode;
+        Ok(())
+    }
+
+    /// Configure IVF parameters
+    /// 
+    /// Args:
+    ///     nlist: Number of partitions (centroids)
+    ///     nprobe: Number of partitions to search (search quality vs speed)
+    #[pyo3(signature = (nlist=100, nprobe=10))]
+    fn configure_ivf(&mut self, nlist: usize, nprobe: usize) -> PyResult<()> {
+        let config = crate::ivf::IVFConfig {
+            nlist,
+            nprobe,
+            max_iterations: 10,
+            tolerance: 0.001,
+            hnsw_config: Default::default(),
+        };
+        self.db.configure_ivf(config)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+
+    /// Train IVF index
+    fn train_ivf(&mut self) -> PyResult<()> {
+        // Python holds the GIL, but training is heavy. Release GIL?
+        // Yes, allow threads.
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                self.db.train_ivf()
+            })
+        }).map_err(|e| PyRuntimeError::new_err(format!("IVF Training failed: {}", e)))
+    }
+
     fn info(&self) -> PyResult<String> {
         let stats = if let Some(stats) = self.db.get_stats() {
             format!(
