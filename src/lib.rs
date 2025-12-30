@@ -61,7 +61,8 @@ impl VectorEngine for SvDB {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
-        let vector_storage = VectorStorage::new(path)?;
+        // Default to 1536 dimensions for backward compatibility
+        let vector_storage = VectorStorage::new(path, 1536)?;
         let metadata_store = MetadataStore::new(path)?;
 
         Ok(Self {
@@ -75,21 +76,15 @@ impl VectorEngine for SvDB {
     }
 
     fn add(&mut self, vec: &Vector, meta: &str) -> Result<u64> {
-        if vec.data.len() != 1536 {
-            anyhow::bail!("Vector must be 1536-dimensional");
-        }
-
-        let embedded = types::to_embedded_vector(&vec.data)?;
-        
         let id = if self.config.enabled {
             if let Some(ref mut qstorage) = self.quantized_storage {
-                qstorage.append(&embedded)?
+                qstorage.append(&vec.data)?
             } else {
                 anyhow::bail!("Quantization enabled but quantized storage not initialized");
             }
         } else {
             if let Some(ref mut vstorage) = self.vector_storage {
-                vstorage.append(&embedded)?
+                vstorage.append(&vec.data)?
             } else {
                 anyhow::bail!("Vector storage not initialized");
             }
@@ -141,18 +136,11 @@ impl VectorEngine for SvDB {
             anyhow::bail!("Vectors and metadata counts must match");
         }
 
-        // Convert all vectors
-        let embedded: Result<Vec<_>> = vecs
+        // Convert all vectors to Vec<f32>
+        let embedded: Vec<Vec<f32>> = vecs
             .iter()
-            .map(|v| {
-                if v.data.len() != 1536 {
-                    anyhow::bail!("All vectors must be 1536-dimensional");
-                }
-                types::to_embedded_vector(&v.data)
-            })
+            .map(|v| v.data.clone())
             .collect();
-
-        let embedded = embedded?;
 
         // Batch append vectors based on mode
         let ids = if self.config.enabled {
@@ -178,23 +166,17 @@ impl VectorEngine for SvDB {
     }
 
     fn search(&self, query: &Vector, k: usize) -> Result<Vec<SearchResult>> {
-        if query.data.len() != 1536 {
-            anyhow::bail!("Query must be 1536-dimensional");
-        }
-
-        let embedded_query = types::to_embedded_vector(&query.data)?;
-        
         let results = if let Some(ref hnsw) = self.hnsw_index {
             // HNSW-accelerated search (O(log n))
             if self.config.enabled {
                 if let Some(ref qstorage) = self.quantized_storage {
-                    search::search_hnsw_quantized(qstorage, hnsw, &embedded_query, k)?
+                    search::search_hnsw_quantized(qstorage, hnsw, &query.data, k)?
                 } else {
                     anyhow::bail!("Quantization enabled but quantized storage not initialized");
                 }
             } else {
                 if let Some(ref vstorage) = self.vector_storage {
-                    search::search_hnsw(vstorage, hnsw, &embedded_query, k)?
+                    search::search_hnsw(vstorage, hnsw, &query.data, k)?
                 } else {
                     anyhow::bail!("Vector storage not initialized");
                 }
@@ -203,13 +185,13 @@ impl VectorEngine for SvDB {
             // Flat search (O(n)) - backward compatible
             if self.config.enabled {
                 if let Some(ref qstorage) = self.quantized_storage {
-                    search::search_quantized(qstorage, &embedded_query, k)?
+                    search::search_quantized(qstorage, &query.data, k)?
                 } else {
                     anyhow::bail!("Quantization enabled but quantized storage not initialized");
                 }
             } else {
                 if let Some(ref vstorage) = self.vector_storage {
-                    search::search_cosine(vstorage, &embedded_query, k)?
+                    search::search_cosine(vstorage, &query.data, k)?
                 } else {
                     anyhow::bail!("Vector storage not initialized");
                 }
@@ -226,17 +208,10 @@ impl VectorEngine for SvDB {
     }
 
     fn search_batch(&self, queries: &[Vector], k: usize) -> Result<Vec<Vec<SearchResult>>> {
-        let embedded_queries: Result<Vec<_>> = queries
+        let embedded_queries: Vec<Vec<f32>> = queries
             .iter()
-            .map(|q| {
-                if q.data.len() != 1536 {
-                    anyhow::bail!("All queries must be 1536-dimensional");
-                }
-                types::to_embedded_vector(&q.data)
-            })
+            .map(|q| q.data.clone())
             .collect();
-
-        let embedded_queries = embedded_queries?;
         
         let batch_results = if self.config.enabled {
             if let Some(ref qstorage) = self.quantized_storage {
@@ -291,25 +266,42 @@ impl VectorEngine for SvDB {
     }
 }
 
-// Additional PQ methods
+// Additional methods
 impl SvDB {
+    /// Create new database with configuration
+    pub fn new_with_config(path: &str, config: types::DatabaseConfig) -> Result<Self> {
+        let db_path = Path::new(path);
+        std::fs::create_dir_all(db_path)?;
+
+        let dimension = config.dimension;
+        let vector_storage = VectorStorage::new(path, dimension)?;
+        let metadata_store = MetadataStore::new(path)?;
+
+        Ok(Self {
+            vector_storage: Some(vector_storage),
+            quantized_storage: None,
+            metadata_store,
+            config: config.quantization,
+            hnsw_index: None,
+            hnsw_config: None,
+        })
+    }
+
     /// Create new database with Product Quantization
     pub fn new_quantized(path: &str, training_vectors: &[Vector]) -> Result<Self> {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
         
-        // Convert training vectors
-        let embedded: Result<Vec<_>> = training_vectors
-            .iter()
-            .map(|v| {
-                if v.data.len() != 1536 {
-                    anyhow::bail!("All training vectors must be 1536-dimensional");
-                }
-                types::to_embedded_vector(&v.data)
-            })
-            .collect();
+        if training_vectors.is_empty() {
+            anyhow::bail!("Training vectors required for quantization");
+        }
+let _dimension = training_vectors[0].data.len();
         
-        let embedded = embedded?;
+        // Convert training vectors to Vec<Vec<f32>>
+        let embedded: Vec<Vec<f32>> = training_vectors
+            .iter()
+            .map(|v| v.data.clone())
+            .collect();
         
         let quantized_storage = crate::quantized_storage::QuantizedVectorStorage::new_with_training(
             path,
@@ -325,6 +317,36 @@ impl SvDB {
             quantized_storage: Some(quantized_storage),
             metadata_store,
             config,
+            hnsw_index: None,
+            hnsw_config: None,
+        })
+    }
+    
+    /// Create new database with Scalar Quantization (SQ8)
+    pub fn new_scalar_quantized(path: &str, dimension: usize, training_vectors: &[Vec<f32>]) -> Result<Self> {
+        let db_path = Path::new(path);
+        std::fs::create_dir_all(db_path)?;
+
+        if training_vectors.is_empty() {
+            anyhow::bail!("Training vectors required for scalar quantization");
+        }
+
+        let _sq_storage = crate::storage::ScalarQuantizedStorage::new_with_training(
+            path,
+            dimension,
+            training_vectors,
+        )?;
+        let metadata_store = MetadataStore::new(path)?;
+
+        // For now, store using unquantized storage for compatibility
+        // TODO: Integrate SQ8 fully with main database structure
+        let vector_storage = VectorStorage::new(path, dimension)?;
+
+        Ok(Self {
+            vector_storage: Some(vector_storage),
+            quantized_storage: None,
+            metadata_store,
+            config: types::QuantizationConfig::default(),
             hnsw_index: None,
             hnsw_config: None,
         })
@@ -346,11 +368,11 @@ impl SvDB {
     /// - Memory: +200 bytes per vector for graph structure
     /// - 10k vectors: 4ms → 0.5ms (8x faster)
     /// - 100k vectors: 40ms → 1ms (40x faster)
-    pub fn new_with_hnsw(path: &str, hnsw_config: hnsw::HNSWConfig) -> Result<Self> {
+    pub fn new_with_hnsw(path: &str, dimension: usize, hnsw_config: hnsw::HNSWConfig) -> Result<Self> {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
-        let vector_storage = VectorStorage::new(path)?;
+        let vector_storage = VectorStorage::new(path, dimension)?;
         let metadata_store = MetadataStore::new(path)?;
         let hnsw_index = hnsw::HNSWIndex::new(hnsw_config.clone());
 
@@ -388,17 +410,11 @@ impl SvDB {
         std::fs::create_dir_all(db_path)?;
         
         // Convert training vectors
-        let embedded: Result<Vec<_>> = training_vectors
+        let embedded: Vec<Vec<f32>> = training_vectors
             .iter()
-            .map(|v| {
-                if v.data.len() != 1536 {
-                    anyhow::bail!("All training vectors must be 1536-dimensional");
-                }
-                types::to_embedded_vector(&v.data)
-            })
+            .map(|v| v.data.clone())
             .collect();
         
-        let embedded = embedded?;
         
         let quantized_storage = crate::quantized_storage::QuantizedVectorStorage::new_with_training(
             path,

@@ -13,7 +13,7 @@ use std::io::{BufWriter, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use crate::quantization::{ProductQuantizer, QuantizedVector};
-use crate::types::{EmbeddedVector, VectorHeader};
+use crate::types::VectorHeader;
 
 const QVECTOR_SIZE: usize = std::mem::size_of::<QuantizedVector>();
 const BUFFER_SIZE: usize = 8 * 1024 * 1024; // 8MB buffer
@@ -36,12 +36,16 @@ impl Drop for QuantizedVectorStorage {
 
 impl QuantizedVectorStorage {
     /// Create new quantized storage with training data
-    pub fn new_with_training(db_path: &str, training_data: &[EmbeddedVector]) -> Result<Self> {
+    pub fn new_with_training(db_path: &str, training_data: &[Vec<f32>]) -> Result<Self> {
         let file_path = Path::new(db_path).join("quantized_vectors.bin");
         let codebook_path = Path::new(db_path).join("codebooks.bin");
         
         // Train quantizer
         println!("Training Product Quantizer on {} vectors...", training_data.len());
+        // DISABLED: ProductQuantizer needs refactoring for dynamic dimensions
+        anyhow::bail!("Product Quantization is temporarily disabled in v0.2.0. Use Flat or HNSW mode.");
+        
+        /* DISABLED CODE - needs quantization.rs refactoring
         let quantizer = ProductQuantizer::train(training_data, 20)?;
         println!("Training complete!");
         
@@ -68,7 +72,9 @@ impl QuantizedVectorStorage {
             }
             file.seek(SeekFrom::End(0))?;
         } else {
-            let header = VectorHeader::new_quantized();
+            // Assume first vector dimension
+            let dimension = training_data.get(0).map(|v| v.len()).unwrap_or(1536);
+            let header = VectorHeader::new_quantized(dimension, 2)?; // mode 2 = Product Quantization
             let header_bytes = unsafe {
                 std::slice::from_raw_parts(
                     &header as *const VectorHeader as *const u8,
@@ -96,6 +102,7 @@ impl QuantizedVectorStorage {
             last_flushed_count: count,
             quantizer,
         })
+        */
     }
 
     /// Load existing quantized storage
@@ -144,12 +151,13 @@ impl QuantizedVectorStorage {
 
     /// Append vector (quantizes automatically)
     #[inline]
-    pub fn append(&mut self, vector: &EmbeddedVector) -> Result<u64> {
+    pub fn append(&mut self, vector: &[f32]) -> Result<u64> {
         let id = self.count.fetch_add(1, Ordering::Relaxed);
 
-        // Quantize vector
-        let qvec = self.quantizer.encode(vector);
-
+        // DISABLED: PQ encode
+        anyhow::bail!("Product Quantization is temporarily disabled in v0.2.0")
+        
+        /* DISABLED - unreachable
         // Zero-copy write
         let qvec_bytes = unsafe {
             std::slice::from_raw_parts(
@@ -166,15 +174,19 @@ impl QuantizedVectorStorage {
         }
 
         Ok(id)
+        */
     }
 
     /// Batch append (optimized)
-    pub fn append_batch(&mut self, vectors: &[EmbeddedVector]) -> Result<Vec<u64>> {
+    pub fn append_batch(&mut self, vectors: &[Vec<f32>]) -> Result<Vec<u64>> {
         let start_id = self.count.load(Ordering::Relaxed);
         let mut ids = Vec::with_capacity(vectors.len());
 
         for (i, vector) in vectors.iter().enumerate() {
-            let qvec = self.quantizer.encode(vector);
+            // DISABLED: PQ encode
+            return Err(anyhow::anyhow!("Product Quantization is temporarily disabled in v0.2.0"));
+            
+            /* DISABLED - unreachable
             let qvec_bytes = unsafe {
                 std::slice::from_raw_parts(
                     qvec.as_ptr() as *const u8,
@@ -183,6 +195,7 @@ impl QuantizedVectorStorage {
             };
             self.writer.write_all(qvec_bytes)?;
             ids.push(start_id + i as u64);
+            */
         }
 
         self.count.store(start_id + vectors.len() as u64, Ordering::Relaxed);
@@ -203,7 +216,9 @@ impl QuantizedVectorStorage {
         let file = self.writer.get_mut();
         file.seek(SeekFrom::Start(0))?;
         
-        let mut header = VectorHeader::new_quantized();
+        // PQ disabled - use hardcoded dimension for now
+        let dimension = 1536;
+        let mut header = VectorHeader::new_quantized(dimension, 2)?; // mode 2 = Product Quantization
         header.count = current_count;
         let header_bytes = unsafe {
             std::slice::from_raw_parts(
@@ -275,7 +290,9 @@ impl QuantizedVectorStorage {
     pub fn get_stats(&self) -> StorageStats {
         let count = self.count.load(Ordering::Relaxed);
         let quantized_bytes = count * QVECTOR_SIZE as u64;
-        let full_precision_bytes = count * std::mem::size_of::<EmbeddedVector>() as u64;
+        // PQ disabled - use hardcoded dimension for now  
+        let avg_dimension = 1536;
+        let full_precision_bytes = count * (avg_dimension * std::mem::size_of::<f32>()) as u64;
         
         StorageStats {
             vector_count: count,

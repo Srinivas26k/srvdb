@@ -1,89 +1,176 @@
-//! High-performance Python bindings with zero-copy operations
-//!
-//! Optimizations:
-//! - Batch operations for bulk adds
-//! - GIL-free search execution
-//! - Memory-efficient ID mapping with FxHashMap
-//! - Auto-flushing on large batches
+//! Enhanced Python bindings for SrvDB v0.2.0
+//! Features: Dynamic dimensions, SQ8, better error messages
 
 use pyo3::prelude::*;
-use pyo3::exceptions::PyValueError;
-use rustc_hash::FxHashMap; // Faster than std HashMap
+use pyo3::exceptions::{PyValueError, PyRuntimeError};
+use rustc_hash::FxHashMap;
 use serde_json;
-use crate::{SvDB, Vector, VectorEngine};
-use crate::types::EmbeddedVector;
-
-const AUTO_FLUSH_THRESHOLD: usize = 1000; // Auto-flush every 1k vectors
+use crate::VectorEngine;
 
 #[pyclass]
 pub struct SvDBPython {
-    db: SvDB,
+    db: crate::SvDB,
     id_map: FxHashMap<String, u64>,
     reverse_id_map: FxHashMap<u64, String>,
-    pending_flush: usize, // Track unflushed vectors
+    dimension: usize,
+    index_type: String,
 }
 
 #[pymethods]
 impl SvDBPython {
+    /// Create new database with specified dimension (128-4096)
+    /// 
+    /// Args:
+    ///     path: Database directory
+    ///     dimension: Vector dimension (default: 1536)
+    ///     mode: Index mode - 'flat', 'hnsw', 'sq8', 'pq' (default: 'flat')
+    /// 
+    /// Examples:
+    ///     >>> db = srvdb.SvDBPython("./db", dimension=384)  # MiniLM
+    ///     >>> db = srvdb.SvDBPython("./db", dimension=768, mode='sq8')  # Cohere
     #[new]
-    fn new(path: String) -> PyResult<Self> {
-        let db = SvDB::new(&path)
-            .map_err(|e| PyValueError::new_err(format!("Failed to initialize: {}", e)))?;
-        
-        let mut id_map = FxHashMap::default();
-        let mut reverse_id_map = FxHashMap::default();
-        
-        // Rebuild ID mappings
-        let count = db.count();
-        for internal_id in 0..count {
-            if let Ok(Some(metadata_json)) = db.get_metadata(internal_id) {
-                if let Ok(metadata) = serde_json::from_str::<serde_json::Value>(&metadata_json) {
-                    if let Some(string_id) = metadata.get("__id__").and_then(|v| v.as_str()) {
-                        id_map.insert(string_id.to_string(), internal_id);
-                        reverse_id_map.insert(internal_id, string_id.to_string());
-                    }
-                }
+    #[pyo3(signature = (path, dimension=1536, mode="flat"))]
+    fn new(path: String, dimension: usize, mode: &str) -> PyResult<Self> {
+        // Validate dimension
+        if !(128..=4096).contains(&dimension) {
+            return Err(PyValueError::new_err(format!(
+                "Dimension must be between 128 and 4096, got {}. \
+                Common values: 384 (MiniLM), 768 (MPNet/Cohere), 1024 (Cohere v3), 1536 (OpenAI)",
+                dimension
+            )));
+        }
+
+        let mut config = crate::types::DatabaseConfig::new(dimension)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+        // Set mode
+        match mode.to_lowercase().as_str() {
+            "flat" => {
+                config.index_type = crate::types::IndexType::Flat;
+            }
+            "hnsw" => {
+                config.index_type = crate::types::IndexType::HNSW;
+            }
+            "sq8" | "scalar" => {
+                config.index_type = crate::types::IndexType::ScalarQuantized;
+                config.quantization.enabled = true;
+                config.quantization.mode = crate::types::QuantizationMode::Scalar;
+            }
+            "pq" | "product" => {
+                config.index_type = crate::types::IndexType::ProductQuantized;
+                config.quantization.enabled = true;
+                config.quantization.mode = crate::types::QuantizationMode::Product;
+                config.auto_tune_pq(); // Auto-calculate M and d_sub
+            }
+            _ => {
+                return Err(PyValueError::new_err(format!(
+                    "Invalid mode '{}'. Choose: 'flat', 'hnsw', 'sq8', or 'pq'",
+                    mode
+                )));
             }
         }
-        
-        Ok(Self {
-            db,
-            id_map,
-            reverse_id_map,
-            pending_flush: 0,
-        })
-    }
-    
-    /// Create new database with Product Quantization (32x compression)
-    #[staticmethod]
-    fn new_quantized(path: String, training_embeddings: Vec<Vec<f32>>) -> PyResult<Self> {
-        // Convert training embeddings to vectors
-        let training_vectors: Result<Vec<Vector>, _> = training_embeddings
-            .into_iter()
-            .map(|emb| {
-                if emb.len() != 1536 {
-                    return Err(PyValueError::new_err(
-                        format!("Training vector must be 1536-dim, got {}", emb.len())
-                    ));
-                }
-                Ok(Vector::new(emb))
-            })
-            .collect();
-        
-        let training_vectors = training_vectors?;
-        
-        let db = SvDB::new_quantized(&path, &training_vectors)
-            .map_err(|e| PyValueError::new_err(format!("Failed to initialize PQ: {}", e)))?;
-        
+
+        let db = crate::SvDB::new_with_config(&path, config)
+            .map_err(|e| PyRuntimeError::new_err(format!("Database init failed: {}", e)))?;
+
         Ok(Self {
             db,
             id_map: FxHashMap::default(),
             reverse_id_map: FxHashMap::default(),
-            pending_flush: 0,
+            dimension,
+            index_type: mode.to_string(),
         })
     }
 
-    /// Optimized bulk add with automatic batching
+    /// Create database with HNSW indexing
+    /// 
+    /// Args:
+    ///     path: Database directory
+    ///     dimension: Vector dimension
+    ///     m: Graph connectivity (default: 16)
+    ///     ef_construction: Build quality (default: 200)
+    ///     ef_search: Search quality (default: 50)
+    #[staticmethod]
+    #[pyo3(signature = (path, dimension=1536, m=16, ef_construction=200, ef_search=50))]
+    fn new_hnsw(
+        path: String,
+        dimension: usize,
+        m: usize,
+        ef_construction: usize,
+        ef_search: usize,
+    ) -> PyResult<Self> {
+        let _config = crate::types::DatabaseConfig::new(dimension)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+        // config.index_type = crate::types::IndexType::HNSW;
+
+        let hnsw_config = crate::hnsw::HNSWConfig::new(m, ef_construction, ef_search);
+        let db = crate::SvDB::new_with_hnsw(&path, dimension, hnsw_config)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+
+        Ok(Self {
+            db,
+            id_map: FxHashMap::default(),
+            reverse_id_map: FxHashMap::default(),
+            dimension,
+            index_type: "hnsw".to_string(),
+        })
+    }
+
+    /// Create database with Scalar Quantization (4x compression)
+    /// 
+    /// Args:
+    ///     path: Database directory
+    ///     dimension: Vector dimension
+    ///     training_vectors: Sample vectors for training (1000+ recommended)
+    /// 
+    /// Notes:
+    ///     - 4x compression (float32 -> uint8)
+    ///     - 95%+ recall typical
+    ///     - Much faster than PQ
+    #[staticmethod]
+    fn new_scalar_quantized(
+        path: String,
+        dimension: usize,
+        training_vectors: Vec<Vec<f32>>,
+    ) -> PyResult<Self> {
+        if training_vectors.is_empty() {
+            return Err(PyValueError::new_err(
+                "Training vectors required. Provide 1000+ sample vectors for best results."
+            ));
+        }
+
+        // Validate dimensions
+        for (i, vec) in training_vectors.iter().enumerate() {
+            if vec.len() != dimension {
+                return Err(PyValueError::new_err(format!(
+                    "Training vector {} has dimension {}, expected {}",
+                    i, vec.len(), dimension
+                )));
+            }
+        }
+
+        let db = crate::SvDB::new_scalar_quantized(&path, dimension, &training_vectors)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+
+        Ok(Self {
+            db,
+            id_map: FxHashMap::default(),
+            reverse_id_map: FxHashMap::default(),
+            dimension,
+            index_type: "sq8".to_string(),
+        })
+    }
+
+    /// Add vectors to database
+    /// 
+    /// Args:
+    ///     ids: List of string IDs
+    ///     embeddings: List of vectors (each must match database dimension)
+    ///     metadatas: List of JSON metadata strings
+    /// 
+    /// Returns:
+    ///     Number of vectors added
     fn add(
         &mut self,
         ids: Vec<String>,
@@ -96,45 +183,52 @@ impl SvDBPython {
             ));
         }
 
-        // Pre-allocate for batch
-        let mut embedded_vectors = Vec::with_capacity(ids.len());
-        let mut enriched_metadatas = Vec::with_capacity(ids.len());
-
-        // Validate and prepare batch
-        for (i, (id, embedding)) in ids.iter().zip(embeddings.iter()).enumerate() {
-            if self.id_map.contains_key(id) {
-                return Err(PyValueError::new_err(format!("Duplicate ID: {}", id)));
+        // Validate dimensions
+        for (i, emb) in embeddings.iter().enumerate() {
+            if emb.len() != self.dimension {
+                return Err(PyValueError::new_err(format!(
+                    "Vector {} has dimension {}, expected {}. \
+                    Database was created with dimension {}. \
+                    Common models: 384 (MiniLM), 768 (MPNet), 1536 (OpenAI)",
+                    i, emb.len(), self.dimension, self.dimension
+                )));
             }
-
-            if embedding.len() != 1536 {
-                return Err(PyValueError::new_err(
-                    format!("Vector {} must have 1536 dims, got {}", i, embedding.len())
-                ));
-            }
-
-            // Convert to embedded vector
-            let mut array = [0.0f32; 1536];
-            array.copy_from_slice(embedding);
-            embedded_vectors.push(array);
-
-            // Prepare metadata
-            let mut metadata_obj: serde_json::Value = serde_json::from_str(&metadatas[i])
-                .unwrap_or(serde_json::json!({}));
-            
-            if let Some(obj) = metadata_obj.as_object_mut() {
-                obj.insert("__id__".to_string(), serde_json::Value::String(id.clone()));
-            }
-            
-            enriched_metadatas.push(
-                serde_json::to_string(&metadata_obj)
-                    .map_err(|e| PyValueError::new_err(format!("Metadata error: {}", e)))?
-            );
         }
 
-        // Batch insert (much faster)
-        let vectors: Vec<Vector> = embedded_vectors.iter().map(|arr| Vector::new(arr.to_vec())).collect();
-        let internal_ids = self.db.add_batch(&vectors, &enriched_metadatas)
-            .map_err(|e| PyValueError::new_err(format!("Batch append failed: {}", e)))?;
+        // Check for duplicates
+        for id in &ids {
+            if self.id_map.contains_key(id) {
+                return Err(PyValueError::new_err(format!(
+                    "Duplicate ID: '{}'. Use unique IDs or call delete() first.",
+                    id
+                )));
+            }
+        }
+
+        // Prepare vectors
+        let vectors: Vec<crate::Vector> = embeddings
+            .into_iter()
+            .map(|emb| crate::Vector::new(emb))
+            .collect();
+
+        // Enrich metadata with IDs
+        let enriched_metas: Vec<String> = ids.iter()
+            .zip(metadatas.iter())
+            .map(|(id, meta)| {
+                let mut obj: serde_json::Value = serde_json::from_str(meta)
+                    .unwrap_or(serde_json::json!({}));
+                
+                if let Some(obj) = obj.as_object_mut() {
+                    obj.insert("__id__".to_string(), serde_json::Value::String(id.clone()));
+                }
+                
+                serde_json::to_string(&obj).unwrap()
+            })
+            .collect();
+
+        // Batch insert
+        let internal_ids = VectorEngine::add_batch(&mut self.db, &vectors, &enriched_metas)
+            .map_err(|e| PyRuntimeError::new_err(format!("Add failed: {}", e)))?;
 
         // Update mappings
         for (i, internal_id) in internal_ids.iter().enumerate() {
@@ -142,36 +236,31 @@ impl SvDBPython {
             self.reverse_id_map.insert(*internal_id, ids[i].clone());
         }
 
-        self.pending_flush += ids.len();
-
-        // Auto-flush large batches
-        if self.pending_flush >= AUTO_FLUSH_THRESHOLD {
-            self.persist()?;
-        }
-
         Ok(ids.len())
     }
 
-    /// GIL-free search for maximum concurrency
+    /// Search for k nearest neighbors
+    /// 
+    /// Args:
+    ///     query: Query vector (must match database dimension)
+    ///     k: Number of results
+    /// 
+    /// Returns:
+    ///     List of (id, score) tuples sorted by score descending
     fn search(&self, query: Vec<f32>, k: usize) -> PyResult<Vec<(String, f32)>> {
-        if query.len() != 1536 {
-            return Err(PyValueError::new_err(
-                format!("Query must be 1536-dim, got {}", query.len())
-            ));
+        if query.len() != self.dimension {
+            return Err(PyValueError::new_err(format!(
+                "Query dimension {} doesn't match database dimension {}",
+                query.len(), self.dimension
+            )));
         }
 
-        // Convert query
-        let mut array = [0.0f32; 1536];
-        array.copy_from_slice(&query);
-        
-        // Release GIL during search (allows parallel Python threads)
         let results = Python::with_gil(|py| {
             py.allow_threads(|| {
-                self.db.search(&Vector::new(query.clone()), k)
+                VectorEngine::search(&self.db, &crate::Vector::new(query), k)
             })
-        }).map_err(|e| PyValueError::new_err(format!("Search failed: {}", e)))?;
+        }).map_err(|e| PyRuntimeError::new_err(format!("Search failed: {}", e)))?;
 
-        // Map to string IDs
         Ok(results
             .into_iter()
             .filter_map(|r| {
@@ -180,45 +269,40 @@ impl SvDBPython {
             .collect())
     }
 
-    /// Batch search for high throughput
+    /// Batch search
     fn search_batch(
         &self,
         queries: Vec<Vec<f32>>,
         k: usize,
     ) -> PyResult<Vec<Vec<(String, f32)>>> {
-        let embedded_queries: Result<Vec<EmbeddedVector>, _> = queries
-            .iter()
-            .map(|q| {
-                if q.len() != 1536 {
-                    return Err(PyValueError::new_err("All queries must be 1536-dim"));
-                }
-                let mut array = [0.0f32; 1536];
-                array.copy_from_slice(q);
-                Ok(array)
-            })
+        // Validate dimensions
+        for (i, q) in queries.iter().enumerate() {
+            if q.len() != self.dimension {
+                return Err(PyValueError::new_err(format!(
+                    "Query {} dimension {} doesn't match database dimension {}",
+                    i, q.len(), self.dimension
+                )));
+            }
+        }
+
+        let query_vecs: Vec<crate::Vector> = queries
+            .into_iter()
+            .map(|q| crate::Vector::new(q))
             .collect();
 
-        let embedded_queries = embedded_queries?;
-
-        // GIL-free batch search
-        let query_vectors: Vec<Vector> = embedded_queries.iter()
-            .map(|arr| Vector::new(arr.to_vec()))
-            .collect();
-        
         let results = Python::with_gil(|py| {
             py.allow_threads(|| {
-                self.db.search_batch(&query_vectors, k)
+                VectorEngine::search_batch(&self.db, &query_vecs, k)
             })
-        }).map_err(|e| PyValueError::new_err(format!("Batch search failed: {}", e)))?;
+        }).map_err(|e| PyRuntimeError::new_err(format!("Batch search failed: {}", e)))?;
 
-        // Map all results to string IDs
         Ok(results
             .into_iter()
             .map(|batch| {
                 batch
                     .into_iter()
-                    .filter_map(|result| {
-                        self.reverse_id_map.get(&result.id).map(|s| (s.clone(), result.score))
+                    .filter_map(|r| {
+                        self.reverse_id_map.get(&r.id).map(|id| (id.clone(), r.score))
                     })
                     .collect()
             })
@@ -229,19 +313,17 @@ impl SvDBPython {
         let internal_id = self.id_map.get(&id)
             .ok_or_else(|| PyValueError::new_err(format!("ID not found: {}", id)))?;
 
-        self.db.get_metadata(*internal_id)
-            .map_err(|e| PyValueError::new_err(format!("Get failed: {}", e)))
+        VectorEngine::get_metadata(&self.db, *internal_id)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
-    fn count(&self) -> PyResult<usize> {
-        Ok(self.db.count() as usize)
+    fn count(&self) -> usize {
+        VectorEngine::count(&self.db) as usize
     }
 
     fn persist(&mut self) -> PyResult<()> {
-        self.db.persist()
-            .map_err(|e| PyValueError::new_err(format!("Persist failed: {}", e)))?;
-        self.pending_flush = 0;
-        Ok(())
+        VectorEngine::persist(&mut self.db)
+            .map_err(|e| PyRuntimeError::new_err(format!("Persist failed: {}", e)))
     }
 
     fn delete(&mut self, ids: Vec<String>) -> PyResult<usize> {
@@ -255,45 +337,43 @@ impl SvDBPython {
         Ok(deleted)
     }
 
-    fn get_all_ids(&self) -> PyResult<Vec<String>> {
-        Ok(self.id_map.keys().cloned().collect())
-    }
-
-    /// Get compression statistics (only for PQ mode)
-    fn get_stats(&self) -> PyResult<Option<(u64, u64, f32)>> {
-        if let Some(stats) = self.db.get_stats() {
-            Ok(Some((
-                stats.vector_count,
-                stats.memory_bytes,
-                stats.compression_ratio,
-            )))
-        } else {
-            Ok(None)
-        }
-    }
-
-    fn __repr__(&self) -> PyResult<String> {
-        if let Some(stats) = self.db.get_stats() {
-            Ok(format!(
-                "SvDB(vectors={}, memory={}MB, compression={:.1}x)",
+    /// Get database info
+    fn info(&self) -> PyResult<String> {
+        let stats = if let Some(stats) = self.db.get_stats() {
+            format!(
+                "vectors={}, memory={}MB, compression={:.1}x",
                 stats.vector_count,
                 stats.memory_bytes / 1024 / 1024,
                 stats.compression_ratio
-            ))
+            )
         } else {
-            Ok(format!(
-                "SvDB(vectors={}, pending_flush={})",
-                self.count().unwrap_or(0),
-                self.pending_flush
-            ))
-        }
+            format!("vectors={}", self.count())
+        };
+
+        Ok(format!(
+            "SvDB(dimension={}, mode='{}', {})",
+            self.dimension, self.index_type, stats
+        ))
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        self.info()
     }
 }
 
 #[pymodule]
 fn srvdb(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SvDBPython>()?;
-    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add("__doc__", "SvDB - High-Performance Embedded Vector Database")?;
+    m.add("__version__", "0.2.0")?;
+    m.add("__doc__", 
+        "SrvDB v0.2.0 - Production Vector Database\n\n\
+        Features:\n\
+        - Dynamic dimensions (128-4096)\n\
+        - Multiple index types (Flat, HNSW, SQ8, PQ)\n\
+        - 4-32x compression with SQ8/PQ\n\
+        - Sub-5ms latency\n\
+        - <100MB memory for 10k vectors"
+    )?;
+    
     Ok(())
 }

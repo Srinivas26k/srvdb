@@ -11,22 +11,22 @@ use rayon::prelude::*;
 use std::cmp::Ordering;
 use crate::storage::VectorStorage;
 use crate::quantized_storage::QuantizedVectorStorage;
-use crate::types::EmbeddedVector;
 use simsimd::SpatialSimilarity;
 
 const BATCH_SIZE: usize = 256; // Process 256 vectors at once for cache efficiency
 
 #[inline]
-pub fn cosine_similarity(a: &EmbeddedVector, b: &EmbeddedVector) -> f32 {
+pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     let distance = f32::cosine(a, b).unwrap_or(2.0) as f32;
     1.0 - (distance / 2.0)
 }
 
+
 /// Batch compute similarities for cache efficiency
 #[inline]
 fn compute_similarities_batch(
-    query: &EmbeddedVector,
-    vectors: &[EmbeddedVector],
+    query: &[f32],
+    vectors: &[&[f32]],
     start_id: u64,
 ) -> Vec<(u64, f32)> {
     vectors
@@ -41,6 +41,10 @@ fn compute_similarities_batch(
 
 /// Fast top-k selection using partial sorting
 fn select_top_k(mut candidates: Vec<(u64, f32)>, k: usize) -> Vec<(u64, f32)> {
+    if candidates.is_empty() || k == 0 {
+        return Vec::new();
+    }
+    
     let k = k.min(candidates.len());
     
     // Partial sort: only sort enough to get top-k
@@ -58,7 +62,7 @@ fn select_top_k(mut candidates: Vec<(u64, f32)>, k: usize) -> Vec<(u64, f32)> {
 /// Optimized parallel search with batch processing
 pub fn search_cosine(
     storage: &VectorStorage,
-    query: &EmbeddedVector,
+    query: &[f32],
     k: usize,
 ) -> Result<Vec<(u64, f32)>> {
     let count = storage.count() as usize;
@@ -80,7 +84,7 @@ pub fn search_cosine(
             
             // Get batch of vectors (zero-copy)
             if let Some(vectors) = storage.get_batch(start as u64, batch_size) {
-                compute_similarities_batch(query, vectors, start as u64)
+                compute_similarities_batch(query, &vectors, start as u64)
             } else {
                 Vec::new()
             }
@@ -94,12 +98,12 @@ pub fn search_cosine(
 /// Hyper-optimized multi-query search (for concurrent throughput)
 pub fn search_batch(
     storage: &VectorStorage,
-    queries: &[EmbeddedVector],
+    queries: &[Vec<f32>],
     k: usize,
 ) -> Result<Vec<Vec<(u64, f32)>>> {
     queries
         .par_iter()
-        .map(|query| search_cosine(storage, query, k))
+        .map(|query| search_cosine(storage, query.as_slice(), k))
         .collect()
 }
 
@@ -108,11 +112,15 @@ pub fn search_batch(
 // ============================================================================
 
 /// Optimized quantized search with Asymmetric Distance Computation
+/// NOTE: Temporarily disabled - requires quantization.rs refactoring for dynamic dimensions
 pub fn search_quantized(
-    storage: &QuantizedVectorStorage,
-    query: &EmbeddedVector,
-    k: usize,
+    _storage: &QuantizedVectorStorage,
+    _query: &[f32],
+    _k: usize,
 ) -> Result<Vec<(u64, f32)>> {
+    anyhow::bail!("Product Quantization is temporarily disabled in v0.2.0. Use Flat or HNSW mode instead.")
+    
+    /* DISABLED - requires dynamic dimension support in quantization.rs
     let count = storage.count() as usize;
 
     if count == 0 {
@@ -122,7 +130,7 @@ pub fn search_quantized(
     let actual_k = k.min(count);
 
     // Normalize query vector for cosine similarity
-    let mut normalized_query = *query;
+    let mut normalized_query = query.to_vec();
     let norm: f32 = normalized_query.iter().map(|x| x * x).sum::<f32>().sqrt();
     if norm > 1e-10 {
         for x in normalized_query.iter_mut() {
@@ -159,20 +167,20 @@ pub fn search_quantized(
         })
         .collect();
 
+
     // Fast top-k selection
     Ok(select_top_k(all_similarities, actual_k))
+    */
 }
 
 /// Batch quantized search
+/// NOTE: Temporarily disabled
 pub fn search_quantized_batch(
-    storage: &QuantizedVectorStorage,
-    queries: &[EmbeddedVector],
-    k: usize,
+    _storage: &QuantizedVectorStorage,
+    _queries: &[Vec<f32>],
+    _k: usize,
 ) -> Result<Vec<Vec<(u64, f32)>>> {
-    queries
-        .par_iter()
-        .map(|query| search_quantized(storage, query, k))
-        .collect()
+    anyhow::bail!("Product Quantization is temporarily disabled in v0.2.0. Use Flat or HNSW mode instead.")
 }
 
 // ============================================================================
@@ -185,7 +193,7 @@ pub fn search_quantized_batch(
 pub fn search_hnsw(
     storage: &VectorStorage,
     hnsw: &crate::hnsw::HNSWIndex,
-    query: &EmbeddedVector,
+    query: &[f32],
     k: usize,
 ) -> Result<Vec<(u64, f32)>> {
     // HNSW graph traversal with query-to-storage distance function
@@ -211,50 +219,14 @@ pub fn search_hnsw(
 }
 
 /// HNSW search for quantized vectors
-/// 
-/// Combines HNSW graph traversal with PQ distance computation
+/// NOTE: Temporarily disabled
 pub fn search_hnsw_quantized(
-    storage: &QuantizedVectorStorage,
-    hnsw: &crate::hnsw::HNSWIndex,
-    query: &EmbeddedVector,
-    k: usize,
+    _storage: &QuantizedVectorStorage,
+    _hnsw: &crate::hnsw::HNSWIndex,
+    _query: &[f32],
+    _k: usize,
 ) -> Result<Vec<(u64, f32)>> {
-    // Normalize query for cosine similarity
-    let mut normalized_query = *query;
-    let norm: f32 = normalized_query.iter().map(|x| x * x).sum::<f32>().sqrt();
-    if norm > 1e-10 {
-        for x in normalized_query.iter_mut() {
-            *x /= norm;
-        }
-    }
-    
-    // Precompute distance table for ADC
-    let dtable = storage.quantizer.compute_distance_table(&normalized_query);
-    
-    // Distance function using PQ asymmetric distance
-    let distance_fn = |_query_id: u64, vec_id: u64| -> f32 {
-        if let Some(qvec) = storage.get(vec_id) {
-            // ADC returns cosine similarity, convert to distance
-            let similarity = storage.quantizer.asymmetric_distance(qvec, &dtable);
-            1.0 - similarity
-        } else {
-            f32::MAX
-        }
-    };
-    
-    // Search HNSW graph
-    let candidates = hnsw.search(0, k * 2, &distance_fn)?;
-    
-    // Convert back to similarities and take top-k
-    let mut results: Vec<(u64, f32)> = candidates
-        .into_iter()
-        .map(|(id, dist)| (id, 1.0 - dist))
-        .collect();
-    
-    results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
-    results.truncate(k);
-    
-    Ok(results)
+    anyhow::bail!("Product Quantization is temporarily disabled in v0.2.0. Use Flat or HNSW mode instead.")
 }
 
 #[cfg(test)]
