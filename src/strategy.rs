@@ -22,6 +22,10 @@ pub enum IndexMode {
     /// Best for memory-constrained environments (e.g., Laptops, Edge).
     Sq8,
     
+    /// Inverted File with HNSW Refinement (IVF-HNSW).
+    /// Best for massive datasets (>1M vectors).
+    Ivf,
+    
     /// The "Magic" mode. 
     /// SrvDB analyzes resources and data size to select the best strategy at runtime.
     Auto,

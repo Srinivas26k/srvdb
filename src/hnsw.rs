@@ -205,6 +205,11 @@ impl HNSWIndex {
             
             // Phase 2: Search and connect at each layer from level down to 0
             for lc in (0..=level).rev() {
+                // If this layer is higher than the current max level, there are no existing nodes here
+                if lc > top_level {
+                    continue;
+                }
+
                 let candidates = self.search_layer(
                     id,
                     curr_nearest,

@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Vector with dynamic dimensions
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vector {
     pub data: Vec<f32>,
 }
@@ -96,6 +96,7 @@ pub enum IndexType {
     ScalarQuantized,   // SQ8 compression (4x)
     ProductQuantized,  // PQ compression (32x)
     HNSWQuantized,     // HNSW + PQ hybrid
+    IVF,               // Inverted File with HNSW Refinement
 }
 
 /// Quantization configuration with multiple modes

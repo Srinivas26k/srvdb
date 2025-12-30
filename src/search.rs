@@ -21,6 +21,11 @@ pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     1.0 - (distance / 2.0)
 }
 
+#[inline]
+pub fn euclidean_distance(a: &[f32], b: &[f32]) -> f32 {
+    f32::sqeuclidean(a, b).unwrap_or(0.0) as f32
+}
+
 
 /// Batch compute similarities for cache efficiency
 #[inline]
@@ -119,58 +124,6 @@ pub fn search_quantized(
     _k: usize,
 ) -> Result<Vec<(u64, f32)>> {
     anyhow::bail!("Product Quantization is temporarily disabled in v0.2.0. Use Flat or HNSW mode instead.")
-    
-    /* DISABLED - requires dynamic dimension support in quantization.rs
-    let count = storage.count() as usize;
-
-    if count == 0 {
-        return Ok(Vec::new());
-    }
-
-    let actual_k = k.min(count);
-
-    // Normalize query vector for cosine similarity
-    let mut normalized_query = query.to_vec();
-    let norm: f32 = normalized_query.iter().map(|x| x * x).sum::<f32>().sqrt();
-    if norm > 1e-10 {
-        for x in normalized_query.iter_mut() {
-            *x /= norm;
-        }
-    }
-
-    // Precompute distance table once (ADC optimization)
-    let dtable = storage.quantizer.compute_distance_table(&normalized_query);
-
-    // Process in cache-friendly batches
-    let num_batches = (count + BATCH_SIZE - 1) / BATCH_SIZE;
-    
-    let all_similarities: Vec<(u64, f32)> = (0..num_batches)
-        .into_par_iter()
-        .flat_map(|batch_idx| {
-            let start = batch_idx * BATCH_SIZE;
-            let batch_size = BATCH_SIZE.min(count - start);
-            
-            // Get batch of quantized vectors (zero-copy)
-            if let Some(qvecs) = storage.get_batch(start as u64, batch_size) {
-                qvecs
-                    .iter()
-                    .enumerate()
-                    .map(|(i, qvec)| {
-                        // ADC now returns approximate dot product (Cosine Similarity)
-                        let cosine_score = storage.quantizer.asymmetric_distance(qvec, &dtable);
-                        (start as u64 + i as u64, cosine_score)
-                    })
-                    .collect::<Vec<_>>()
-            } else {
-                Vec::new()
-            }
-        })
-        .collect();
-
-
-    // Fast top-k selection
-    Ok(select_top_k(all_similarities, actual_k))
-    */
 }
 
 /// Batch quantized search

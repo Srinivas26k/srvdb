@@ -47,6 +47,9 @@ pub fn apply_auto_strategy(db: &mut SvDB) {
         },
         IndexMode::Auto => {
             // Should not happen as return from decide_mode
+        },
+        IndexMode::Ivf => {
+             // Not auto-selected yet
         }
     }
 }
@@ -97,6 +100,7 @@ pub fn check_and_migrate(db: &mut SvDB) -> anyhow::Result<()> {
         crate::types::IndexType::Flat => IndexMode::Flat,
         crate::types::IndexType::HNSW => IndexMode::Hnsw,
         crate::types::IndexType::ScalarQuantized => IndexMode::Sq8,
+        crate::types::IndexType::IVF => IndexMode::Ivf,
         _ => IndexMode::Flat, // Ignore PQ for now
     };
 
@@ -111,6 +115,10 @@ pub fn check_and_migrate(db: &mut SvDB) -> anyhow::Result<()> {
         IndexMode::Sq8 => migrate_to_sq8(db)?,
         IndexMode::Flat => {}, // Downgrade rarely happens/supported
         IndexMode::Auto => {},
+        IndexMode::Ivf => {
+            // IVF migration complicated (needs training). 
+            // For now we don't auto-migrate TO IVF, only manual set.
+        },
     }
 
     Ok(())
