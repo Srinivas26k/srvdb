@@ -141,7 +141,7 @@ fn percentile(data: &[f64], p: usize) -> f64 {
     sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let index = (sorted.len() as f64 * p as f64 / 100.0) as usize;
     if index >= sorted.len() {
-        if sorted.len() == 0 {
+        if sorted.is_empty() {
             return 0.0;
         }
         return sorted[sorted.len() - 1];

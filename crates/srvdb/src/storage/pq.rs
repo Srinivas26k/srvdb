@@ -6,20 +6,18 @@
 //! - Codebook persistence
 //! - Atomic operations for thread safety
 
-use crate::quant::product::{ProductQuantizer, QuantizedVector};
+use crate::quant::product::ProductQuantizer;
 use crate::storage::header::VectorHeader;
 use anyhow::{Context, Result};
 use memmap2::{MmapMut, MmapOptions};
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Seek, SeekFrom, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 const BUFFER_SIZE: usize = 8 * 1024 * 1024; // 8MB buffer
 
 pub struct QuantizedVectorStorage {
-    file_path: PathBuf,
-    codebook_path: PathBuf,
     writer: BufWriter<File>,
     mmap: Option<MmapMut>,
     count: AtomicU64,
@@ -46,7 +44,7 @@ impl QuantizedVectorStorage {
             anyhow::bail!("Training vectors cannot be empty or zero-dimensional");
         }
 
-        let m = if dim % 8 == 0 {
+        let m = if dim.is_multiple_of(8) {
             dim / 8
         } else {
             if dim < 8 {
@@ -68,6 +66,7 @@ impl QuantizedVectorStorage {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(&file_path)
             .context("Failed to open quantized_vectors.bin")?;
 
@@ -101,8 +100,6 @@ impl QuantizedVectorStorage {
         };
 
         Ok(Self {
-            file_path,
-            codebook_path,
             writer,
             mmap,
             count: AtomicU64::new(count),
@@ -146,8 +143,6 @@ impl QuantizedVectorStorage {
         };
 
         Ok(Self {
-            file_path,
-            codebook_path,
             writer,
             mmap,
             count: AtomicU64::new(count),

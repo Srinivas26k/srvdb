@@ -40,7 +40,7 @@ impl ProductQuantizer {
         }
 
         let dim = training_data[0].len();
-        if dim % m != 0 {
+        if !dim.is_multiple_of(m) {
             anyhow::bail!("Dimension {} must be divisible by m={}", dim, m);
         }
         let d_sub = dim / m;
@@ -154,8 +154,8 @@ mod tests {
         let training: Vec<Vec<f32>> = (0..100)
             .map(|i| {
                 let mut v = vec![0.0f32; dim];
-                for j in 0..dim {
-                    v[j] = (i as f32 / 100.0) + (j as f32 / 1536.0);
+                for (j, x) in v.iter_mut().enumerate() {
+                    *x = (i as f32 / 100.0) + (j as f32 / 1536.0);
                 }
                 v
             })

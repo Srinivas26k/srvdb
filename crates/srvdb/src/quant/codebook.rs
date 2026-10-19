@@ -86,7 +86,7 @@ impl Codebook {
     }
 
     /// K-means++ initialization for better clustering
-    fn kmeans_plusplus_init(vectors: &[Vec<f32>], k: usize, d_sub: usize) -> Vec<Vec<f32>> {
+    fn kmeans_plusplus_init(vectors: &[Vec<f32>], k: usize, _d_sub: usize) -> Vec<Vec<f32>> {
         use rand::Rng;
         let mut rng = rand::thread_rng();
         let mut centroids = Vec::with_capacity(k);
@@ -226,8 +226,8 @@ mod tests {
         let vectors: Vec<Vec<f32>> = (0..1000)
             .map(|i| {
                 let mut v = vec![0.0f32; d_sub];
-                for j in 0..d_sub {
-                    v[j] = (i as f32 / 1000.0) + (j as f32 / 10.0);
+                for (j, x) in v.iter_mut().enumerate() {
+                    *x = (i as f32 / 1000.0) + (j as f32 / 10.0);
                 }
                 v
             })

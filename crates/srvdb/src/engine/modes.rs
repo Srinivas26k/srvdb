@@ -61,7 +61,6 @@ impl SrvDB {
     }
 
     /// Train the IVF index using current data
-
     ///
     /// 1. Samples vectors from storage
     /// 2. Runs K-Means clustering

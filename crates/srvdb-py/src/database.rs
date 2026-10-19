@@ -3,7 +3,6 @@
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use rustc_hash::FxHashMap;
-use srvdb::VectorEngine;
 
 #[pyclass]
 pub struct SrvDBPython {

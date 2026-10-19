@@ -6,7 +6,7 @@ fn test_random_level_distribution() {
     let config = HNSWConfig::default();
     let index = HNSWIndex::new(config);
 
-    let mut level_counts = vec![0; 10];
+    let mut level_counts = [0; 10];
     for _ in 0..1000 {
         let level = index.random_level();
         if level < 10 {

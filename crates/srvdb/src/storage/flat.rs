@@ -44,7 +44,6 @@ impl DynamicVectorStorage {
             .context("Failed to open vectors.bin")?;
 
         let mut count = 0;
-        let mut stored_dimension = dimension;
 
         if exists {
             // Read and validate existing header
@@ -54,7 +53,7 @@ impl DynamicVectorStorage {
                 header.validate()?;
 
                 count = header.count;
-                stored_dimension = header.dimension as usize;
+                let stored_dimension = header.dimension as usize;
 
                 // Ensure dimension matches
                 if stored_dimension != dimension {

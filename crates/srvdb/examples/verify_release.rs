@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::fs::remove_dir_all(path_sq)?;
     }
 
-    let mut config_sq = DatabaseConfig::new(dim)?;
+    let _config_sq = DatabaseConfig::new(dim)?;
     // In actual usage, user might set this via set_mode(Sq8) or training
     // But let's try new_scalar_quantized constructor which is the intended public API for SQ8
     // But new_scalar_quantized takes training vectors immediately.
