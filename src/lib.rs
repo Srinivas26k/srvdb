@@ -119,7 +119,7 @@ impl SrvDB {
                     // IVF requires separate training/setup, usually triggers training immediately
                     // or sets flag for next persist/train call.
                     if self.ivf_index.is_none() {
-                        let config = IVFConfig::default();
+                        let config = self.ivf_config.clone().unwrap_or_default();
                         // Initialize empty index, training happens on demand or via explicit call
                         self.ivf_index = Some(IVFIndex::new(config.clone()));
                         self.ivf_config = Some(config);
@@ -128,6 +128,53 @@ impl SrvDB {
                 IndexMode::Auto => {} // Handled above
             }
         }
+    }
+
+    /// Insert freshly stored vectors into the active graph indexes (HNSW / IVF).
+    ///
+    /// Only full-precision storage is indexed; quantized-only databases have
+    /// no f32 vectors to compute graph distances from.
+    fn index_new_ids(&mut self, ids: &[u64]) -> Result<()> {
+        let ivf_trained = self
+            .ivf_index
+            .as_ref()
+            .is_some_and(|ivf| !ivf.centroids.is_empty());
+        if ids.is_empty() || (self.hnsw_index.is_none() && !ivf_trained) {
+            return Ok(());
+        }
+
+        let Some(ref mut vstorage) = self.vector_storage else {
+            return Ok(());
+        };
+        // Graph insertion reads vectors back through the mmap
+        vstorage.make_visible()?;
+        let vstorage = &*vstorage;
+
+        let distance_fn = |a_id: u64, b_id: u64| -> f32 {
+            if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
+                1.0 - search::cosine_similarity(a, b)
+            } else {
+                f32::MAX
+            }
+        };
+
+        if let Some(ref hnsw) = self.hnsw_index {
+            for &id in ids {
+                hnsw.insert(id, &distance_fn)?;
+            }
+        }
+
+        if let (Some(ref ivf), true) = (&self.ivf_index, ivf_trained) {
+            use rayon::prelude::*;
+            ids.par_iter().try_for_each(|&id| -> Result<()> {
+                if let Some(vec_data) = vstorage.get(id) {
+                    ivf.add(id, &Vector::new(vec_data.to_vec()), &distance_fn)?;
+                }
+                Ok(())
+            })?;
+        }
+
+        Ok(())
     }
 
     /// Configure IVF parameters
@@ -252,48 +299,7 @@ impl VectorEngine for SrvDB {
             anyhow::bail!("Vector storage not initialized");
         };
 
-        // Insert into HNSW graph if enabled
-        if let Some(ref hnsw) = self.hnsw_index {
-            // Only support HNSW for non-quantized storage for now
-            if self.scalar_storage.is_none() && !self.config.enabled {
-                if let Some(ref vstorage) = self.vector_storage {
-                    let distance_fn = |a_id: u64, b_id: u64| -> f32 {
-                        if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
-                            1.0 - search::cosine_similarity(a, b)
-                        } else {
-                            f32::MAX
-                        }
-                    };
-                    hnsw.insert(id, &distance_fn)?;
-                }
-            }
-        }
-
-        // Insert into IVF if enabled
-        if let Some(ref ivf) = self.ivf_index {
-            // We need distance to centroids
-            // But adding to IVF usually implies adding to *partitions*
-            // HNSW partition insert needs distance fn
-            if let Some(ref vstorage) = self.vector_storage {
-                // Check if index is trained
-                if !ivf.centroids.is_empty() {
-                    let distance_fn = |a_id: u64, b_id: u64| -> f32 {
-                        if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
-                            1.0 - search::cosine_similarity(a, b)
-                        } else {
-                            f32::MAX
-                        }
-                    };
-                    // Find partition and insert
-                    // Note: IVF usually needs vector data to find partition
-                    if let Some(vec_data) = vstorage.get(id) {
-                        let vec_obj = Vector::new(vec_data.to_vec());
-                        // We ignore error if not trained yet? Or fail?
-                        let _ = ivf.add(id, &vec_obj, &distance_fn);
-                    }
-                }
-            }
-        }
+        self.index_new_ids(&[id])?;
 
         self.metadata_store.set(id, meta)?;
         Ok(id)
@@ -321,6 +327,8 @@ impl VectorEngine for SrvDB {
         } else {
             anyhow::bail!("Vector storage not initialized");
         };
+
+        self.index_new_ids(&ids)?;
 
         // Store metadata
         for (id, meta) in ids.iter().zip(metas.iter()) {
@@ -362,18 +370,20 @@ impl VectorEngine for SrvDB {
                     .map(|(id, score)| SearchResult::new(id, score, None))
                     .collect()
             } else if let Some(ref vstorage) = self.vector_storage {
-                let distance_fn = |a_id: u64, b_id: u64| -> f32 {
-                    if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
-                        1.0 - search::cosine_similarity(a, b)
+                // Partition graphs call distance_fn(query_id, candidate); the
+                // first argument is a placeholder, distance is to the query.
+                let distance_fn = |_query_id: u64, vec_id: u64| -> f32 {
+                    if let Some(vec) = vstorage.get(vec_id) {
+                        1.0 - search::cosine_similarity(&query.data, vec)
                     } else {
                         f32::MAX
                     }
                 };
                 let results = hybrid_search::search(ivf, query, k, &distance_fn)?;
-                // Convert HybridSearchResult to SearchResult
+                // Hybrid search returns distances; convert to similarity
                 results
                     .into_iter()
-                    .map(|r| SearchResult::new(r.id, r.score, None))
+                    .map(|r| SearchResult::new(r.id, 1.0 - r.score, None))
                     .collect()
             } else {
                 anyhow::bail!("Vector storage required for IVF search");

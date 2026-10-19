@@ -154,6 +154,12 @@ impl IVFIndex {
         }
 
         self.centroids = centroids.into_iter().map(Vector::new).collect();
+
+        // New centroids invalidate existing assignments; start with empty
+        // partitions so retraining does not duplicate vectors.
+        self.partitions = (0..k)
+            .map(|_| Arc::new(RwLock::new(HNSWIndex::new(self.config.hnsw_config.clone()))))
+            .collect();
         Ok(())
     }
 
