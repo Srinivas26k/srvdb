@@ -32,7 +32,7 @@ impl PartialEq for ScoredItem {
 impl Eq for ScoredItem {}
 impl PartialOrd for ScoredItem {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.score.partial_cmp(&other.score)
+        Some(self.cmp(other))
     }
 }
 impl Ord for ScoredItem {
@@ -81,109 +81,46 @@ where
     }
 
     // 2. Fine Search (Parallel search in partitions)
-    let candidates = fine_search(ivf, &target_partitions, query, k, distance_fn)?;
+    let candidates = fine_search(ivf, &target_partitions, k, distance_fn)?;
 
     // 3. Merge and formatting
     Ok(candidates)
 }
 
-/// Search within specific partitions and merge results
+/// Search within specific partitions and merge the top-k by distance
 fn fine_search<F>(
     ivf: &IVFIndex,
     partitions: &[usize],
-    _query: &Vector, // Query vector is implied in distance_fn closure in current design, but usually needed for HNSW
     k: usize,
     distance_fn: &F,
 ) -> Result<Vec<HybridSearchResult>>
 where
     F: Fn(u64, u64) -> f32 + Sync,
 {
-    // Parallel search over partitions
-    // Collect all candidates into a single concurrent bag or minimal synchronization
-
-    // NOTE: HNSW search signature: hnsw.search(entry_point, ef, dist_fn)
-    // We don't have 'entry_point' per partition exposed easily?
-    // HNSWIndex usually manages its own entry point.
-    // Yes, HNSWIndex struct has `entry_point`.
-
+    // Each partition is an independent HNSW graph; `search` starts from its
+    // own entry point. The first argument is the query id placeholder.
     let all_candidates: Vec<Vec<(u64, f32)>> = partitions
         .par_iter()
-        .map(|&part_id| {
-            if part_id >= ivf.partitions.len() {
-                return Vec::new();
-            }
-            let partition = ivf.partitions[part_id].read();
-            // Search this partition
-            // We use k * 2 for ef usually? Or config ef_search?
-            // HNSWIndex::search returns Vec<(u64, f32)> (id, distance)
-            // println!("DEBUG: Searching partition {}", part_id);
-            match partition.search(0, k * 2, distance_fn) {
-                // 0 is Layer 0? NO!
-                // HNSW::search(entry_layer, ef, ...)
-                // Wait. HNSWIndex::search signature needs verification.
-                // Assuming it's `search(ef, distance_fn)` or similar?
-                // Let's check `hnsw.rs`.
-                // `pub fn search<F>(&self, entry_layer: usize, ef: usize, distance_fn: F)`
-                // WE MUST START AT TOP LAYER. But `HNSWIndex` doesn't expose `max_layer` easily?
-                // Actually `HNSWIndex::search` usually handles traversal from top.
-                // If the signature requires `entry_layer` explicitly, that's awkward for external callers unless `entry_point` is public.
+        .filter(|&&part_id| part_id < ivf.partitions.len())
+        .map(|&part_id| ivf.partitions[part_id].read().search(0, k * 2, distance_fn))
+        .collect::<Result<_>>()?;
 
-                // Correction: `HNSWIndex::search` in many implementations starts at entry point automatically.
-                // Let's assume for a moment the signature I saw in `hnsw.rs` (Step 1012):
-                // `pub fn search<F>(&self, current_layer: usize, ef: usize, distance_fn: F)`
-                // This implies Recursive or specific layer search.
-                // Does it have a `search_knn` wrapper?
-                // If not, I might be calling it wrong by passing `0` (base layer) as start?
-                // If `entry_point` is at layer 3, starting at 0 is wrong?
-                // Or does it scan layer 0?
-                // If `HNSWIndex` manages the graph, it should have a Public `search` that starts correctly.
-
-                // Let's try blindly calling `partition.search(ef, distance_fn)`?
-                // Or if I must pass layer: HNSW usually navigates layers.
-                // If `search` is "Search Layer", then I need the full algorithm here? No.
-                // I suspect `HNSWIndex` should have a top-level search.
-                // I'll check `hnsw.rs` if `search` implementation handles full traversal.
-
-                // Retaining `partition.search(0, k*2, distance_fn)` usage from `search.rs` snippet?
-                // `search::search_hnsw` calls `hnsw.search(0, k*2, ...)`? (Step 1025 line 200).
-                // So assume `0` means something valid or it's just ef?
-                // Wait. `hnsw.search` signature at line 200 of `search.rs`:
-                // `hnsw.search(0, k * 2, ...)`
-                // So it takes 3 args.
-                Ok(c) => c,
-                Err(_) => Vec::new(),
-            }
-        })
-        .collect();
-
-    // Merge results using Min-Heap (to keep Top-K smallest distances)
+    // Max-heap on distance keeps the k smallest
     let mut heap = BinaryHeap::with_capacity(k + 1);
-
-    for candidates in all_candidates {
-        for (id, score) in candidates {
-            // Push to heap
-            heap.push(ScoredItem { id, score });
-            if heap.len() > k {
-                heap.pop(); // Remove largest distance
-            }
+    for (id, score) in all_candidates.into_iter().flatten() {
+        heap.push(ScoredItem { id, score });
+        if heap.len() > k {
+            heap.pop();
         }
     }
 
-    // Sort final results
-    let sorted_results = heap.into_sorted_vec(); // Ascending order (smallest first)?
-                                                 // into_sorted_vec returns ascending order.
-                                                 // ScoredItem Ord is PartialCmp.
-                                                 // If we want smallest distance first:
-                                                 // Sorted vec will be Smallest -> Largest.
-
-    // Convert to HybridSearchResult
-    let results = sorted_results
+    // Ascending distance: nearest first
+    Ok(heap
+        .into_sorted_vec()
         .into_iter()
         .map(|item| HybridSearchResult {
             id: item.id,
             score: item.score,
         })
-        .collect();
-
-    Ok(results)
+        .collect())
 }
