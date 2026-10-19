@@ -27,7 +27,7 @@ pub use core::types;
 pub use core::types::{IndexType, QuantizationConfig, SearchResult, Vector};
 
 // Feature Flags
-#[cfg(feature = "pyo3")]
+#[cfg(feature = "python")]
 pub use api::python as python_bindings;
 
 // Strategy and AutoTune aliases

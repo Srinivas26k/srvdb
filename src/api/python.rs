@@ -337,8 +337,8 @@ impl SrvDBPython {
         VectorEngine::persist(&mut self.db)
             .map_err(|e| PyRuntimeError::new_err(format!("Auto-persist failed: {}", e)))?;
 
-        let results = Python::with_gil(|py| {
-            py.allow_threads(|| VectorEngine::search(&self.db, &crate::Vector::new(query), k))
+        let results = Python::attach(|py| {
+            py.detach(|| VectorEngine::search(&self.db, &crate::Vector::new(query), k))
         })
         .map_err(|e| PyRuntimeError::new_err(format!("Search failed: {}", e)))?;
 
@@ -376,8 +376,8 @@ impl SrvDBPython {
 
         let query_vecs: Vec<crate::Vector> = queries.into_iter().map(crate::Vector::new).collect();
 
-        let results = Python::with_gil(|py| {
-            py.allow_threads(|| VectorEngine::search_batch(&self.db, &query_vecs, k))
+        let results = Python::attach(|py| {
+            py.detach(|| VectorEngine::search_batch(&self.db, &query_vecs, k))
         })
         .map_err(|e| PyRuntimeError::new_err(format!("Batch search failed: {}", e)))?;
 
@@ -468,7 +468,7 @@ impl SrvDBPython {
     fn train_ivf(&mut self) -> PyResult<()> {
         // Python holds the GIL, but training is heavy. Release GIL?
         // Yes, allow threads.
-        Python::with_gil(|py| py.allow_threads(|| self.db.train_ivf()))
+        Python::attach(|py| py.detach(|| self.db.train_ivf()))
             .map_err(|e| PyRuntimeError::new_err(format!("IVF Training failed: {}", e)))
     }
 
