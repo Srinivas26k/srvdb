@@ -15,6 +15,10 @@ use std::io::{BufWriter, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[path = "pq_stats.rs"]
+mod stats;
+pub use stats::StorageStats;
+
 const BUFFER_SIZE: usize = 8 * 1024 * 1024; // 8MB buffer
 
 pub struct QuantizedVectorStorage {
@@ -274,29 +278,6 @@ impl QuantizedVectorStorage {
             None
         }
     }
-
-    /// Get memory usage statistics
-    pub fn get_stats(&self) -> StorageStats {
-        let count = self.count.load(Ordering::Relaxed);
-        let quantized_bytes = count * self.q_size as u64;
-        let avg_dimension = self.q_size * self.quantizer.d_sub;
-        let full_precision_bytes = count * (avg_dimension * std::mem::size_of::<f32>()) as u64;
-
-        StorageStats {
-            vector_count: count,
-            memory_bytes: quantized_bytes,
-            full_precision_bytes,
-            compression_ratio: full_precision_bytes as f32 / quantized_bytes.max(1) as f32,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct StorageStats {
-    pub vector_count: u64,
-    pub memory_bytes: u64,
-    pub full_precision_bytes: u64,
-    pub compression_ratio: f32,
 }
 
 #[cfg(test)]
