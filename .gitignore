@@ -3,3 +3,7 @@
 svdb/bench_release_db
 
 dist
+# Compiled extension built by maturin develop
+python/srvdb/*.so
+python/srvdb/*.pyd
+__pycache__/

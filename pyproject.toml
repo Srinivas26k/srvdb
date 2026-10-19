@@ -37,7 +37,9 @@ Repository = "https://github.com/Srinivas26k/srvdb"
 Documentation = "https://github.com/Srinivas26k/srvdb/blob/main/README.md"
 
 [tool.maturin]
-features = ["python"]
+manifest-path = "crates/srvdb-py/Cargo.toml"
+python-source = "python"
+module-name = "srvdb._low_level"
 
 [dependency-groups]
 dev = [
