@@ -230,11 +230,10 @@ def run_benchmark():
                 db = srvdb.SrvDBPython.new_product_quantized(db_path, DIMENSION, train_subset)
 
             elif mode == 'ivf':
-                # IVF requires explicit train step
+                # IVF is configured here and trained after ingestion
+                # (training needs data to compute centroids)
                 db = srvdb.SrvDBPython(db_path, DIMENSION, mode='ivf')
-                print(ColorChalk.info("    -> Configuring & Training IVF Index..."))
                 db.configure_ivf(nlist=100, nprobe=10)
-                db.train_ivf()
             
             else:
                 # Flat, HNSW, PQ, Auto use standard constructor with 'mode' arg
@@ -258,6 +257,10 @@ def run_benchmark():
                     [f'{{"id":{x}}}' for x in range(i, end)]
                 )
             
+            if mode == 'ivf':
+                print(ColorChalk.info("    -> Training IVF Index on ingested data..."))
+                db.train_ivf()
+
             # Persist to disk
             db.persist()
             ingest_time = time.time() - t0
