@@ -18,7 +18,7 @@ use anyhow::Result;
 use parking_lot::RwLock;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
+use std::cmp::{Ordering, Reverse};
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::sync::Arc;
 
@@ -324,8 +324,8 @@ impl HNSWIndex {
         // Candidates: min-heap (closest first)
         let mut candidates: BinaryHeap<DistanceId> = BinaryHeap::new();
 
-        // Results: max-heap (farthest first for easy pruning)
-        let mut results: BinaryHeap<DistanceId> = BinaryHeap::new();
+        // Results: max-heap by distance (farthest on top for easy pruning)
+        let mut results: BinaryHeap<Reverse<DistanceId>> = BinaryHeap::new();
 
         let entry_dist = distance_fn(query_id, entry_id);
         let entry_item = DistanceId {
@@ -334,12 +334,12 @@ impl HNSWIndex {
         };
 
         candidates.push(entry_item);
-        results.push(entry_item);
+        results.push(Reverse(entry_item));
         visited.insert(entry_id);
 
         while let Some(curr) = candidates.pop() {
             // If current is farther than the farthest in results, stop
-            if let Some(&farthest) = results.peek() {
+            if let Some(&Reverse(farthest)) = results.peek() {
                 if curr.distance > farthest.distance {
                     break;
                 }
@@ -358,7 +358,7 @@ impl HNSWIndex {
                         // Check if this neighbor should be considered
                         let should_add = if results.len() < ef {
                             true
-                        } else if let Some(&farthest) = results.peek() {
+                        } else if let Some(&Reverse(farthest)) = results.peek() {
                             neighbor_dist < farthest.distance
                         } else {
                             false
@@ -370,7 +370,7 @@ impl HNSWIndex {
                                 id: neighbor_id,
                             };
                             candidates.push(neighbor_item);
-                            results.push(neighbor_item);
+                            results.push(Reverse(neighbor_item));
 
                             if results.len() > ef {
                                 results.pop(); // Remove farthest
@@ -382,7 +382,7 @@ impl HNSWIndex {
         }
 
         // Convert to sorted vector (nearest first)
-        let mut result_vec: Vec<_> = results.into_iter().map(|di| (di.id, di.distance)).collect();
+        let mut result_vec: Vec<_> = results.into_iter().map(|Reverse(di)| (di.id, di.distance)).collect();
         result_vec.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal));
 
         Ok(result_vec)

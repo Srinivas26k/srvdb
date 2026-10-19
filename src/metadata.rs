@@ -6,7 +6,7 @@
 //! - Reduced transaction overhead
 
 use anyhow::{Context, Result};
-use redb::{Database, ReadableTableMetadata, TableDefinition};
+use redb::{Database, ReadableTable, ReadableTableMetadata, TableDefinition};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -137,6 +137,21 @@ impl MetadataStore {
         Ok(())
     }
 
+    /// All (id, metadata) entries, including unflushed cached writes
+    pub fn all(&self) -> Result<Vec<(u64, String)>> {
+        let read_txn = self.db.begin_read()?;
+        let table = read_txn.open_table(METADATA_TABLE)?;
+        let mut items: HashMap<u64, String> = HashMap::new();
+        for entry in table.iter()? {
+            let (k, v) = entry?;
+            items.insert(k.value(), v.value().to_string());
+        }
+        for (id, meta) in &self.write_cache {
+            items.insert(*id, meta.clone());
+        }
+        Ok(items.into_iter().collect())
+    }
+
     /// Get total count of metadata entries
     pub fn count(&self) -> Result<usize> {
         let read_txn = self.db.begin_read()?;
@@ -212,6 +227,20 @@ mod tests {
 
         // Cache should have been flushed
         assert!(store.write_cache.len() < CACHE_SIZE);
+    }
+
+    #[test]
+    fn test_all_includes_cache_and_disk() {
+        let temp_dir = TempDir::new().unwrap();
+        let mut store = MetadataStore::new(temp_dir.path().to_str().unwrap()).unwrap();
+
+        store.set(1, "a").unwrap();
+        store.flush().unwrap();
+        store.set(2, "b").unwrap(); // still cached
+        store.delete(1).unwrap();
+
+        let all = store.all().unwrap();
+        assert_eq!(all, vec![(2, "b".to_string())]);
     }
 
     #[test]

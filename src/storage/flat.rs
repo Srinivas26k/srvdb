@@ -190,6 +190,20 @@ impl DynamicVectorStorage {
         Ok(())
     }
 
+    /// Make all appended vectors readable via `get()` without the cost of a
+    /// full `flush()` (no header rewrite, no fsync).
+    pub fn make_visible(&mut self) -> Result<()> {
+        let needed = VectorHeader::SIZE + self.count() as usize * self.vector_size_bytes;
+        if self.mmap.as_ref().map_or(0, |m| m.len()) >= needed {
+            return Ok(());
+        }
+
+        self.writer.flush()?;
+        drop(self.mmap.take());
+        self.mmap = Some(unsafe { MmapOptions::new().map_mut(self.writer.get_ref())? });
+        Ok(())
+    }
+
     #[inline]
     pub fn count(&self) -> u64 {
         self.count.load(Ordering::Relaxed)
