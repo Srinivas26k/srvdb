@@ -16,6 +16,36 @@ pub struct SrvDBPython {
     index_type: String,
 }
 
+impl SrvDBPython {
+    /// Wrap a database, rebuilding the string-id maps from the `__id__`
+    /// field persisted in each metadata entry.
+    fn from_db(db: crate::SrvDB, dimension: usize, index_type: String) -> PyResult<Self> {
+        let mut id_map = FxHashMap::default();
+        let mut reverse_id_map = FxHashMap::default();
+        let entries = db
+            .all_metadata()
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to load ids: {}", e)))?;
+        for (internal_id, meta) in entries {
+            let value: serde_json::Value = match serde_json::from_str(&meta) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            if let Some(id) = value.get("__id__").and_then(|v| v.as_str()) {
+                id_map.insert(id.to_string(), internal_id);
+                reverse_id_map.insert(internal_id, id.to_string());
+            }
+        }
+
+        Ok(Self {
+            db,
+            id_map,
+            reverse_id_map,
+            dimension,
+            index_type,
+        })
+    }
+}
+
 #[pymethods]
 impl SrvDBPython {
     /// Create new database with specified dimension (128-4096)
@@ -94,13 +124,7 @@ impl SrvDBPython {
             db.set_mode(crate::IndexMode::Ivf);
         }
 
-        Ok(Self {
-            db,
-            id_map: FxHashMap::default(),
-            reverse_id_map: FxHashMap::default(),
-            dimension,
-            index_type: mode.to_string(),
-        })
+        Self::from_db(db, dimension, mode.to_string())
     }
 
     /// Create database with HNSW indexing
@@ -129,13 +153,7 @@ impl SrvDBPython {
         let db = crate::SrvDB::new_with_hnsw(&path, dimension, hnsw_config)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
-        Ok(Self {
-            db,
-            id_map: FxHashMap::default(),
-            reverse_id_map: FxHashMap::default(),
-            dimension,
-            index_type: "hnsw".to_string(),
-        })
+        Self::from_db(db, dimension, "hnsw".to_string())
     }
 
     /// Create database with Scalar Quantization (4x compression)
@@ -176,13 +194,7 @@ impl SrvDBPython {
         let db = crate::SrvDB::new_scalar_quantized(&path, dimension, &training_vectors)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
-        Ok(Self {
-            db,
-            id_map: FxHashMap::default(),
-            reverse_id_map: FxHashMap::default(),
-            dimension,
-            index_type: "sq8".to_string(),
-        })
+        Self::from_db(db, dimension, "sq8".to_string())
     }
 
     /// Create database with Product Quantization (32x compression)
@@ -229,13 +241,7 @@ impl SrvDBPython {
         let db = crate::SrvDB::new_quantized(&path, &internal_vectors)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
-        Ok(Self {
-            db,
-            id_map: FxHashMap::default(),
-            reverse_id_map: FxHashMap::default(),
-            dimension,
-            index_type: "pq".to_string(),
-        })
+        Self::from_db(db, dimension, "pq".to_string())
     }
 
     /// Add vectors to database
@@ -420,6 +426,9 @@ impl SrvDBPython {
         for id in ids {
             if let Some(internal_id) = self.id_map.remove(&id) {
                 self.reverse_id_map.remove(&internal_id);
+                self.db
+                    .delete_metadata(internal_id)
+                    .map_err(|e| PyRuntimeError::new_err(format!("Delete failed: {}", e)))?;
                 deleted += 1;
             }
         }
