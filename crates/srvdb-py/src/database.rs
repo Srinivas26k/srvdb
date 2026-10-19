@@ -213,7 +213,7 @@ impl SrvDBPython {
         training_vectors: Vec<Vec<f32>>,
     ) -> PyResult<Self> {
         if training_vectors.is_empty() {
-             return Err(PyValueError::new_err(
+            return Err(PyValueError::new_err(
                 "Training vectors required. Provide 1000+ sample vectors for best results.",
             ));
         }
@@ -221,7 +221,7 @@ impl SrvDBPython {
         // Validate dimensions
         for (i, vec) in training_vectors.iter().enumerate() {
             if vec.len() != dimension {
-                 return Err(PyValueError::new_err(format!(
+                return Err(PyValueError::new_err(format!(
                     "Training vector {} has dimension {}, expected {}",
                     i,
                     vec.len(),

@@ -53,7 +53,7 @@ impl SrvDB {
     pub(super) fn insert_one(&mut self, vec: &Vector, meta: &str) -> Result<u64> {
         self.ensure_quantized_storage(std::slice::from_ref(&vec.data))?;
 
-        let id =if let Some(ref mut scalar) = self.scalar_storage {
+        let id = if let Some(ref mut scalar) = self.scalar_storage {
             scalar.append(&vec.data)?
         } else if self.config.enabled {
             if let Some(ref mut qstorage) = self.quantized_storage {

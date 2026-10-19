@@ -6,8 +6,8 @@
 //! - Codebook persistence
 //! - Atomic operations for thread safety
 
-use crate::storage::header::VectorHeader;
 use crate::quant::product::{ProductQuantizer, QuantizedVector};
+use crate::storage::header::VectorHeader;
 use anyhow::{Context, Result};
 use memmap2::{MmapMut, MmapOptions};
 use std::fs::{File, OpenOptions};
@@ -43,13 +43,17 @@ impl QuantizedVectorStorage {
         // Determine M (number of sub-quantizers)
         let dim = training_data.first().map(|v| v.len()).unwrap_or(0);
         if dim == 0 {
-             anyhow::bail!("Training vectors cannot be empty or zero-dimensional");
+            anyhow::bail!("Training vectors cannot be empty or zero-dimensional");
         }
-        
+
         let m = if dim % 8 == 0 {
             dim / 8
         } else {
-            if dim < 8 { 1 } else { dim / 4 }
+            if dim < 8 {
+                1
+            } else {
+                dim / 4
+            }
         };
 
         let quantizer = ProductQuantizer::train(training_data, m)?;
@@ -57,8 +61,7 @@ impl QuantizedVectorStorage {
 
         // Save codebooks
         let codebook_bytes = quantizer.to_bytes()?;
-        std::fs::write(&codebook_path, codebook_bytes)
-            .context("Failed to save codebooks")?;
+        std::fs::write(&codebook_path, codebook_bytes).context("Failed to save codebooks")?;
 
         let exists = file_path.exists();
         let mut file = OpenOptions::new()
@@ -162,7 +165,11 @@ impl QuantizedVectorStorage {
 
         // Verify qvec length matches q_size
         if qvec.len() != self.q_size {
-             anyhow::bail!("Quantization mismatch: needed {} bytes, got {}", self.q_size, qvec.len());
+            anyhow::bail!(
+                "Quantization mismatch: needed {} bytes, got {}",
+                self.q_size,
+                qvec.len()
+            );
         }
 
         self.writer.write_all(&qvec)?;
@@ -178,11 +185,15 @@ impl QuantizedVectorStorage {
     /// Batch append (optimized)
     pub fn append_batch(&mut self, vectors: &[Vec<f32>]) -> Result<Vec<u64>> {
         let start_id = self.count.load(Ordering::Relaxed);
-        
+
         for vec in vectors {
             let qvec = self.quantizer.quantize(vec);
-             if qvec.len() != self.q_size {
-                 anyhow::bail!("Quantization mismatch: needed {} bytes, got {}", self.q_size, qvec.len());
+            if qvec.len() != self.q_size {
+                anyhow::bail!(
+                    "Quantization mismatch: needed {} bytes, got {}",
+                    self.q_size,
+                    qvec.len()
+                );
             }
             self.writer.write_all(&qvec)?;
         }
@@ -207,8 +218,8 @@ impl QuantizedVectorStorage {
         file.seek(SeekFrom::Start(0))?;
         // Rewrite the header with the new count; dimension = m * d_sub
         let dimension = self.q_size * self.quantizer.d_sub;
-        
-        let mut header = VectorHeader::new_quantized(dimension, 2)?; 
+
+        let mut header = VectorHeader::new_quantized(dimension, 2)?;
         header.count = current_count;
         let header_bytes = unsafe {
             std::slice::from_raw_parts(

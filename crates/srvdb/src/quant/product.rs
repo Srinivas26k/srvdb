@@ -38,10 +38,10 @@ impl ProductQuantizer {
         if training_data.is_empty() {
             anyhow::bail!("Training data cannot be empty");
         }
-        
+
         let dim = training_data[0].len();
         if dim % m != 0 {
-             anyhow::bail!("Dimension {} must be divisible by m={}", dim, m);
+            anyhow::bail!("Dimension {} must be divisible by m={}", dim, m);
         }
         let d_sub = dim / m;
 
@@ -95,7 +95,7 @@ impl ProductQuantizer {
 
         quantized
     }
-    
+
     // Legacy alias
     pub fn encode(&self, vector: &[f32]) -> QuantizedVector {
         self.quantize(vector)

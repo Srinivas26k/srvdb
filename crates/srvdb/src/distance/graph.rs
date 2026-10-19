@@ -51,12 +51,12 @@ pub fn search_hnsw_quantized(
     // HNSW graph traversal using ADC
     let candidates = hnsw.search(0, k * 2, &|_query_id: u64, vec_id: u64| -> f32 {
         if let Some(qvec) = storage.get(vec_id) {
-             let sim = storage.quantizer.asymmetric_distance(qvec, &dtable);
-             // Convert Similarity to Distance (HNSW minimizes)
-             // Sim is typically 0.0 to 1.0 (approx cosine)
-             1.0 - sim
+            let sim = storage.quantizer.asymmetric_distance(qvec, &dtable);
+            // Convert Similarity to Distance (HNSW minimizes)
+            // Sim is typically 0.0 to 1.0 (approx cosine)
+            1.0 - sim
         } else {
-             f32::MAX
+            f32::MAX
         }
     })?;
 

@@ -58,7 +58,8 @@ impl SrvDB {
     pub(super) fn attach_hnsw(&mut self, config: hnsw::HNSWConfig) -> Result<()> {
         let graph_path = self.path.join("hnsw.graph");
         let loaded = if graph_path.exists() {
-            match std::fs::read(&graph_path).map_err(anyhow::Error::from)
+            match std::fs::read(&graph_path)
+                .map_err(anyhow::Error::from)
                 .and_then(|bytes| hnsw::HNSWIndex::from_bytes(&bytes))
             {
                 Ok(index) => Some(index),

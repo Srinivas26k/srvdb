@@ -27,7 +27,6 @@ use crate::tuning::strategy::IndexMode;
 use crate::types;
 use crate::{SearchResult, Vector};
 
-
 /// High-performance vector database trait
 pub trait VectorEngine {
     fn new(path: &str) -> Result<Self>

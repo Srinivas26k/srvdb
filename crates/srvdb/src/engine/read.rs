@@ -89,7 +89,11 @@ impl SrvDB {
         enriched_results
     }
 
-    pub(super) fn search_vectors_batch(&self, queries: &[Vector], k: usize) -> Result<Vec<Vec<SearchResult>>> {
+    pub(super) fn search_vectors_batch(
+        &self,
+        queries: &[Vector],
+        k: usize,
+    ) -> Result<Vec<Vec<SearchResult>>> {
         let embedded_queries: Vec<Vec<f32>> = queries.iter().map(|q| q.data.clone()).collect();
 
         let batch_results = if let Some(ref scalar) = self.scalar_storage {

@@ -5,7 +5,6 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
 
 impl HNSWIndex {
-
     /// Insert a new vector into the HNSW graph
     ///
     /// This is the core algorithm from the paper (Algorithm 1)
@@ -207,7 +206,10 @@ impl HNSWIndex {
         }
 
         // Convert to sorted vector (nearest first)
-        let mut result_vec: Vec<_> = results.into_iter().map(|Reverse(di)| (di.id, di.distance)).collect();
+        let mut result_vec: Vec<_> = results
+            .into_iter()
+            .map(|Reverse(di)| (di.id, di.distance))
+            .collect();
         result_vec.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal));
 
         Ok(result_vec)

@@ -147,10 +147,9 @@ impl SrvDBPython {
 
         let query_vecs: Vec<srvdb::Vector> = queries.into_iter().map(srvdb::Vector::new).collect();
 
-        let results = Python::attach(|py| {
-            py.detach(|| VectorEngine::search_batch(&self.db, &query_vecs, k))
-        })
-        .map_err(|e| PyRuntimeError::new_err(format!("Batch search failed: {}", e)))?;
+        let results =
+            Python::attach(|py| py.detach(|| VectorEngine::search_batch(&self.db, &query_vecs, k)))
+                .map_err(|e| PyRuntimeError::new_err(format!("Batch search failed: {}", e)))?;
 
         Ok(results
             .into_iter()

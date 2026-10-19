@@ -32,22 +32,22 @@ pub fn search_quantized(
             let end = (start + BATCH_SIZE).min(count as usize);
             let mut results = Vec::with_capacity(end - start);
 
-            // Access local Mmap slice for this batch if possible? 
-            // storage.get() does bounds check every time. 
+            // Access local Mmap slice for this batch if possible?
+            // storage.get() does bounds check every time.
             // get_batch() is better.
             if let Some(batch_data) = storage.get_batch(start as u64, end - start) {
                 // batch_data is a flat slice of [u8].
                 // We know each vector has storage.q_size bytes.
                 let q_size = storage.q_size;
-                
+
                 for (i, chunk) in batch_data.chunks(q_size).enumerate() {
                     if chunk.len() == q_size {
-                         let dist = storage.quantizer.asymmetric_distance(chunk, &dtable);
-                         results.push(((start + i) as u64, dist));
+                        let dist = storage.quantizer.asymmetric_distance(chunk, &dtable);
+                        results.push(((start + i) as u64, dist));
                     }
                 }
             } else {
-                 // Fallback to individual gets if batch fails (shouldn't happen)
+                // Fallback to individual gets if batch fails (shouldn't happen)
                 for i in start..end {
                     if let Some(qvec) = storage.get(i as u64) {
                         let dist = storage.quantizer.asymmetric_distance(qvec, &dtable);

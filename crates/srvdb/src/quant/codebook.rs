@@ -28,7 +28,7 @@ impl Codebook {
         if vectors.is_empty() {
             anyhow::bail!("Cannot train on empty dataset");
         }
-        
+
         let d_sub = vectors[0].len();
 
         // Use vectors as-is (don't normalize sub-vectors)
@@ -110,10 +110,10 @@ impl Codebook {
                 .collect();
 
             let total: f32 = distances.iter().sum();
-            
+
             if total <= 1e-10 {
                 // Determine random remaining
-                 let random_idx = rng.gen_range(0..vectors.len());
+                let random_idx = rng.gen_range(0..vectors.len());
                 centroids.push(vectors[random_idx].clone());
                 continue;
             }

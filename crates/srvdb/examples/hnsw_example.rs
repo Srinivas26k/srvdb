@@ -1,5 +1,5 @@
-use srvdb::types::DatabaseConfig;
 use srvdb::index::hnsw::HNSWConfig;
+use srvdb::types::DatabaseConfig;
 /// Example: Using HNSW for fast approximate nearest neighbor search
 ///
 /// This example demonstrates:
