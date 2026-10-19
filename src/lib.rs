@@ -625,6 +625,23 @@ impl SrvDB {
         })
     }
 
+    /// Make buffered vector writes visible to search.
+    ///
+    /// Cheap compared to `persist()`: only flushes vector storage (a no-op when
+    /// nothing was added) and does not serialize indexes or run auto-tuning.
+    pub fn sync(&mut self) -> Result<()> {
+        if let Some(ref mut vstorage) = self.vector_storage {
+            vstorage.flush()?;
+        }
+        if let Some(ref mut qstorage) = self.quantized_storage {
+            qstorage.flush()?;
+        }
+        if let Some(ref mut scalar) = self.scalar_storage {
+            scalar.flush()?;
+        }
+        Ok(())
+    }
+
     /// All stored (id, metadata) pairs
     pub fn all_metadata(&self) -> Result<Vec<(u64, String)>> {
         self.metadata_store.all()

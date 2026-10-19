@@ -339,9 +339,10 @@ impl SrvDBPython {
             )));
         }
 
-        // Auto-persist before search to ensure all vectors are searchable
-        VectorEngine::persist(&mut self.db)
-            .map_err(|e| PyRuntimeError::new_err(format!("Auto-persist failed: {}", e)))?;
+        // Make recently added vectors visible (cheap; full persist is explicit)
+        self.db
+            .sync()
+            .map_err(|e| PyRuntimeError::new_err(format!("Sync failed: {}", e)))?;
 
         let results = Python::attach(|py| {
             py.detach(|| VectorEngine::search(&self.db, &crate::Vector::new(query), k))
@@ -376,9 +377,10 @@ impl SrvDBPython {
             }
         }
 
-        // Auto-persist before search
-        VectorEngine::persist(&mut self.db)
-            .map_err(|e| PyRuntimeError::new_err(format!("Auto-persist failed: {}", e)))?;
+        // Make recently added vectors visible
+        self.db
+            .sync()
+            .map_err(|e| PyRuntimeError::new_err(format!("Sync failed: {}", e)))?;
 
         let query_vecs: Vec<crate::Vector> = queries.into_iter().map(crate::Vector::new).collect();
 
