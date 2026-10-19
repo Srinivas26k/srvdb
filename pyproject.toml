@@ -9,7 +9,7 @@ description = "Zero-Gravity Embedded Vector Database - Dynamic dimensions, RAM-e
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
-  { name = "Srinivas Nampalli", email = "srinivas@example.com" },
+  { name = "Srinivas Nampalli", email = "srinivasvarma764@gmail.com" },
 ]
 license = { file = "LICENSE" }
 keywords = ["vector", "database", "embedding", "search", "quantization"]
