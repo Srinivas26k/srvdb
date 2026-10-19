@@ -1,68 +1,26 @@
-[package]
-name = "srvdb"
+[workspace]
+members = ["crates/srvdb", "crates/srvdb-py"]
+resolver = "2"
+
+[workspace.package]
 version = "0.2.0"
 edition = "2021"
 authors = ["Srinivas Nampalli"]
-description = "Zero-Gravity Embedded Vector Database - Offline-first, RAM-efficient vector search"
 license = "AGPL-3.0-only"
 repository = "https://github.com/Srinivas26k/srvdb"
-keywords = ["vector", "database", "embedding", "search", "quantization"]
-categories = ["database", "embedded"]
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
-[dependencies]
-# Core dependencies
+[workspace.dependencies]
+srvdb = { path = "crates/srvdb" }
 anyhow = "1.0"
-memmap2 = "0.9"
-redb = "2.0"
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-
-# Product Quantization
-bincode = "1.3"
-rand = "0.8"
-
-# HNSW graph indexing
-parking_lot = "0.12"
-
-# SIMD acceleration
-simsimd = "6.2"
-
-# Parallel processing
-rayon = "1.10"
-
-# Fast hashing for Python bindings
-rustc-hash = "2.0"
-
-# Python bindings
-pyo3 = { version = "0.26", features = ["extension-module"], optional = true }
-
-[dev-dependencies]
-tempfile = "3.10"
-criterion = { version = "0.5", features = ["html_reports"] }
-rand = "0.8"
-
-[features]
-default = ["python"]
-python = ["pyo3"]
 
 [profile.release]
 opt-level = 3
-lto = "fat"              # Link-time optimization
-codegen-units = 1        # Single codegen unit for best optimization
-panic = "abort"          # Smaller binary, faster unwinding
-strip = true             # Strip symbols
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
 debug = false
-
-# CPU-specific optimizations (use on production)
-# Uncomment for maximum performance on your target architecture
-# [target.x86_64-unknown-linux-gnu]
-# rustflags = ["-C", "target-cpu=native"]
-
-# [target.aarch64-unknown-linux-gnu]
-# rustflags = ["-C", "target-cpu=native"]
 
 [profile.bench]
 inherits = "release"
