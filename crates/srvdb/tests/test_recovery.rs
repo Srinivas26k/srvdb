@@ -131,3 +131,22 @@ fn missing_committed_vectors_are_reported_as_corruption() {
         .unwrap();
     assert!(matches!(err, Error::Corrupt(_)), "{err:?}");
 }
+
+#[test]
+fn sq8_crash_during_first_training_reopens_untrained() {
+    // Killed after sq8_vectors.bin was created but before the quantizer
+    // file was written: the database must open and train on the next batch
+    let dir = TempDir::new().unwrap();
+    let vectors: Vec<Vector> = (0..20).map(vector).collect();
+    {
+        let mut db = open(&dir, Some(QuantizationMode::Scalar));
+        db.add_batch(&vectors[..10], &metas(0..10)).unwrap();
+    }
+    std::fs::remove_file(dir.path().join("scalar_quantizer.bin")).unwrap();
+
+    let mut db = open(&dir, Some(QuantizationMode::Scalar));
+    assert_eq!(db.count(), 0);
+    db.add_batch(&vectors[10..], &metas(10..20)).unwrap();
+    db.persist().unwrap();
+    assert_eq!(db.search(&vectors[15], 1).unwrap()[0].id, 5);
+}
