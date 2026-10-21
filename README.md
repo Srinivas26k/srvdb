@@ -96,7 +96,7 @@ import srvdb
 import numpy as np
 
 # Initialize database (Default: 1536-dim, Flat mode)
-db = srvdb.SrvDBPython("./vectors", dimension=1536, mode="flat")
+db = srvdb.Database("./vectors", dimension=1536, mode="flat")
 
 # Bulk insert
 ids = [f"doc_{i}" for i in range(10000)]
@@ -238,10 +238,10 @@ db.add(
 ```python
 # Standard Initialization
 # modes: 'flat', 'hnsw', 'sq8', 'pq', 'ivf', 'auto'
-db = srvdb.SrvDBPython(path="db_path", dimension=1536, mode="flat")
+db = srvdb.Database(path="db_path", dimension=1536, mode="flat")
 
 # HNSW Mode with Custom Parameters
-db = srvdb.SrvDBPython.new_hnsw(
+db = srvdb.Database.new_hnsw(
     path="db_hnsw",
     dimension=1536,
     m=16,
@@ -251,7 +251,7 @@ db = srvdb.SrvDBPython.new_hnsw(
 
 # Scalar Quantization (SQ8) - Requires training data
 # 4x compression, good for large datasets on disk
-db = srvdb.SrvDBPython.new_scalar_quantized(
+db = srvdb.Database.new_scalar_quantized(
     path="db_sq8",
     dimension=1536,
     training_vectors=vectors_list # List[List[float]]
@@ -259,7 +259,7 @@ db = srvdb.SrvDBPython.new_scalar_quantized(
 
 # Product Quantization (PQ) - Requires training data
 # 32x compression, optimized for edge/low-memory
-db = srvdb.SrvDBPython.new_product_quantized(
+db = srvdb.Database.new_product_quantized(
     path="db_pq",
     dimension=1536,
     training_vectors=vectors_list
@@ -314,7 +314,7 @@ db.train_ivf() # Uses existing data in DB to train
 
 ```python
 # High accuracy (slower, more memory)
-db = srvdb.SrvDBPython.new_with_hnsw(
+db = srvdb.Database.new_hnsw(
     path,
     m=32,              # More connections
     ef_construction=500,
@@ -322,7 +322,7 @@ db = srvdb.SrvDBPython.new_with_hnsw(
 )
 
 # Balanced (recommended)
-db = srvdb.SrvDBPython.new_with_hnsw(
+db = srvdb.Database.new_hnsw(
     path,
     m=16,
     ef_construction=200,
@@ -330,7 +330,7 @@ db = srvdb.SrvDBPython.new_with_hnsw(
 )
 
 # Fast (lower accuracy)
-db = srvdb.SrvDBPython.new_with_hnsw(
+db = srvdb.Database.new_hnsw(
     path,
     m=8,
     ef_construction=100,

@@ -249,7 +249,7 @@ the same directory fails. That is accidental, not designed. In-process,
 
 ### 2.6 Developer experience (0.3–0.4)
 
-- Rename `SrvDBPython` to `srvdb.Database` (keep the old name as an alias for
+- Done in 0.3: `SrvDBPython` renamed to `srvdb.Database` (old name kept as an alias for
   one release); accept numpy arrays directly (zero-copy via `numpy` crate)
   instead of `list[list[float]]`.
 - Examples: local RAG, offline document search, filtered multi-tenant

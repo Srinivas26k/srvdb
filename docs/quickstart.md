@@ -21,7 +21,7 @@ import numpy as np
 
 # Create/Open a database at "./my_database"
 # Dimension must match your embedding model (e.g., 1536 for OpenAI)
-db = srvdb.SrvDBPython("./my_database", dimension=1536)
+db = srvdb.Database("./my_database", dimension=1536)
 
 print(f"Database initialized at: {db.path}")
 ```

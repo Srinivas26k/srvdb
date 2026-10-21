@@ -1,6 +1,6 @@
 # Python API Reference
 
-## Class: `srvdb.SrvDBPython`
+## Class: `srvdb.Database`
 
 The main interface for interacting with the SrvDB database.
 
