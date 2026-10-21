@@ -116,6 +116,11 @@ impl QuantizedVectorStorage {
         self.file.sync()
     }
 
+    /// Discard vectors from `count` on (uncommitted after a crash)
+    pub(crate) fn truncate_to(&mut self, count: u64) -> Result<()> {
+        self.file.truncate_to(count)
+    }
+
     #[inline]
     pub fn count(&self) -> u64 {
         self.file.count()

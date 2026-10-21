@@ -165,7 +165,6 @@ impl RecordFile {
 
     /// Drop every record from `count` on, shrinking the file. Used on open
     /// to discard writes that were never committed.
-    #[cfg_attr(not(test), allow(dead_code))] // used by recovery (next commit)
     pub(crate) fn truncate_to(&mut self, count: u64) -> Result<()> {
         if count > self.count {
             return Err(Error::Corrupt(format!(

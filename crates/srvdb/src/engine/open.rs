@@ -45,6 +45,7 @@ impl SrvDB {
             current_mode,
             dimension,
         };
+        db.recover()?;
 
         if config.index_type == types::IndexType::HNSW || db_path.join("hnsw.graph").exists() {
             db.attach_hnsw(hnsw::HNSWConfig::default())?;
