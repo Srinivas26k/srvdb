@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The compiled extension moved to the private module `srvdb._low_level`;
   import from `srvdb` as before.
 - Rust: `srvdb::core::*` paths were removed; use `srvdb::types::*`.
+- Rust: the public API returns `srvdb::Result` with a typed `srvdb::Error`
+  instead of `anyhow::Error` (see ADR 0002).
 
 ## [0.2.0] - 2025-12-30
 
