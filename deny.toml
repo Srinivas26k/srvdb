@@ -1,0 +1,49 @@
+# cargo-deny configuration: licences, security advisories, duplicate
+# crates and dependency sources. Run with `cargo deny check`.
+
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = [
+    # bincode 1.x is unmaintained with no successor release. It serializes
+    # the HNSW graph, IVF centroids and quantizer files, so replacing it is
+    # an on-disk format change. Scheduled for the 0.3 durability work
+    # (versioned formats with a reader for the old one). Remove this entry
+    # when that lands.
+    { id = "RUSTSEC-2025-0141", reason = "replacement planned with the 0.3 file-format change" },
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.9
+# Permissive licences compatible with both AGPL-3.0 and commercial licensing.
+# Adding a licence here needs a reason in the commit message (see AGENTS.md).
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+# SrvDB's own crates
+exceptions = [
+    { allow = ["AGPL-3.0-only"], crate = "srvdb" },
+    { allow = ["AGPL-3.0-only"], crate = "srvdb-py" },
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

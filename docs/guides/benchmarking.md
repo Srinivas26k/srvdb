@@ -50,4 +50,4 @@ SIMD: AVX-512 Detected
 
 - **Ingestion**: Higher is better. >10k is good for Python.
 - **Search P99**: Lower is better. <5ms is ideal for real-time apps.
-- **Recall**: Top-10 recall. >95% is usually required for RAG. 
+- **Recall**: Top-10 recall. >95% is usually required for RAG.

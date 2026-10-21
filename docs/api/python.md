@@ -1,6 +1,6 @@
 # Python API Reference
 
-## Class: `srvdb.SrvDBPython`
+## Class: `srvdb.Database`
 
 The main interface for interacting with the SrvDB database.
 
@@ -20,7 +20,7 @@ Creates a new database optimized for HNSW graph search.
 
 #### `new_product_quantized(path, dimension, training_vectors)`
 Creates a memory-efficient database using Product Quantization (PQ).
-- **training_vectors**: A list of vectors (List[float]) to train the quantizer. 
+- **training_vectors**: A list of vectors (List[float]) to train the quantizer.
 
 ### Methods
 

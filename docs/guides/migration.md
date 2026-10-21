@@ -1,4 +1,28 @@
-# SrvDB v0.2.0 Migration Guide
+# Migration Guide
+
+## Upgrading to v0.3
+
+### Python
+
+The class is now `srvdb.Database`:
+
+```python
+import srvdb
+
+db = srvdb.Database("./vectors", dimension=384)        # new
+db = srvdb.SrvDBPython("./vectors", dimension=384)     # still works, warns
+```
+
+`srvdb.SrvDBPython` returns the same class and emits a
+`DeprecationWarning`. It will be removed in v0.4.
+
+### Rust
+
+The crate is now split into `srvdb` (the engine) and `srvdb-py` (Python
+bindings). The `srvdb::core::*` paths were removed; use `srvdb::types::*`
+or the top-level re-exports (`srvdb::DatabaseConfig`, `srvdb::Vector`).
+
+## Upgrading from v0.1.x to v0.2.0
 
 This guide helps you upgrade from SrvDB v0.1.x to v0.2.0. This release introduces significant architecture changes for better performance and flexibility.
 
@@ -52,14 +76,14 @@ You must now provide the `dimension` argument if you are not using the default (
 Old:
 ```python
 # v0.1.x
-db = srvdb.SrvDBPython("./db")
+db = srvdb.Database("./db")
 ```
 
 New:
 ```python
 # v0.2.0
 # Support for 384, 768, 1536, etc.
-db = srvdb.SrvDBPython("./db", dimension=768)
+db = srvdb.Database("./db", dimension=768)
 ```
 
 ### 2. New Modes
@@ -67,10 +91,10 @@ You can explicitly set modes like SQ8 or HNSW during init or runtime:
 
 ```python
 # Create SQ8 compressed database (4x smaller)
-db = srvdb.SrvDBPython.new_scalar_quantized("./db", 768, training_vectors)
+db = srvdb.Database.new_scalar_quantized("./db", 768, training_vectors)
 
 # Create HNSW index
-db = srvdb.SrvDBPython("./db", 768, mode="hnsw")
+db = srvdb.Database("./db", 768, mode="hnsw")
 ```
 
 ## Troubleshooting

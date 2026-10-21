@@ -1,101 +1,123 @@
-# .github/workflows/release.yml
-# Cross-platform builds for Windows, macOS, and Linux
-
-name: Release Builds
+# Builds and publishes a release when a v* tag is pushed, or on demand.
+# Publishing happens only after tests, every wheel, the sdist and the
+# SBOM have succeeded. Actions are pinned to commit SHAs.
+name: Release
 
 on:
   push:
-    branches:
-      - '**'
-    tags:
-      - 'v*'
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  build-wheels:
-    name: Build wheels on ${{ matrix.os }}
+  test:
+    name: Tests before release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - run: cargo test --workspace --locked
+
+  wheels:
+    name: Wheels (${{ matrix.os }} ${{ matrix.target }})
+    needs: test
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-
+        include:
+          - { os: ubuntu-latest, target: x86_64 }
+          - { os: ubuntu-latest, target: aarch64 }
+          - { os: macos-latest, target: aarch64 }
+          - { os: macos-13, target: x86_64 }
+          - { os: windows-latest, target: x64 }
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@master
+          python-version: |
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
+            3.14
+      - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1
         with:
-          toolchain: stable
-
-      - name: Install maturin
-        run: pip install maturin
-
-      - name: Build wheels
-        run: maturin build --release --out dist --interpreter python${{ matrix.python-version }}
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
+          target: ${{ matrix.target }}
+          manylinux: auto
+          args: --release --locked --out dist --interpreter 3.9 3.10 3.11 3.12 3.13 3.14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
+          name: dist-${{ matrix.os }}-${{ matrix.target }}
           path: dist
 
-  build-sdist:
-    name: Build source distribution
+  sdist:
+    name: Source distribution
+    needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1
         with:
-          python-version: '3.12'
-      
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@master
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dist-sdist
+          path: dist
+
+  sbom:
+    name: Software bill of materials
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           toolchain: stable
-
-      - name: Install maturin
-        run: pip install maturin
-
-      - name: Build sdist
-        run: maturin sdist --out dist
-
-      - name: Upload sdist
-        uses: actions/upload-artifact@v4
+      - run: cargo install --locked cargo-cyclonedx
+      - run: cargo cyclonedx --all --format json
+      - name: Collect SBOM files
+        run: |
+          mkdir sbom
+          find crates -name '*.cdx.json' -exec cp {} sbom/ \;
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: wheels-sdist
-          path: dist/*.tar.gz
+          name: sbom
+          path: sbom
 
-  release:
-    name: Release
+  publish:
+    name: Publish to PyPI and GitHub
+    needs: [wheels, sdist, sbom]
     runs-on: ubuntu-latest
-    needs: [build-wheels, build-sdist]
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-    
+    permissions:
+      contents: write # create the GitHub release
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: wheels-*
+          pattern: dist-*
           path: dist
           merge-multiple: true
-
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: sbom
+          path: sbom
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
-          user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          files: dist/*
-          generate_release_notes: true
+          files: |
+            dist/*
+            sbom/*

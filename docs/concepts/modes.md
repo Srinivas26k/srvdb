@@ -25,7 +25,7 @@ The Flat index stores full-precision (`f32`) vectors and performs a brute-force 
 
 ```python
 # Initialize Flat Mode
-db = srvdb.SrvDBPython("path/to/db", dimension=1536, mode="flat")
+db = srvdb.Database("path/to/db", dimension=1536, mode="flat")
 ```
 
 ## 2. HNSW Graph Index
@@ -41,11 +41,11 @@ db = srvdb.SrvDBPython("path/to/db", dimension=1536, mode="flat")
 # Initialize HNSW Mode with custom parameters
 # m = max connections per node
 # ef_construction = depth of search during build
-db = srvdb.SrvDBPython.new_hnsw(
-    "path/to/hnsw_db", 
-    dimension=1536, 
-    m=16, 
-    ef_construction=200, 
+db = srvdb.Database.new_hnsw(
+    "path/to/hnsw_db",
+    dimension=1536,
+    m=16,
+    ef_construction=200,
     ef_search=50
 )
 ```
@@ -61,7 +61,7 @@ Product Quantization (PQ) compresses vectors by breaking them into sub-vectors a
 
 ```python
 # PQ requires a training set of vectors
-db = srvdb.SrvDBPython.new_product_quantized(
+db = srvdb.Database.new_product_quantized(
     "path/to/pq_db",
     dimension=1536,
     training_vectors=my_sample_vectors

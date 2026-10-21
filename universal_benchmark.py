@@ -220,25 +220,25 @@ def run_benchmark():
                 train_subset_size = max(1000, len(train_vecs) // 10)
                 train_subset = train_vecs[:train_subset_size].tolist()
                 print(ColorChalk.info(f"    -> Initializing SQ8 with {train_subset_size} training vectors..."))
-                db = srvdb.SrvDBPython.new_scalar_quantized(db_path, DIMENSION, train_subset)
+                db = srvdb.Database.new_scalar_quantized(db_path, DIMENSION, train_subset)
             
             elif mode == 'pq':
                 # PQ requires separate static constructor with training data
                 train_subset_size = max(1000, len(train_vecs) // 5)
                 train_subset = train_vecs[:train_subset_size].tolist()
                 print(ColorChalk.info(f"    -> Initializing PQ with {train_subset_size} training vectors..."))
-                db = srvdb.SrvDBPython.new_product_quantized(db_path, DIMENSION, train_subset)
+                db = srvdb.Database.new_product_quantized(db_path, DIMENSION, train_subset)
 
             elif mode == 'ivf':
                 # IVF is configured here and trained after ingestion
                 # (training needs data to compute centroids)
-                db = srvdb.SrvDBPython(db_path, DIMENSION, mode='ivf')
+                db = srvdb.Database(db_path, DIMENSION, mode='ivf')
                 db.configure_ivf(nlist=100, nprobe=10)
             
             else:
                 # Flat, HNSW, PQ, Auto use standard constructor with 'mode' arg
                 # (PQ training happens internally if configured, or it might just be config setup)
-                db = srvdb.SrvDBPython(db_path, DIMENSION, mode=mode)
+                db = srvdb.Database(db_path, DIMENSION, mode=mode)
                 
                 # If HNSW or Auto, no extra step needed here usually.
                 if mode == 'auto':

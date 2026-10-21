@@ -7,7 +7,7 @@ SrvDB provides powerful configuration options to tune the performance of your ve
 When creating an HNSW index, there are three key parameters that control the trade-off between **Recall (Accuracy)**, **Speed**, and **Memory Size**.
 
 ```python
-db = srvdb.SrvDBPython.new_hnsw(
+db = srvdb.Database.new_hnsw(
     path="...",
     dimension=1536,
     m=16,                # Max connections per node

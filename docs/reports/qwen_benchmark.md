@@ -312,6 +312,6 @@ For immediate deployment scenarios, HNSW+PQ mode represents the most viable opti
 
 Future versions addressing the identified limitations could position SrvDB as a compelling alternative to existing solutions, particularly for applications requiring offline operation with minimal resource footprint. The open-source development model provides an opportunity for community contributions to accelerate progress toward production readiness.
 
-**Benchmark Tool:** srvdb_ultimate_production_benchmark.py  
-**Dataset Strategy:** Normalized Gaussian distribution with semantic clustering simulation  
+**Benchmark Tool:** srvdb_ultimate_production_benchmark.py
+**Dataset Strategy:** Normalized Gaussian distribution with semantic clustering simulation
 **Report Date:** 2025-12-26
