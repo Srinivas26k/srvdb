@@ -51,6 +51,8 @@ impl SrvDB {
     }
 
     pub(super) fn insert_one(&mut self, vec: &Vector, meta: &str) -> Result<u64> {
+        validate::vector(&vec.data, self.dimension)?;
+        validate::metadata(meta)?;
         self.ensure_quantized_storage(std::slice::from_ref(&vec.data))?;
 
         let id = if let Some(ref mut scalar) = self.scalar_storage {
@@ -76,10 +78,10 @@ impl SrvDB {
     }
 
     pub(super) fn insert_batch(&mut self, vecs: &[Vector], metas: &[String]) -> Result<Vec<u64>> {
-        if vecs.len() != metas.len() {
-            return Err(Error::invalid_input(
-                "Vectors and metadata counts must match",
-            ));
+        let slices: Vec<&[f32]> = vecs.iter().map(|v| v.data.as_slice()).collect();
+        validate::batch(&slices, metas, self.dimension)?;
+        if vecs.is_empty() {
+            return Ok(Vec::new());
         }
 
         // Convert all vectors to Vec<f32>

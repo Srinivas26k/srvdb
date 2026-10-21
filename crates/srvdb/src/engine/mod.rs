@@ -5,6 +5,7 @@ mod constructors;
 mod modes;
 mod open;
 mod read;
+mod validate;
 mod write;
 
 #[cfg(test)]
@@ -55,6 +56,8 @@ pub struct SrvDB {
     pub(crate) ivf_index: Option<ivf::IVFIndex>,
     pub(crate) ivf_config: Option<ivf::IVFConfig>,
     pub current_mode: IndexMode,
+    /// Vector dimension every insert and query must match
+    pub(crate) dimension: usize,
 }
 
 impl VectorEngine for SrvDB {
@@ -79,6 +82,7 @@ impl VectorEngine for SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Flat,
+            dimension: 1536,
         })
     }
 

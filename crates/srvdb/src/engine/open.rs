@@ -43,6 +43,7 @@ impl SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode,
+            dimension,
         };
 
         if config.index_type == types::IndexType::HNSW || db_path.join("hnsw.graph").exists() {

@@ -13,7 +13,7 @@ impl SrvDB {
                 "Training vectors required for quantization",
             ));
         }
-        let _dimension = training_vectors[0].data.len();
+        let dimension = training_vectors[0].data.len();
 
         // Convert training vectors to Vec<Vec<f32>>
         let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
@@ -40,6 +40,7 @@ impl SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Flat, // PQ is technically a flat scan of compressed vectors
+            dimension,
         })
     }
 
@@ -81,6 +82,7 @@ impl SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Sq8,
+            dimension,
         })
     }
 
@@ -119,6 +121,7 @@ impl SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Hnsw,
+            dimension,
         };
         db.attach_hnsw(hnsw_config)?;
         Ok(db)
@@ -176,6 +179,8 @@ impl SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Hnsw,
+            // Non-empty: storage training above rejects an empty set
+            dimension: embedded[0].len(),
         })
     }
 }

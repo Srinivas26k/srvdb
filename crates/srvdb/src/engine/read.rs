@@ -4,6 +4,8 @@ use super::*;
 
 impl SrvDB {
     pub(super) fn search_vectors(&self, query: &Vector, k: usize) -> Result<Vec<SearchResult>> {
+        validate::k(k)?;
+        validate::vector(&query.data, self.dimension)?;
         let results: Vec<SearchResult> = if let Some(ref hnsw) = self.hnsw_index {
             // HNSW-accelerated search (O(log n))
             let raw_results = if self.config.enabled {
@@ -98,6 +100,10 @@ impl SrvDB {
         queries: &[Vector],
         k: usize,
     ) -> Result<Vec<Vec<SearchResult>>> {
+        validate::k(k)?;
+        for query in queries {
+            validate::vector(&query.data, self.dimension)?;
+        }
         let embedded_queries: Vec<Vec<f32>> = queries.iter().map(|q| q.data.clone()).collect();
 
         let batch_results = if let Some(ref scalar) = self.scalar_storage {

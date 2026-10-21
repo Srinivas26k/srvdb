@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rust: `srvdb::core::*` paths were removed; use `srvdb::types::*`.
 - Rust: the public API returns `srvdb::Result` with a typed `srvdb::Error`
   instead of `anyhow::Error` (see ADR 0002).
+- Inputs are validated before anything is written: vectors must match the
+  database dimension and contain no NaN or infinity, `k` must be at least 1,
+  vector and metadata counts must match, and metadata must be valid JSON
+  (Rust callers that stored plain strings must now wrap them, for example
+  `{"id": "doc1"}`).
 
 ## [0.2.0] - 2025-12-30
 
