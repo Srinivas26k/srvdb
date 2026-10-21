@@ -1,6 +1,7 @@
 //! `Database` class: construction and id-map bookkeeping
 
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use crate::errors::to_py;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rustc_hash::FxHashMap;
 
@@ -19,9 +20,7 @@ impl PyDatabase {
     fn from_db(db: srvdb::SrvDB, dimension: usize, index_type: String) -> PyResult<Self> {
         let mut id_map = FxHashMap::default();
         let mut reverse_id_map = FxHashMap::default();
-        let entries = db
-            .all_metadata()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to load ids: {}", e)))?;
+        let entries = db.all_metadata().map_err(to_py)?;
         for (internal_id, meta) in entries {
             let value: serde_json::Value = match serde_json::from_str(&meta) {
                 Ok(v) => v,
@@ -106,8 +105,7 @@ impl PyDatabase {
             }
         }
 
-        let mut db = srvdb::SrvDB::new_with_config(&path, config)
-            .map_err(|e| PyRuntimeError::new_err(format!("Database init failed: {}", e)))?;
+        let mut db = srvdb::SrvDB::new_with_config(&path, config).map_err(to_py)?;
 
         // Apply Auto Strategy if requested
         if mode.to_lowercase() == "auto" {
@@ -147,8 +145,7 @@ impl PyDatabase {
         // config.index_type = srvdb::types::IndexType::HNSW;
 
         let hnsw_config = srvdb::hnsw::HNSWConfig::new(m, ef_construction, ef_search);
-        let db = srvdb::SrvDB::new_with_hnsw(&path, dimension, hnsw_config)
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let db = srvdb::SrvDB::new_with_hnsw(&path, dimension, hnsw_config).map_err(to_py)?;
 
         Self::from_db(db, dimension, "hnsw".to_string())
     }
@@ -189,7 +186,7 @@ impl PyDatabase {
         }
 
         let db = srvdb::SrvDB::new_scalar_quantized(&path, dimension, &training_vectors)
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+            .map_err(to_py)?;
 
         Self::from_db(db, dimension, "sq8".to_string())
     }
@@ -235,8 +232,7 @@ impl PyDatabase {
             .map(srvdb::Vector::new)
             .collect();
 
-        let db = srvdb::SrvDB::new_quantized(&path, &internal_vectors)
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let db = srvdb::SrvDB::new_quantized(&path, &internal_vectors).map_err(to_py)?;
 
         Self::from_db(db, dimension, "pq".to_string())
     }

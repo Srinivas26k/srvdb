@@ -1,6 +1,11 @@
 """Type stubs for the compiled `srvdb._low_level` extension module.
 
 Keep in sync with crates/srvdb-py/src.
+
+Errors: invalid arguments (wrong dimension, NaN or infinity, k < 1, empty or
+duplicate ids, metadata that is not a JSON object) and calls that do not fit
+the current mode raise ValueError; operating-system I/O failures raise
+OSError; anything unexpected raises RuntimeError.
 """
 
 from collections.abc import Sequence
