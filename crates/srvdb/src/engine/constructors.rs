@@ -8,11 +8,7 @@ impl SrvDB {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
-        if training_vectors.is_empty() {
-            return Err(Error::invalid_input(
-                "Training vectors required for quantization",
-            ));
-        }
+        validate::training(training_vectors.iter().map(|v| v.data.as_slice()))?;
         let dimension = training_vectors[0].data.len();
 
         // Convert training vectors to Vec<Vec<f32>>
@@ -53,10 +49,12 @@ impl SrvDB {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
-        if training_vectors.is_empty() {
-            return Err(Error::invalid_input(
-                "Training vectors required for scalar quantization",
-            ));
+        let trained_dim = validate::training(training_vectors.iter().map(|v| v.as_slice()))?;
+        if trained_dim != dimension {
+            return Err(Error::DimensionMismatch {
+                expected: dimension,
+                actual: trained_dim,
+            });
         }
 
         let scalar_storage =
@@ -151,6 +149,7 @@ impl SrvDB {
         std::fs::create_dir_all(db_path)?;
 
         // Convert training vectors
+        validate::training(training_vectors.iter().map(|v| v.data.as_slice()))?;
         let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
 
         let quantized_storage =

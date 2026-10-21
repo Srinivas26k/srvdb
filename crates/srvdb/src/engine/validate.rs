@@ -53,6 +53,19 @@ pub(super) fn batch(vectors: &[&[f32]], metas: &[String], dimension: usize) -> R
     Ok(())
 }
 
+/// Training vectors: at least one, all the same dimension, all finite.
+pub(super) fn training<'a>(vectors: impl IntoIterator<Item = &'a [f32]>) -> Result<usize> {
+    let mut vectors = vectors.into_iter();
+    let first = vectors
+        .next()
+        .ok_or_else(|| Error::invalid_input("at least one training vector is required"))?;
+    vector(first, first.len()).map_err(|e| at_index(e, 0))?;
+    for (i, values) in vectors.enumerate() {
+        vector(values, first.len()).map_err(|e| at_index(e, i + 1))?;
+    }
+    Ok(first.len())
+}
+
 /// Prefix an error with the batch position it came from.
 fn at_index(err: Error, index: usize) -> Error {
     match err {
@@ -101,6 +114,17 @@ mod tests {
         assert!(metadata(r#"{"a": 1}"#).is_ok());
         assert!(metadata("[1, 2]").is_ok());
         assert!(metadata("not json").is_err());
+    }
+
+    #[test]
+    fn training_set_must_be_consistent() {
+        let a = [0.1f32; 4];
+        let short = [0.1f32; 3];
+        let nan = [f32::NAN, 0.0, 0.0, 0.0];
+        assert_eq!(training([&a[..], &a[..]]).unwrap(), 4);
+        assert!(training(std::iter::empty::<&[f32]>()).is_err());
+        assert!(training([&a[..], &short[..]]).is_err());
+        assert!(training([&a[..], &nan[..]]).is_err());
     }
 
     #[test]
