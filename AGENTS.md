@@ -150,7 +150,17 @@ dataset, commit hash and the command used.
 
 ## 13. Commits and branches
 
-- Work on a branch; never commit directly to `master`.
+- Branch model:
+  - `master` holds released code only. It changes only by merging a
+    finished `release/X.Y` branch.
+  - `release/X.Y` (e.g. `release/0.3`) integrates one version. Never
+    commit to it directly; merge work branches into it.
+  - Work branches start from the current `release/X.Y` and are named
+    for one tracker track or task: `feat/<topic>`, `fix/<topic>`,
+    `docs/<topic>`, `ci/<topic>`, `refactor/<topic>`.
+  - Merge a work branch into `release/X.Y` with `git merge --no-ff`
+    only when its tests, clippy and pre-commit hooks pass. The merge
+    commit summarizes what the branch delivered.
 - One logical change per commit. Stage specific files (`git add <path>`),
   never `git add -A` or `git add .`.
 - Conventional Commits: `type(scope): summary` with types `feat`, `fix`,

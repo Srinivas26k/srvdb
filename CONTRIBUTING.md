@@ -39,8 +39,10 @@ Start with `crates/srvdb/src/lib.rs` for the public API and
 ## Making a change
 
 1. Open or pick an issue, and say you are working on it.
-2. Create a branch from `master`: `fix/<topic>`, `feat/<topic>`,
-   `docs/<topic>`.
+2. Create a branch from the current release branch (for example
+   `release/0.3`, not `master`): `fix/<topic>`, `feat/<topic>`,
+   `docs/<topic>`. Pull requests target that release branch;
+   `master` only receives finished releases.
 3. Write a failing test first for bug fixes.
 4. Keep each commit to one logical change and stage files explicitly.
 5. Before pushing, run:
