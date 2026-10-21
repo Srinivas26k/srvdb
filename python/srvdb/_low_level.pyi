@@ -11,7 +11,7 @@ __version__: str
 Mode = Literal["flat", "hnsw", "sq8", "scalar", "pq", "product", "ivf", "auto"]
 SwitchableMode = Literal["flat", "hnsw", "sq8", "scalar", "ivf", "auto"]
 
-class SrvDBPython:
+class Database:
     def __init__(
         self, path: str, dimension: int = 1536, mode: Mode = "flat"
     ) -> None: ...
@@ -22,15 +22,15 @@ class SrvDBPython:
         m: int = 16,
         ef_construction: int = 200,
         ef_search: int = 50,
-    ) -> SrvDBPython: ...
+    ) -> Database: ...
     @staticmethod
     def new_scalar_quantized(
         path: str, dimension: int, training_vectors: Sequence[Sequence[float]]
-    ) -> SrvDBPython: ...
+    ) -> Database: ...
     @staticmethod
     def new_product_quantized(
         path: str, dimension: int, training_vectors: Sequence[Sequence[float]]
-    ) -> SrvDBPython: ...
+    ) -> Database: ...
     def add(
         self,
         ids: Sequence[str],

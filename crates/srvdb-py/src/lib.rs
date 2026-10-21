@@ -6,12 +6,12 @@
 mod database;
 mod operations;
 
-use database::SrvDBPython;
+use database::PyDatabase;
 use pyo3::prelude::*;
 
 #[pymodule]
 fn _low_level(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<SrvDBPython>()?;
+    m.add_class::<PyDatabase>()?;
     m.add("__version__", "0.2.0")?;
     m.add(
         "__doc__",

@@ -1,11 +1,11 @@
-//! `SrvDBPython` class: construction and id-map bookkeeping
+//! `Database` class: construction and id-map bookkeeping
 
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use rustc_hash::FxHashMap;
 
-#[pyclass]
-pub struct SrvDBPython {
+#[pyclass(name = "Database", module = "srvdb")]
+pub struct PyDatabase {
     pub(crate) db: srvdb::SrvDB,
     pub(crate) id_map: FxHashMap<String, u64>,
     pub(crate) reverse_id_map: FxHashMap<u64, String>,
@@ -13,7 +13,7 @@ pub struct SrvDBPython {
     pub(crate) index_type: String,
 }
 
-impl SrvDBPython {
+impl PyDatabase {
     /// Wrap a database, rebuilding the string-id maps from the `__id__`
     /// field persisted in each metadata entry.
     fn from_db(db: srvdb::SrvDB, dimension: usize, index_type: String) -> PyResult<Self> {
@@ -44,7 +44,7 @@ impl SrvDBPython {
 }
 
 #[pymethods]
-impl SrvDBPython {
+impl PyDatabase {
     /// Create new database with specified dimension (128-4096)
     ///
     /// Args:
@@ -53,8 +53,8 @@ impl SrvDBPython {
     ///     mode: Index mode - 'flat', 'hnsw', 'sq8', 'pq' (default: 'flat')
     ///
     /// Examples:
-    ///     >>> db = srvdb.SrvDBPython("./db", dimension=384)  # MiniLM
-    ///     >>> db = srvdb.SrvDBPython("./db", dimension=768, mode='sq8')  # Cohere
+    ///     >>> db = srvdb.Database("./db", dimension=384)  # MiniLM
+    ///     >>> db = srvdb.Database("./db", dimension=768, mode='sq8')  # Cohere
     #[new]
     #[pyo3(signature = (path, dimension=1536, mode="flat"))]
     fn new(path: String, dimension: usize, mode: &str) -> PyResult<Self> {

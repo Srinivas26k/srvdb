@@ -1,12 +1,12 @@
-//! `SrvDBPython` methods: insert, search, delete and maintenance
+//! `Database` methods: insert, search, delete and maintenance
 
-use crate::database::SrvDBPython;
+use crate::database::PyDatabase;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use srvdb::VectorEngine;
 
 #[pymethods]
-impl SrvDBPython {
+impl PyDatabase {
     /// Add vectors to database
     ///
     /// Args:
