@@ -3,7 +3,8 @@
 Keep in sync with crates/srvdb-py/src.
 """
 
-from typing import Literal, Optional, Sequence
+from collections.abc import Sequence
+from typing import Literal
 
 __version__: str
 
@@ -11,7 +12,9 @@ Mode = Literal["flat", "hnsw", "sq8", "scalar", "pq", "product", "ivf", "auto"]
 SwitchableMode = Literal["flat", "hnsw", "sq8", "scalar", "ivf", "auto"]
 
 class SrvDBPython:
-    def __init__(self, path: str, dimension: int = 1536, mode: Mode = "flat") -> None: ...
+    def __init__(
+        self, path: str, dimension: int = 1536, mode: Mode = "flat"
+    ) -> None: ...
     @staticmethod
     def new_hnsw(
         path: str,
@@ -38,7 +41,7 @@ class SrvDBPython:
     def search_batch(
         self, queries: Sequence[Sequence[float]], k: int
     ) -> list[list[tuple[str, float]]]: ...
-    def get(self, id: str) -> Optional[str]: ...
+    def get(self, id: str) -> str | None: ...
     def count(self) -> int: ...
     def persist(self) -> None: ...
     def delete(self, ids: Sequence[str]) -> int: ...

@@ -45,3 +45,14 @@ module-name = "srvdb._low_level"
 dev = [
     "maturin>=1.10.2",
 ]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+src = ["python", "tests/python", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "EXE"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["srvdb"]
