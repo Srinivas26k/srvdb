@@ -42,10 +42,10 @@ db = srvdb.SrvDBPython("path/to/db", dimension=1536, mode="flat")
 # m = max connections per node
 # ef_construction = depth of search during build
 db = srvdb.SrvDBPython.new_hnsw(
-    "path/to/hnsw_db", 
-    dimension=1536, 
-    m=16, 
-    ef_construction=200, 
+    "path/to/hnsw_db",
+    dimension=1536,
+    m=16,
+    ef_construction=200,
     ef_search=50
 )
 ```

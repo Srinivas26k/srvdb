@@ -122,6 +122,6 @@ SrvDB v0.1.8 is a robust embedded database suitable for offline indexing and vec
 
 ---
 
-**Benchmark Tool**: `srvdb_ultimate_benchmark`  
-**Data Strategy**: 70% Random Gaussian / 30% Clustered Blobs (Adversarial Mix)  
+**Benchmark Tool**: `srvdb_ultimate_benchmark`
+**Data Strategy**: 70% Random Gaussian / 30% Clustered Blobs (Adversarial Mix)
 **Report Date**: 2025-12-26
