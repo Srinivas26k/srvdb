@@ -10,12 +10,14 @@ impl SrvDB {
                 if let Some(ref qstorage) = self.quantized_storage {
                     search::search_hnsw_quantized(qstorage, hnsw, &query.data, k)?
                 } else {
-                    anyhow::bail!("Quantization enabled but quantized storage not initialized");
+                    return Err(Error::invalid_state(
+                        "Quantization enabled but quantized storage not initialized",
+                    ));
                 }
             } else if let Some(ref vstorage) = self.vector_storage {
                 search::search_hnsw(vstorage, hnsw, &query.data, k)?
             } else {
-                anyhow::bail!("Vector storage not initialized");
+                return Err(Error::invalid_state("Vector storage not initialized"));
             };
             raw_results
                 .into_iter()
@@ -28,7 +30,7 @@ impl SrvDB {
                 let raw_results = if let Some(ref vstorage) = self.vector_storage {
                     search::search_cosine(vstorage, &query.data, k)?
                 } else {
-                    anyhow::bail!("Vector storage not initialized");
+                    return Err(Error::invalid_state("Vector storage not initialized"));
                 };
                 raw_results
                     .into_iter()
@@ -51,7 +53,9 @@ impl SrvDB {
                     .map(|r| SearchResult::new(r.id, 1.0 - r.score, None))
                     .collect()
             } else {
-                anyhow::bail!("Vector storage required for IVF search");
+                return Err(Error::invalid_state(
+                    "Vector storage required for IVF search",
+                ));
             }
         } else {
             // Flat search (O(n))
@@ -67,7 +71,7 @@ impl SrvDB {
             } else if let Some(ref vstorage) = self.vector_storage {
                 search::search_cosine(vstorage, &query.data, k)?
             } else {
-                anyhow::bail!("Vector storage not initialized");
+                return Err(Error::invalid_state("Vector storage not initialized"));
             };
             raw_results
                 .into_iter()
@@ -107,12 +111,14 @@ impl SrvDB {
             if let Some(ref qstorage) = self.quantized_storage {
                 search::search_quantized_batch(qstorage, &embedded_queries, k)?
             } else {
-                anyhow::bail!("Quantization enabled but quantized storage not initialized");
+                return Err(Error::invalid_state(
+                    "Quantization enabled but quantized storage not initialized",
+                ));
             }
         } else if let Some(ref vstorage) = self.vector_storage {
             search::search_batch(vstorage, &embedded_queries, k)?
         } else {
-            anyhow::bail!("Vector storage not initialized");
+            return Err(Error::invalid_state("Vector storage not initialized"));
         };
 
         // Enrich with metadata

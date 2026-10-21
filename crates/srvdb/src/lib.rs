@@ -12,6 +12,7 @@
 mod config;
 pub mod distance;
 mod engine;
+mod error;
 pub mod index;
 pub mod quant;
 pub mod storage;
@@ -20,6 +21,7 @@ mod vector;
 
 pub use config::{DatabaseConfig, IndexType, QuantizationConfig, QuantizationMode};
 pub use engine::{SrvDB, VectorEngine};
+pub use error::{Error, Result};
 pub use index::hnsw::{HNSWConfig, HNSWIndex};
 pub use index::ivf::{IVFConfig, IVFIndex};
 pub use quant::product::{ProductQuantizer, QuantizedVector};

@@ -67,14 +67,12 @@ impl SrvDB {
     /// 3. Re-indexes all data into partitions
     pub fn train_ivf(&mut self) -> Result<()> {
         if self.ivf_index.is_none() {
-            anyhow::bail!("IVF mode not enabled. Call set_mode(IndexMode::Ivf) first.");
+            return Err(Error::invalid_state(
+                "IVF mode not enabled. Call set_mode(IndexMode::Ivf) first.",
+            ));
         }
 
         let count = self.vector_storage.as_ref().map(|s| s.count()).unwrap_or(0);
-        if count < 10 { // Lower limit for testing
-             // anyhow::bail!("Not enough data to train IVF");
-             // Allow small training for unit tests?
-        }
 
         // 1. Load Training Data (ALL for now, or sample)
         let mut training_data = Vec::with_capacity(count as usize);

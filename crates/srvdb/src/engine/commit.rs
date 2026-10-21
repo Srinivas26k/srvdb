@@ -53,12 +53,12 @@ impl SrvDB {
 
     /// All stored (id, metadata) pairs
     pub fn all_metadata(&self) -> Result<Vec<(u64, String)>> {
-        self.metadata_store.all()
+        Ok(self.metadata_store.all()?)
     }
 
     /// Remove the metadata entry for an id
     pub fn delete_metadata(&mut self, id: u64) -> Result<()> {
-        self.metadata_store.delete(id)
+        Ok(self.metadata_store.delete(id)?)
     }
 
     /// Get compression statistics

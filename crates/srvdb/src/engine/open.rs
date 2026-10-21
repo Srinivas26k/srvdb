@@ -98,7 +98,7 @@ impl SrvDB {
         let path = self
             .path
             .to_str()
-            .ok_or_else(|| anyhow::anyhow!("Invalid DB path"))?;
+            .ok_or_else(|| Error::invalid_input("database path is not valid UTF-8"))?;
         match self.config.mode {
             types::QuantizationMode::Scalar => {
                 self.scalar_storage = Some(ScalarQuantizedStorage::new_with_training(
@@ -109,12 +109,12 @@ impl SrvDB {
             }
             types::QuantizationMode::Product => {
                 if vectors.len() < quant::product::K {
-                    anyhow::bail!(
+                    return Err(Error::InvalidInput(format!(
                         "PQ trains on the first batch added, which needs at least {} vectors \
                         (got {}). Add a larger first batch or use new_product_quantized().",
                         quant::product::K,
                         vectors.len()
-                    );
+                    )));
                 }
                 self.quantized_storage =
                     Some(QuantizedVectorStorage::new_with_training(path, vectors)?);

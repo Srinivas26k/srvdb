@@ -9,7 +9,9 @@ impl SrvDB {
         std::fs::create_dir_all(db_path)?;
 
         if training_vectors.is_empty() {
-            anyhow::bail!("Training vectors required for quantization");
+            return Err(Error::invalid_input(
+                "Training vectors required for quantization",
+            ));
         }
         let _dimension = training_vectors[0].data.len();
 
@@ -51,7 +53,9 @@ impl SrvDB {
         std::fs::create_dir_all(db_path)?;
 
         if training_vectors.is_empty() {
-            anyhow::bail!("Training vectors required for scalar quantization");
+            return Err(Error::invalid_input(
+                "Training vectors required for scalar quantization",
+            ));
         }
 
         let scalar_storage =

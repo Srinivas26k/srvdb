@@ -10,7 +10,7 @@ mod write;
 #[cfg(test)]
 mod tests;
 
-use anyhow::Result;
+use crate::error::{Error, Result};
 use std::path::Path;
 
 use crate::distance as search;
@@ -99,7 +99,7 @@ impl VectorEngine for SrvDB {
     }
 
     fn get_metadata(&self, id: u64) -> Result<Option<String>> {
-        self.metadata_store.get(id)
+        Ok(self.metadata_store.get(id)?)
     }
 
     fn persist(&mut self) -> Result<()> {
