@@ -45,16 +45,18 @@ impl ProductQuantizer {
         }
         let d_sub = dim / m;
 
-        println!(
+        log::debug!(
             "Training Product Quantizer with M={}, K={}, D_sub={}",
-            m, K, d_sub
+            m,
+            K,
+            d_sub
         );
 
         // Train codebook for each sub-quantizer
         let codebooks: Result<Vec<Codebook>> = (0..m)
             .into_par_iter()
             .map(|m_idx| {
-                println!("Training sub-quantizer {}/{}", m_idx + 1, m);
+                log::trace!("training PQ sub-quantizer {}/{}", m_idx + 1, m);
 
                 // Extract sub-vectors for this sub-quantizer
                 let sub_vectors: Vec<Vec<f32>> = training_data

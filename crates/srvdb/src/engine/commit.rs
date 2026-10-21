@@ -6,7 +6,8 @@ impl SrvDB {
     pub(super) fn commit(&mut self) -> Result<()> {
         // Auto-Tuning Hook: Check if we should upgrade strategy
         if let Err(e) = auto_tune::check_and_migrate(self) {
-            eprintln!("Auto-Tuning Migration Warning: {}", e);
+            // Migration is an optimisation; the data is already safe without it
+            log::warn!("auto-tune migration skipped: {e}");
         }
 
         if let Some(ref mut vstorage) = self.vector_storage {

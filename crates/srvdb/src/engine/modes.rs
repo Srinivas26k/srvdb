@@ -11,7 +11,7 @@ impl SrvDB {
         self.current_mode = mode;
 
         if mode == IndexMode::Auto {
-            println!("SrvDB Adaptive Core active. Analyzing environment...");
+            log::info!("auto mode: analysing hardware and data size");
             auto_tune::apply_auto_strategy(self);
         } else {
             // Manual overrides
@@ -97,7 +97,7 @@ impl SrvDB {
         }
 
         // 3. Re-index / Populate Partitions
-        println!("IVF: Populating partitions...");
+        log::debug!("IVF: populating partitions");
         if let Some(ref ivf) = self.ivf_index {
             if let Some(ref vstorage) = self.vector_storage {
                 let distance_fn = |a_id: u64, b_id: u64| -> f32 {
@@ -118,7 +118,7 @@ impl SrvDB {
             }
         }
 
-        println!("IVF: Training complete.");
+        log::info!("IVF: training complete");
         Ok(())
     }
 

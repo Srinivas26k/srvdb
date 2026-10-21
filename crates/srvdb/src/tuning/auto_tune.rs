@@ -28,9 +28,11 @@ pub fn apply_auto_strategy(db: &mut SrvDB) {
     // We only switch if the mode is different.
     // Note: We need a way to check current high-level mode.
     // For now, we just enforce the decision.
-    println!(
-        "SrvDB Auto-Tuner: System RAM {} GB | Vectors {} -> Selected Mode: {:?}",
-        ram_gb, count, best_mode
+    log::info!(
+        "auto mode: {:.1} GB RAM, {} vectors, selected {:?}",
+        ram_gb,
+        count,
+        best_mode
     );
 
     match best_mode {
@@ -111,9 +113,10 @@ pub fn check_and_migrate(db: &mut SrvDB) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    println!(
-        "SrvDB Adaptive Core: Migrating from {:?} to {:?}",
-        current_internal_mode, new_mode
+    log::info!(
+        "auto mode: migrating from {:?} to {:?}",
+        current_internal_mode,
+        new_mode
     );
 
     match new_mode {
@@ -138,7 +141,7 @@ fn migrate_to_hnsw(db: &mut SrvDB) -> anyhow::Result<()> {
     let index = HNSWIndex::new(hnsw_config.clone());
 
     // 2. Build Graph (Time consuming!)
-    println!("  -> Building HNSW Graph for {} vectors...", db.count());
+    log::info!("auto mode: building HNSW graph for {} vectors", db.count());
 
     if let Some(ref mut vstorage) = db.vector_storage {
         vstorage.flush()?; // Ensure data is on disk for reading
@@ -200,7 +203,7 @@ fn migrate_to_hnsw(db: &mut SrvDB) -> anyhow::Result<()> {
     db.hnsw_config = Some(hnsw_config);
     db.index_type = crate::types::IndexType::HNSW;
 
-    println!("  -> HNSW Migration Complete.");
+    log::info!("auto mode: HNSW migration complete");
     Ok(())
 }
 
@@ -214,7 +217,7 @@ fn migrate_to_sq8(db: &mut SrvDB) -> anyhow::Result<()> {
     // 4. Ingest all
     // 5. Drop VectorStorage
 
-    println!("  -> Compressing to SQ8 (Scalar Quantization)...");
+    log::info!("auto mode: compressing to SQ8");
 
     if db.vector_storage.is_none() {
         return Ok(());
@@ -259,7 +262,7 @@ fn migrate_to_sq8(db: &mut SrvDB) -> anyhow::Result<()> {
     // Wait, check `new_scalar_quantized` in lib.rs? It just returns the storage.
     // We need to APPEND all vectors from `vector_storage` to `scalar_storage`.
 
-    println!("  -> Quantizing {} vectors...", count);
+    log::debug!("auto mode: quantizing {} vectors", count);
     for i in 0..count {
         if let Some(vec) = vstorage.get(i) {
             scalar_storage.append(vec)?;
@@ -277,6 +280,6 @@ fn migrate_to_sq8(db: &mut SrvDB) -> anyhow::Result<()> {
     db.config.mode = QuantizationMode::Scalar;
     db.index_type = IndexType::ScalarQuantized;
 
-    println!("  -> SQ8 Migration Complete.");
+    log::info!("auto mode: SQ8 migration complete");
     Ok(())
 }

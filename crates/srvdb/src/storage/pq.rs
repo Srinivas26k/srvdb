@@ -59,7 +59,7 @@ impl QuantizedVectorStorage {
         };
 
         let quantizer = ProductQuantizer::train(training_data, m)?;
-        println!("Training complete!");
+        log::debug!("PQ training complete");
 
         // Save codebooks
         let codebook_bytes = quantizer.to_bytes()?;

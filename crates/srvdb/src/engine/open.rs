@@ -65,7 +65,7 @@ impl SrvDB {
             {
                 Ok(index) => Some(index),
                 Err(e) => {
-                    eprintln!("Failed to load HNSW graph, rebuilding: {}", e);
+                    log::warn!("hnsw.graph could not be loaded, rebuilding the graph: {e}");
                     None
                 }
             }
