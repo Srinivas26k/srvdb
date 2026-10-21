@@ -10,6 +10,7 @@
 //! - Persistence to disk
 
 mod graph;
+mod links;
 #[cfg(test)]
 mod tests;
 

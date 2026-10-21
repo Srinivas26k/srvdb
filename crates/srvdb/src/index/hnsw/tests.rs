@@ -86,3 +86,55 @@ fn test_hnsw_persistence() {
     assert_eq!(*loaded.entry_point.read(), *index.entry_point.read());
     assert_eq!(*loaded.max_level.read(), *index.max_level.read());
 }
+
+/// Many threads inserting into one graph (as IVF partition filling does)
+/// must not panic and must keep almost every node reachable. Parallel
+/// builds see slightly stale neighbourhoods, so a few tenths of a percent
+/// of nodes can lose all incoming links (sequential builds lose none);
+/// heuristic neighbour selection (planned for 0.4) addresses that.
+#[test]
+fn concurrent_inserts_keep_graph_connected() {
+    use rayon::prelude::*;
+    use std::collections::HashSet;
+
+    let n = 2000u64;
+    let vectors: Vec<Vec<f32>> = (0..n)
+        .map(|_| (0..64).map(|_| rand::random::<f32>() - 0.5).collect())
+        .collect();
+    let cosine_distance = |a: u64, b: u64| -> f32 {
+        let (va, vb) = (&vectors[a as usize], &vectors[b as usize]);
+        let dot: f32 = va.iter().zip(vb).map(|(x, y)| x * y).sum();
+        let na: f32 = va.iter().map(|x| x * x).sum::<f32>().sqrt();
+        let nb: f32 = vb.iter().map(|x| x * x).sum::<f32>().sqrt();
+        1.0 - dot / (na * nb)
+    };
+
+    let index = HNSWIndex::new(HNSWConfig::default());
+    (0..n)
+        .into_par_iter()
+        .for_each(|id| index.insert(id, &cosine_distance).unwrap());
+    assert_eq!(index.len(), n as usize);
+
+    // Reachability from the entry point on layer 0
+    let reachable = {
+        let nodes = index.nodes.read();
+        let entry = index.entry_point.read().unwrap();
+        let mut seen = HashSet::new();
+        let mut stack = vec![entry];
+        while let Some(id) = stack.pop() {
+            if seen.insert(id) {
+                stack.extend(nodes[&id].neighbors[0].iter().copied());
+            }
+        }
+        seen.len()
+    };
+    assert!(
+        reachable as f32 >= 0.99 * n as f32,
+        "reachable {reachable}/{n}"
+    );
+
+    let found = (0..n)
+        .filter(|&q| index.search(q, 1, &cosine_distance).unwrap()[0].0 == q)
+        .count();
+    assert!(found as f32 >= 0.99 * n as f32, "self-recall {found}/{n}");
+}
