@@ -60,3 +60,38 @@ fn test_concurrent_search() {
         h.join().unwrap();
     }
 }
+
+#[test]
+fn rejects_invalid_input_without_writing() {
+    let temp_dir = TempDir::new().unwrap();
+    let path = temp_dir.path().to_str().unwrap();
+    let mut db = SrvDB::new_with_config(path, types::DatabaseConfig::new(128).unwrap()).unwrap();
+    let good = Vector::new(vec![0.1; 128]);
+    let mut nan = vec![0.1; 128];
+    nan[5] = f32::NAN;
+
+    let err = db.add(&Vector::new(vec![0.1; 64]), "{}").unwrap_err();
+    assert!(matches!(err, Error::DimensionMismatch { .. }));
+    let err = db.add(&Vector::new(nan.clone()), "{}").unwrap_err();
+    assert!(matches!(err, Error::InvalidInput(_)));
+    let err = db.add(&good, "not json").unwrap_err();
+    assert!(matches!(err, Error::InvalidInput(_)));
+
+    // One bad item rejects the whole batch before anything is stored
+    let batch = vec![good.clone(), Vector::new(nan)];
+    let metas = vec!["{}".to_string(), "{}".to_string()];
+    assert!(db.add_batch(&batch, &metas).is_err());
+    assert!(db.add_batch(&batch[..1], &metas).is_err());
+    assert_eq!(db.count(), 0);
+
+    db.add(&good, "{}").unwrap();
+    // Writes become visible to search on sync() (see the durability work)
+    db.sync().unwrap();
+    assert!(matches!(db.search(&good, 0), Err(Error::InvalidInput(_))));
+    assert!(matches!(
+        db.search(&Vector::new(vec![0.1; 3]), 1),
+        Err(Error::DimensionMismatch { .. })
+    ));
+    assert!(db.search_batch(std::slice::from_ref(&good), 0).is_err());
+    assert_eq!(db.search(&good, 1).unwrap().len(), 1);
+}

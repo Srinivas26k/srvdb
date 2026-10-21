@@ -5,12 +5,13 @@ mod constructors;
 mod modes;
 mod open;
 mod read;
+mod validate;
 mod write;
 
 #[cfg(test)]
 mod tests;
 
-use anyhow::Result;
+use crate::error::{Error, Result};
 use std::path::Path;
 
 use crate::distance as search;
@@ -55,6 +56,8 @@ pub struct SrvDB {
     pub(crate) ivf_index: Option<ivf::IVFIndex>,
     pub(crate) ivf_config: Option<ivf::IVFConfig>,
     pub current_mode: IndexMode,
+    /// Vector dimension every insert and query must match
+    pub(crate) dimension: usize,
 }
 
 impl VectorEngine for SrvDB {
@@ -79,6 +82,7 @@ impl VectorEngine for SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Flat,
+            dimension: 1536,
         })
     }
 
@@ -99,7 +103,7 @@ impl VectorEngine for SrvDB {
     }
 
     fn get_metadata(&self, id: u64) -> Result<Option<String>> {
-        self.metadata_store.get(id)
+        Ok(self.metadata_store.get(id)?)
     }
 
     fn persist(&mut self) -> Result<()> {

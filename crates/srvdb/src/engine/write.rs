@@ -51,6 +51,8 @@ impl SrvDB {
     }
 
     pub(super) fn insert_one(&mut self, vec: &Vector, meta: &str) -> Result<u64> {
+        validate::vector(&vec.data, self.dimension)?;
+        validate::metadata(meta)?;
         self.ensure_quantized_storage(std::slice::from_ref(&vec.data))?;
 
         let id = if let Some(ref mut scalar) = self.scalar_storage {
@@ -59,12 +61,14 @@ impl SrvDB {
             if let Some(ref mut qstorage) = self.quantized_storage {
                 qstorage.append(&vec.data)?
             } else {
-                anyhow::bail!("Quantization enabled but quantized storage not initialized");
+                return Err(Error::invalid_state(
+                    "Quantization enabled but quantized storage not initialized",
+                ));
             }
         } else if let Some(ref mut vstorage) = self.vector_storage {
             vstorage.append(&vec.data)?
         } else {
-            anyhow::bail!("Vector storage not initialized");
+            return Err(Error::invalid_state("Vector storage not initialized"));
         };
 
         self.index_new_ids(&[id])?;
@@ -74,8 +78,10 @@ impl SrvDB {
     }
 
     pub(super) fn insert_batch(&mut self, vecs: &[Vector], metas: &[String]) -> Result<Vec<u64>> {
-        if vecs.len() != metas.len() {
-            anyhow::bail!("Vectors and metadata counts must match");
+        let slices: Vec<&[f32]> = vecs.iter().map(|v| v.data.as_slice()).collect();
+        validate::batch(&slices, metas, self.dimension)?;
+        if vecs.is_empty() {
+            return Ok(Vec::new());
         }
 
         // Convert all vectors to Vec<f32>
@@ -89,12 +95,14 @@ impl SrvDB {
             if let Some(ref mut qstorage) = self.quantized_storage {
                 qstorage.append_batch(&embedded)?
             } else {
-                anyhow::bail!("Quantization enabled but quantized storage not initialized");
+                return Err(Error::invalid_state(
+                    "Quantization enabled but quantized storage not initialized",
+                ));
             }
         } else if let Some(ref mut vstorage) = self.vector_storage {
             vstorage.append_batch(&embedded)?
         } else {
-            anyhow::bail!("Vector storage not initialized");
+            return Err(Error::invalid_state("Vector storage not initialized"));
         };
 
         self.index_new_ids(&ids)?;

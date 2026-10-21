@@ -113,12 +113,9 @@ impl HNSWIndex {
     where
         F: Fn(u64, u64) -> f32,
     {
-        let ep = *self.entry_point.read();
-        if ep.is_none() {
+        let Some(entry_id) = *self.entry_point.read() else {
             return Ok(Vec::new());
-        }
-
-        let entry_id = ep.unwrap();
+        };
         let mut curr_nearest = entry_id;
         let top_level = *self.max_level.read();
 

@@ -6,7 +6,8 @@ impl SrvDB {
     pub(super) fn commit(&mut self) -> Result<()> {
         // Auto-Tuning Hook: Check if we should upgrade strategy
         if let Err(e) = auto_tune::check_and_migrate(self) {
-            eprintln!("Auto-Tuning Migration Warning: {}", e);
+            // Migration is an optimisation; the data is already safe without it
+            log::warn!("auto-tune migration skipped: {e}");
         }
 
         if let Some(ref mut vstorage) = self.vector_storage {
@@ -53,12 +54,12 @@ impl SrvDB {
 
     /// All stored (id, metadata) pairs
     pub fn all_metadata(&self) -> Result<Vec<(u64, String)>> {
-        self.metadata_store.all()
+        Ok(self.metadata_store.all()?)
     }
 
     /// Remove the metadata entry for an id
     pub fn delete_metadata(&mut self, id: u64) -> Result<()> {
-        self.metadata_store.delete(id)
+        Ok(self.metadata_store.delete(id)?)
     }
 
     /// Get compression statistics

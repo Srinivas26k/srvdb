@@ -4,6 +4,7 @@
 //! the `srvdb` crate.
 
 mod database;
+mod errors;
 mod operations;
 
 use database::PyDatabase;

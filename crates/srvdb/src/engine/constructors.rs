@@ -8,10 +8,8 @@ impl SrvDB {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
-        if training_vectors.is_empty() {
-            anyhow::bail!("Training vectors required for quantization");
-        }
-        let _dimension = training_vectors[0].data.len();
+        validate::training(training_vectors.iter().map(|v| v.data.as_slice()))?;
+        let dimension = training_vectors[0].data.len();
 
         // Convert training vectors to Vec<Vec<f32>>
         let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
@@ -38,6 +36,7 @@ impl SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Flat, // PQ is technically a flat scan of compressed vectors
+            dimension,
         })
     }
 
@@ -50,8 +49,12 @@ impl SrvDB {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
-        if training_vectors.is_empty() {
-            anyhow::bail!("Training vectors required for scalar quantization");
+        let trained_dim = validate::training(training_vectors.iter().map(|v| v.as_slice()))?;
+        if trained_dim != dimension {
+            return Err(Error::DimensionMismatch {
+                expected: dimension,
+                actual: trained_dim,
+            });
         }
 
         let scalar_storage =
@@ -77,6 +80,7 @@ impl SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Sq8,
+            dimension,
         })
     }
 
@@ -115,6 +119,7 @@ impl SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Hnsw,
+            dimension,
         };
         db.attach_hnsw(hnsw_config)?;
         Ok(db)
@@ -144,6 +149,7 @@ impl SrvDB {
         std::fs::create_dir_all(db_path)?;
 
         // Convert training vectors
+        validate::training(training_vectors.iter().map(|v| v.data.as_slice()))?;
         let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
 
         let quantized_storage =
@@ -172,6 +178,8 @@ impl SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Hnsw,
+            // Non-empty: storage training above rejects an empty set
+            dimension: embedded[0].len(),
         })
     }
 }

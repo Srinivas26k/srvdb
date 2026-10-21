@@ -80,7 +80,7 @@ impl IVFIndex {
         let k = self.config.nlist;
         let dim = training_data[0].dim();
 
-        println!(
+        log::debug!(
             "IVF: Training {} centroids on {} vectors...",
             k,
             training_data.len()
@@ -146,9 +146,13 @@ impl IVFIndex {
 
             centroids = new_centroids;
 
-            println!("  -> Iteration {}: diff = {:.4}", iter + 1, diff);
+            log::trace!(
+                "IVF k-means iteration {}: centroid shift {:.4}",
+                iter + 1,
+                diff
+            );
             if diff < self.config.tolerance {
-                println!("  -> Converged.");
+                log::debug!("IVF k-means converged");
                 break;
             }
         }

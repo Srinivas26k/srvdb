@@ -106,7 +106,7 @@ fn generate_adversarial_data(n: usize, dim: usize) -> (Vec<srvdb::Vector>, Vec<S
     let mut vecs = Vec::with_capacity(n);
     let mut ids = Vec::with_capacity(n);
     for i in 0..n {
-        ids.push(format!("vec_{}", i));
+        ids.push(format!(r#"{{"id": "vec_{}"}}"#, i));
         let mut v: Vec<f32> = (0..dim).map(|_| rand::random::<f32>()).collect();
         // Normalize
         let norm: f32 = v.iter().map(|x| x * x).sum::<f32>().sqrt();

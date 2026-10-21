@@ -84,7 +84,7 @@ def test_rejects_duplicate_ids(tmp_path, vectors):
 
 def test_pq_mode_requires_large_first_batch(tmp_path, vectors):
     db = srvdb.Database(str(tmp_path), dimension=DIM, mode="pq")
-    with pytest.raises(RuntimeError, match="at least 256"):
+    with pytest.raises(ValueError, match="at least 256"):
         fill(db, vectors[:10])
 
 

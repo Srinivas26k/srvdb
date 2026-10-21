@@ -103,8 +103,7 @@ impl Codebook {
                     centroids
                         .iter()
                         .map(|c| Self::euclidean_distance(v, c))
-                        .min_by(|a, b| a.partial_cmp(b).unwrap())
-                        .unwrap()
+                        .fold(f32::INFINITY, f32::min)
                 })
                 .map(|d| d * d)
                 .collect();
@@ -158,7 +157,7 @@ impl Codebook {
                 let cosine = dot / (vec_magnitude * c_magnitude);
                 (i, cosine)
             })
-            .max_by(|(_, s1), (_, s2)| s1.partial_cmp(s2).unwrap())
+            .max_by(|(_, s1), (_, s2)| s1.total_cmp(s2))
             .map(|(i, _)| i)
             .unwrap_or(0)
     }

@@ -28,9 +28,11 @@ pub fn apply_auto_strategy(db: &mut SrvDB) {
     // We only switch if the mode is different.
     // Note: We need a way to check current high-level mode.
     // For now, we just enforce the decision.
-    println!(
-        "SrvDB Auto-Tuner: System RAM {} GB | Vectors {} -> Selected Mode: {:?}",
-        ram_gb, count, best_mode
+    log::info!(
+        "auto mode: {:.1} GB RAM, {} vectors, selected {:?}",
+        ram_gb,
+        count,
+        best_mode
     );
 
     match best_mode {
@@ -111,9 +113,10 @@ pub fn check_and_migrate(db: &mut SrvDB) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    println!(
-        "SrvDB Adaptive Core: Migrating from {:?} to {:?}",
-        current_internal_mode, new_mode
+    log::info!(
+        "auto mode: migrating from {:?} to {:?}",
+        current_internal_mode,
+        new_mode
     );
 
     match new_mode {
@@ -137,61 +140,24 @@ fn migrate_to_hnsw(db: &mut SrvDB) -> anyhow::Result<()> {
     let hnsw_config = HNSWConfig::default();
     let index = HNSWIndex::new(hnsw_config.clone());
 
-    // 2. Build Graph (Time consuming!)
-    println!("  -> Building HNSW Graph for {} vectors...", db.count());
+    // 2. Build the graph from stored vectors (time consuming)
+    log::info!("auto mode: building HNSW graph for {} vectors", db.count());
+    let vstorage = db
+        .vector_storage
+        .as_mut()
+        .ok_or_else(|| anyhow::anyhow!("cannot migrate to HNSW: no full-precision vectors"))?;
+    vstorage.flush()?; // graph insertion reads vectors back through the mmap
+    let vstorage = &*vstorage;
 
-    if let Some(ref mut vstorage) = db.vector_storage {
-        vstorage.flush()?; // Ensure data is on disk for reading
-    }
-
-    if let Some(ref vstorage) = db.vector_storage {
-        // We need a distance function that references vstorage.
-        // Since we can't borrow db immutably inside the loop while mutating,
-        // we might ideally use the `add` logic, but `add` is incremental.
-        // HNSW persistence needs to be robust.
-        // For now, we unfortunately have to clone vectors or rely on `vstorage` read access
-        // distinct from `index` write access.
-        // HNSW insert takes a closure.
-
-        let _count = vstorage.count();
-        // Since HNSW insert needs random access to vectors, and vstorage is on disk/mmap,
-        // we can share a reference if we are careful.
-        // But `migrate_to_hnsw` takes `&mut SrvDB`.
-
-        // Workaround: We define distance fn using a read-only view if possible,
-        // or effectively we just assume we can read from vstorage.
-        // Actually, `vstorage.get(id)` is fast.
-
-        // We need to pass the closure to `index.insert`.
-        // The closure needs access to `vstorage`.
-        // Since `index` is separate from `vstorage` in `SrvDB`, we can split borrows?
-        // No, `db` is borrowed mutably.
-        // We can temporarily take `vector_storage` out of `db`?
-    } else {
-        anyhow::bail!("Cannot migrate to HNSW: No vector storage found.");
-    }
-
-    // Splitting borrows for migration
-    let vstorage = db.vector_storage.as_ref().unwrap();
-
-    // Define distance function
+    // Same distance as the engine's own HNSW inserts
     let dist_fn = |a: u64, b: u64| -> f32 {
-        if let (Some(va), Some(vb)) = (vstorage.get(a), vstorage.get(b)) {
-            // naive cosine distance
-            let dot: f32 = va.iter().zip(vb.iter()).map(|(x, y)| x * y).sum();
-            let norm_a: f32 = va.iter().map(|x| x * x).sum::<f32>().sqrt();
-            let norm_b: f32 = vb.iter().map(|x| x * x).sum::<f32>().sqrt();
-            if norm_a * norm_b == 0.0 {
-                1.0
-            } else {
-                1.0 - (dot / (norm_a * norm_b))
-            }
-        } else {
-            1.0 // Max distance
+        match (vstorage.get(a), vstorage.get(b)) {
+            (Some(va), Some(vb)) => 1.0 - crate::search::cosine_similarity(va, vb),
+            _ => f32::MAX,
         }
     };
 
-    for i in 0..db.count() {
+    for i in 0..vstorage.count() {
         index.insert(i, &dist_fn)?;
     }
 
@@ -200,7 +166,7 @@ fn migrate_to_hnsw(db: &mut SrvDB) -> anyhow::Result<()> {
     db.hnsw_config = Some(hnsw_config);
     db.index_type = crate::types::IndexType::HNSW;
 
-    println!("  -> HNSW Migration Complete.");
+    log::info!("auto mode: HNSW migration complete");
     Ok(())
 }
 
@@ -214,25 +180,23 @@ fn migrate_to_sq8(db: &mut SrvDB) -> anyhow::Result<()> {
     // 4. Ingest all
     // 5. Drop VectorStorage
 
-    println!("  -> Compressing to SQ8 (Scalar Quantization)...");
+    log::info!("auto mode: compressing to SQ8");
 
-    if db.vector_storage.is_none() {
+    let Some(vstorage) = db.vector_storage.as_mut() else {
         return Ok(());
-    }
-
+    };
     // Ensure vectors are flushed to disk so mmap can read them
-    db.vector_storage.as_mut().unwrap().flush()?;
+    vstorage.flush()?;
 
     // We need to clone vectors because we'll be replacing the storage
     // And ScalarQuantizedStorage::new_with_training consumes training vectors
 
-    let vstorage = db.vector_storage.as_ref().unwrap();
+    let vstorage = db
+        .vector_storage
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("cannot migrate to SQ8: no full-precision vectors"))?;
     let count = vstorage.count();
-    let dim = if count > 0 {
-        vstorage.get(0).unwrap().len()
-    } else {
-        1536
-    };
+    let dim = db.dimension;
 
     // Collect training data (Up to 5000 vectors)
     let sample_size = std::cmp::min(count as usize, 5000);
@@ -259,7 +223,7 @@ fn migrate_to_sq8(db: &mut SrvDB) -> anyhow::Result<()> {
     // Wait, check `new_scalar_quantized` in lib.rs? It just returns the storage.
     // We need to APPEND all vectors from `vector_storage` to `scalar_storage`.
 
-    println!("  -> Quantizing {} vectors...", count);
+    log::debug!("auto mode: quantizing {} vectors", count);
     for i in 0..count {
         if let Some(vec) = vstorage.get(i) {
             scalar_storage.append(vec)?;
@@ -277,6 +241,6 @@ fn migrate_to_sq8(db: &mut SrvDB) -> anyhow::Result<()> {
     db.config.mode = QuantizationMode::Scalar;
     db.index_type = IndexType::ScalarQuantized;
 
-    println!("  -> SQ8 Migration Complete.");
+    log::info!("auto mode: SQ8 migration complete");
     Ok(())
 }

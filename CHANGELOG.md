@@ -14,6 +14,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The compiled extension moved to the private module `srvdb._low_level`;
   import from `srvdb` as before.
 - Rust: `srvdb::core::*` paths were removed; use `srvdb::types::*`.
+- Rust: the public API returns `srvdb::Result` with a typed `srvdb::Error`
+  instead of `anyhow::Error` (see ADR 0002).
+- Inputs are validated before anything is written: vectors must match the
+  database dimension and contain no NaN or infinity, `k` must be at least 1,
+  vector and metadata counts must match, and metadata must be valid JSON
+  (Rust callers that stored plain strings must now wrap them, for example
+  `{"id": "doc1"}`).
+- Python raises `ValueError` for invalid input (wrong dimension, NaN or
+  infinity, `k < 1`, empty or duplicate ids, metadata that is not a JSON
+  object), `OSError` for I/O failures and `RuntimeError` otherwise.
+  Previously every failure was `RuntimeError`, and invalid metadata was
+  silently stored as `{}`.
+- A Rust panic inside SrvDB now raises a Python `PanicException` instead of
+  terminating the interpreter.
+- Library logging goes through the `log` crate; nothing is printed to
+  stdout or stderr.
+
+### Fixed
+- HNSW inserts from multiple threads (used to fill IVF partitions) could
+  leave vectors unfindable and could panic.
+- IVF searches no longer hide errors from individual partitions.
+- Training on vectors containing NaN no longer panics.
 
 ## [0.2.0] - 2025-12-30
 
