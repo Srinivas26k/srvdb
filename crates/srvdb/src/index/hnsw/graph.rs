@@ -13,18 +13,45 @@ impl HNSWIndex {
         F: Fn(u64, u64) -> f32,
     {
         let level = self.random_level();
-        let mut node = HNSWNode::new(id, level);
+        let node = HNSWNode::new(id, level);
 
-        let ep = *self.entry_point.read();
+        // Lock order everywhere: entry_point, then max_level, then nodes.
+        // Checking for an empty graph and claiming the entry point is one
+        // atomic step: otherwise concurrent first inserts would each add an
+        // unlinked node, and all but one would be unreachable forever.
+        // The entry point and top level are read together, under the lock,
+        // so the search never starts above the entry node's own level.
+        let (entry_id, top_level) = {
+            let mut entry_point = self.entry_point.write();
+            match *entry_point {
+                Some(entry_id) => (entry_id, *self.max_level.read()),
+                None => {
+                    *self.max_level.write() = level;
+                    self.nodes.write().insert(id, node);
+                    *entry_point = Some(id);
+                    return Ok(());
+                }
+            }
+        };
 
-        if let Some(entry_id) = ep {
+        // Add the node (with empty neighbour lists) before linking, so links
+        // other threads make to it while it is being connected are kept
+        // instead of silently dropped.
+        self.nodes.write().insert(id, node);
+
+        {
             // Graph already has nodes
             let mut curr_nearest = entry_id;
-            let top_level = *self.max_level.read();
 
-            // Phase 1: Greedy search from top to target layer
+            // Phase 1: Greedy search from top to target layer. The node being
+            // inserted is already in the graph and may be reachable through
+            // links other inserts made to it; never descend into it, since
+            // its own lists are still empty.
             for lc in (level + 1..=top_level).rev() {
-                curr_nearest = self.search_layer_single(id, curr_nearest, 1, lc, distance_fn)?;
+                let nearest = self.search_layer(id, curr_nearest, 2, lc, distance_fn)?;
+                if let Some(&(next, _)) = nearest.iter().find(|&&(c, _)| c != id) {
+                    curr_nearest = next;
+                }
             }
 
             // Phase 2: Search and connect at each layer from level down to 0
@@ -49,31 +76,32 @@ impl HNSWIndex {
                     self.config.m_max
                 };
 
+                // A concurrent insert may already have linked to this node
+                let candidates: Vec<(u64, f32)> =
+                    candidates.into_iter().filter(|&(c, _)| c != id).collect();
+                if candidates.is_empty() {
+                    continue;
+                }
                 let neighbors = self.select_neighbors_simple(&candidates, m);
 
-                // Add bidirectional links
-                node.neighbors[lc] = neighbors.clone();
-
+                // Link both ways, merging with links added concurrently
                 for &neighbor_id in &neighbors {
+                    self.add_bidirectional_link(id, neighbor_id, lc, distance_fn)?;
                     self.add_bidirectional_link(neighbor_id, id, lc, distance_fn)?;
                 }
 
                 curr_nearest = neighbors[0];
             }
-
-            // Update max level if necessary
-            if level > top_level {
-                *self.max_level.write() = level;
-                *self.entry_point.write() = Some(id);
-            }
-        } else {
-            // First node - becomes entry point
-            *self.entry_point.write() = Some(id);
-            *self.max_level.write() = level;
         }
 
-        // Insert node into graph
-        self.nodes.write().insert(id, node);
+        // Re-check under the lock: another insert may have raised the top
+        // level since `top_level` was read.
+        let mut entry_point = self.entry_point.write();
+        let mut max_level = self.max_level.write();
+        if level > *max_level {
+            *max_level = level;
+            *entry_point = Some(id);
+        }
 
         Ok(())
     }
@@ -213,60 +241,5 @@ impl HNSWIndex {
         result_vec.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal));
 
         Ok(result_vec)
-    }
-
-    /// Simple heuristic for neighbor selection (Algorithm 3 - SELECT-NEIGHBORS-SIMPLE)
-    /// Just returns the M nearest neighbors
-    fn select_neighbors_simple(&self, candidates: &[(u64, f32)], m: usize) -> Vec<u64> {
-        candidates.iter().take(m).map(|(id, _)| *id).collect()
-    }
-
-    /// Add a bidirectional link and prune if necessary (Algorithm 4)
-    fn add_bidirectional_link<F>(
-        &self,
-        from_id: u64,
-        to_id: u64,
-        layer: usize,
-        distance_fn: &F,
-    ) -> Result<()>
-    where
-        F: Fn(u64, u64) -> f32,
-    {
-        let mut nodes = self.nodes.write();
-
-        if let Some(from_node) = nodes.get_mut(&from_id) {
-            // Add link if not already present
-            if !from_node.neighbors[layer].contains(&to_id) {
-                from_node.neighbors[layer].push(to_id);
-
-                // Prune if exceeds max connections
-                let m_max = if layer == 0 {
-                    self.config.m_max0
-                } else {
-                    self.config.m_max
-                };
-
-                if from_node.neighbors[layer].len() > m_max {
-                    // Calculate distances to all neighbors
-                    let mut neighbor_dists: Vec<_> = from_node.neighbors[layer]
-                        .iter()
-                        .map(|&nid| {
-                            let dist = distance_fn(from_id, nid);
-                            (nid, dist)
-                        })
-                        .collect();
-
-                    // Sort by distance and keep only M nearest
-                    neighbor_dists.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal));
-                    from_node.neighbors[layer] = neighbor_dists
-                        .into_iter()
-                        .take(m_max)
-                        .map(|(nid, _)| nid)
-                        .collect();
-                }
-            }
-        }
-
-        Ok(())
     }
 }
