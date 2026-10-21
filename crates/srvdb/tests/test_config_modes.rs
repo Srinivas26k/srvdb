@@ -91,9 +91,14 @@ fn hnsw_mode_builds_graph_and_reopens() {
         let mut db = open(&dir, config(IndexType::HNSW, None));
         db.add_batch(&vectors[..500], &metas(500)).unwrap();
         db.persist().unwrap();
-        // Added after the graph was saved: must be indexed on reopen
+        let graph = dir.path().join("hnsw.graph");
+        let older_graph = std::fs::read(&graph).unwrap();
         db.add_batch(&vectors[500..], &metas(100)).unwrap();
-        db.sync().unwrap();
+        db.persist().unwrap();
+        drop(db);
+        // An index file older than the committed vectors (indexes are
+        // derived data): the missing 100 must be indexed on reopen
+        std::fs::write(&graph, older_graph).unwrap();
     }
 
     let db = open(&dir, config(IndexType::Flat, None));

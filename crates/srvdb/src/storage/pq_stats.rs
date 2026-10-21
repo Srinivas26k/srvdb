@@ -1,7 +1,6 @@
 //! Compression statistics for product-quantized storage
 
 use super::QuantizedVectorStorage;
-use std::sync::atomic::Ordering;
 
 #[derive(Debug, Clone)]
 pub struct StorageStats {
@@ -14,7 +13,7 @@ pub struct StorageStats {
 impl QuantizedVectorStorage {
     /// Get memory usage statistics
     pub fn get_stats(&self) -> StorageStats {
-        let count = self.count.load(Ordering::Relaxed);
+        let count = self.count();
         let quantized_bytes = count * self.q_size as u64;
         let avg_dimension = self.q_size * self.quantizer.d_sub;
         let full_precision_bytes = count * (avg_dimension * std::mem::size_of::<f32>()) as u64;

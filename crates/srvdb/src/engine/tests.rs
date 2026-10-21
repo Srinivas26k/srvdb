@@ -85,8 +85,7 @@ fn rejects_invalid_input_without_writing() {
     assert_eq!(db.count(), 0);
 
     db.add(&good, "{}").unwrap();
-    // Writes become visible to search on sync() (see the durability work)
-    db.sync().unwrap();
+    // Visible to search immediately, without persist()
     assert!(matches!(db.search(&good, 0), Err(Error::InvalidInput(_))));
     assert!(matches!(
         db.search(&Vector::new(vec![0.1; 3]), 1),

@@ -84,9 +84,6 @@ impl PyDatabase {
     /// Returns:
     ///     List of (id, score) tuples sorted by score descending
     fn search(&mut self, query: Vec<f32>, k: usize) -> PyResult<Vec<(String, f32)>> {
-        // Make recently added vectors visible (cheap; full persist is explicit)
-        self.db.sync().map_err(to_py)?;
-
         let results = Python::attach(|py| {
             py.detach(|| VectorEngine::search(&self.db, &srvdb::Vector::new(query), k))
         })
@@ -108,9 +105,6 @@ impl PyDatabase {
         queries: Vec<Vec<f32>>,
         k: usize,
     ) -> PyResult<Vec<Vec<(String, f32)>>> {
-        // Make recently added vectors visible
-        self.db.sync().map_err(to_py)?;
-
         let query_vecs: Vec<srvdb::Vector> = queries.into_iter().map(srvdb::Vector::new).collect();
 
         let results =
