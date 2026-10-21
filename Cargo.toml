@@ -24,3 +24,7 @@ debug = false
 
 [profile.bench]
 inherits = "release"
+
+# Tests run optimised: PQ and k-means training is very slow unoptimised
+[profile.test]
+opt-level = 2
