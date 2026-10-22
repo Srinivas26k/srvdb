@@ -85,7 +85,9 @@ fn crash_child_entry() {
 fn churn_child(mut db: SrvDB) -> ! {
     let mut next = next_original(&db);
     let mut stdout = std::io::stdout();
-    for round in 1.. {
+    let mut round = 0u64;
+    loop {
+        round += 1;
         let originals = next..next + BATCH;
         let vectors: Vec<Vector> = originals.clone().map(vector).collect();
         let metas: Vec<String> = originals.clone().map(meta).collect();
@@ -96,7 +98,7 @@ fn churn_child(mut db: SrvDB) -> ! {
             }
         }
         next += BATCH;
-        if round % 4 == 0 {
+        if round.is_multiple_of(4) {
             db.compact().unwrap(); // persists first
         } else {
             db.persist().unwrap();
@@ -104,7 +106,6 @@ fn churn_child(mut db: SrvDB) -> ! {
         writeln!(stdout, "COMMITTED {next}").unwrap();
         stdout.flush().unwrap();
     }
-    unreachable!()
 }
 
 /// (internal id, original number) of every live vector

@@ -44,10 +44,8 @@ impl Reader<'_> {
     fn f32_vec(&mut self) -> Result<Vec<f32>> {
         let n = self.len(4)?;
         let raw = self.take(n * 4)?;
-        Ok(raw
-            .chunks_exact(4)
-            .map(|c| f32::from_le_bytes(c.try_into().expect("chunk of 4")))
-            .collect())
+        let (chunks, _) = raw.as_chunks::<4>(); // `take` returned exactly n * 4 bytes
+        Ok(chunks.iter().map(|c| f32::from_le_bytes(*c)).collect())
     }
 
     fn finish<T>(self, value: T) -> Result<T> {

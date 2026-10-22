@@ -80,11 +80,17 @@ pip install srvdb
 
 ### Build from Source
 
+Installing the wheel from PyPI needs no Rust toolchain. Building from
+source (an unsupported platform, the sdist, or development) needs
+**Rust 1.99 or newer** (`rustup update stable`) and
+[maturin](https://www.maturin.rs/):
+
 ```bash
 git clone https://github.com/Srinivas26k/srvdb
 cd srvdb
-cargo build --release --features python
-maturin develop --release
+cargo test --workspace        # Rust core
+pip install maturin
+maturin develop --release     # builds and installs the Python package
 ```
 
 ---

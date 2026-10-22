@@ -94,3 +94,40 @@ fn rejects_invalid_input_without_writing() {
     assert!(db.search_batch(std::slice::from_ref(&good), 0).is_err());
     assert_eq!(db.search(&good, 1).unwrap().len(), 1);
 }
+
+#[test]
+fn database_written_by_v02_opens_and_searches() {
+    // vectors.bin (unchanged format) plus metadata.db in redb 2.x format
+    let temp_dir = TempDir::new().unwrap();
+    let path = temp_dir.path().to_str().unwrap();
+    let vectors: Vec<Vec<f32>> = (0..3)
+        .map(|i| (0..128).map(|j| ((i * 37 + j) % 11) as f32 - 5.0).collect())
+        .collect();
+    {
+        let mut storage = VectorStorage::new(path, 128).unwrap();
+        storage.append_batch(&vectors).unwrap();
+        storage.flush().unwrap();
+    }
+    crate::storage::metadata::tests::write_v02_metadata(
+        temp_dir.path(),
+        &[
+            (0, r#"{"__id__": "a"}"#),
+            (1, r#"{"__id__": "b"}"#),
+            (2, r#"{"__id__": "c"}"#),
+        ],
+    );
+
+    let db = SrvDB::new_with_config(path, types::DatabaseConfig::new(128).unwrap()).unwrap();
+    assert_eq!(db.count(), 3);
+    assert_eq!(
+        db.get_metadata(1).unwrap().as_deref(),
+        Some(r#"{"__id__": "b"}"#)
+    );
+    assert_eq!(
+        db.search(&Vector::new(vectors[2].clone()), 1).unwrap()[0].id,
+        2
+    );
+    drop(db);
+    let db = SrvDB::new_with_config(path, types::DatabaseConfig::new(128).unwrap()).unwrap();
+    assert_eq!(db.count(), 3);
+}

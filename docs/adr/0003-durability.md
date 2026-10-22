@@ -68,6 +68,13 @@ checksum, and is validated on open; a mismatch is a `Corrupt` error.
 files (`scalar_quantizer.bin`, `codebooks.bin`) readable; v0.2 index files
 are rebuilt instead of read.
 
+### redb upgrades
+
+`metadata.db` is a redb database. SrvDB moved from redb 2 to redb 4,
+whose file format (v3) cannot read v2 files. Opening a v2 `metadata.db`
+converts it once with redb 2.6's `Database::upgrade()` (kept as a
+migration-only dependency, `redb2`), then opens it with redb 4.
+
 ## Alternatives considered
 
 - **Own write-ahead log:** duplicates what `redb` already provides and adds

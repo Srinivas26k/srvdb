@@ -57,8 +57,8 @@ on a crash, so a stale lock never blocks recovery.
 - **Multi-process writers:** would need a shared write-ahead log and
   coordination; out of scope for an embedded single-node database.
 - **A lock crate (fs2, fd-lock):** unnecessary since Rust 1.89 provides
-  file locking in the standard library; the workspace now declares
-  `rust-version = "1.89"`.
+  file locking in the standard library. (The workspace has since moved
+  its minimum to Rust 1.99, the current stable release.)
 
 ## Consequences
 

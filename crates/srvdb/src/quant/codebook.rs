@@ -69,7 +69,7 @@ impl Codebook {
                     }
                 } else {
                     // Reinitialize empty clusters
-                    let random_idx = rand::random::<usize>() % vectors.len();
+                    let random_idx = rand::random_range(0..vectors.len());
                     new_centroids[i] = vectors[random_idx].clone();
                     converged = false;
                 }
@@ -87,12 +87,12 @@ impl Codebook {
 
     /// K-means++ initialization for better clustering
     fn kmeans_plusplus_init(vectors: &[Vec<f32>], k: usize, _d_sub: usize) -> Vec<Vec<f32>> {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
+        use rand::RngExt;
+        let mut rng = rand::rng();
         let mut centroids = Vec::with_capacity(k);
 
         // Pick first centroid randomly
-        let first_idx = rng.gen_range(0..vectors.len());
+        let first_idx = rng.random_range(0..vectors.len());
         centroids.push(vectors[first_idx].clone());
 
         // Pick remaining centroids with probability proportional to distance squared
@@ -112,12 +112,12 @@ impl Codebook {
 
             if total <= 1e-10 {
                 // Determine random remaining
-                let random_idx = rng.gen_range(0..vectors.len());
+                let random_idx = rng.random_range(0..vectors.len());
                 centroids.push(vectors[random_idx].clone());
                 continue;
             }
 
-            let mut target = rng.gen::<f32>() * total;
+            let mut target = rng.random::<f32>() * total;
 
             for (i, &dist) in distances.iter().enumerate() {
                 target -= dist;
