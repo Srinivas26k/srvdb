@@ -14,9 +14,10 @@ impl SrvDB {
         // Convert training vectors to Vec<Vec<f32>>
         let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
 
+        // First: opening metadata finishes an interrupted compaction
+        let metadata_store = MetadataStore::new(path)?;
         let quantized_storage =
             crate::quantized_storage::QuantizedVectorStorage::new_with_training(path, &embedded)?;
-        let metadata_store = MetadataStore::new(path)?;
 
         let config = types::QuantizationConfig {
             enabled: true,
@@ -61,10 +62,11 @@ impl SrvDB {
             });
         }
 
+        // First: opening metadata finishes an interrupted compaction
+        let metadata_store = MetadataStore::new(path)?;
         let scalar_storage =
             ScalarQuantizedStorage::new_with_training(path, dimension, training_vectors)?;
 
-        let metadata_store = MetadataStore::new(path)?;
         let config = types::QuantizationConfig {
             enabled: true,
             mode: types::QuantizationMode::Scalar,
@@ -111,8 +113,9 @@ impl SrvDB {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
-        let vector_storage = VectorStorage::new(path, dimension)?;
+        // First: opening metadata finishes an interrupted compaction
         let metadata_store = MetadataStore::new(path)?;
+        let vector_storage = VectorStorage::new(path, dimension)?;
 
         let mut db = Self {
             path: db_path.to_path_buf(),
@@ -163,9 +166,10 @@ impl SrvDB {
         validate::training(training_vectors.iter().map(|v| v.data.as_slice()))?;
         let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
 
+        // First: opening metadata finishes an interrupted compaction
+        let metadata_store = MetadataStore::new(path)?;
         let quantized_storage =
             crate::quantized_storage::QuantizedVectorStorage::new_with_training(path, &embedded)?;
-        let metadata_store = MetadataStore::new(path)?;
 
         let config = types::QuantizationConfig {
             enabled: true,

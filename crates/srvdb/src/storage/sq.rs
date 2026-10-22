@@ -136,6 +136,11 @@ impl ScalarQuantizedStorage {
         self.file.sync()
     }
 
+    /// Write a compacted copy holding only `keep` (see storage::compaction)
+    pub(crate) fn write_compacted(&self, dest: &Path, keep: &[u64]) -> Result<()> {
+        self.file.write_compacted(dest, keep)
+    }
+
     /// Discard vectors from `count` on (uncommitted after a crash)
     pub(crate) fn truncate_to(&mut self, count: u64) -> Result<()> {
         self.file.truncate_to(count)

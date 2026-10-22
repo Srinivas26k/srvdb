@@ -65,6 +65,20 @@ impl PyDatabase {
         }
         Ok(deleted)
     }
+
+    /// Remove deleted vectors from disk.
+    ///
+    /// Persists first. String ids are unaffected; search results are the
+    /// same before and after. Rebuilds HNSW and IVF indexes, which takes time
+    /// proportional to the data.
+    ///
+    /// Returns:
+    ///     Number of vectors removed
+    fn compact(&mut self) -> PyResult<u64> {
+        let removed = self.db.compact().map_err(to_py)?;
+        self.load_id_maps()?;
+        Ok(removed)
+    }
 }
 
 impl PyDatabase {

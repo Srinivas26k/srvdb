@@ -73,3 +73,20 @@ def test_delete_and_upsert_persist(tmp_path):
     assert database.count() == 19
     assert "d0" not in database.get_all_ids()
     assert json.loads(database.get("d1"))["v"] == 2
+
+
+def test_compact_keeps_string_ids_and_results(tmp_path):
+    database = srvdb.Database(str(tmp_path), dimension=DIM)
+    vs = vectors(60)
+    database.add([f"d{i}" for i in range(60)], vs, ["{}"] * 60)
+    database.delete([f"d{i}" for i in range(0, 60, 2)])
+    before = database.search(vs[31], 5)
+
+    assert database.compact() == 30
+    assert database.search(vs[31], 5) == before
+    assert database.search(vs[31], 1)[0][0] == "d31"
+    assert database.count() == 30
+    del database
+
+    database = srvdb.Database(str(tmp_path), dimension=DIM)
+    assert sorted(database.get_all_ids()) == sorted(f"d{i}" for i in range(1, 60, 2))

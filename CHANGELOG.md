@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SrvDB::replace(id, vector, metadata)` and `Database.upsert(ids, ...)`:
   existing ids point at the new vector, new ids are added.
 - `SrvDB::live_count()`; Python `count()` now counts searchable vectors.
+- `compact()` (Rust and Python) removes deleted vectors from disk and
+  renumbers internal ids; Python string ids and search results are
+  unchanged. Crash-safe: an interrupted compaction is finished or
+  discarded on the next open.
 - Deletes follow the same durability rules as adds: made durable by
   `persist()`, undone on reopen otherwise (ADR 0004).
 

@@ -18,27 +18,34 @@ impl PyDatabase {
     /// Wrap a database, rebuilding the string-id maps from the `__id__`
     /// field persisted in each metadata entry.
     fn from_db(db: srvdb::SrvDB, dimension: usize, index_type: String) -> PyResult<Self> {
-        let mut id_map = FxHashMap::default();
-        let mut reverse_id_map = FxHashMap::default();
-        let entries = db.all_metadata().map_err(to_py)?;
-        for (internal_id, meta) in entries {
-            let value: serde_json::Value = match serde_json::from_str(&meta) {
-                Ok(v) => v,
-                Err(_) => continue,
-            };
-            if let Some(id) = value.get("__id__").and_then(|v| v.as_str()) {
-                id_map.insert(id.to_string(), internal_id);
-                reverse_id_map.insert(internal_id, id.to_string());
-            }
-        }
-
-        Ok(Self {
+        let mut this = Self {
             db,
-            id_map,
-            reverse_id_map,
+            id_map: FxHashMap::default(),
+            reverse_id_map: FxHashMap::default(),
             dimension,
             index_type,
-        })
+        };
+        this.load_id_maps()?;
+        Ok(this)
+    }
+
+    /// Rebuild the string-id maps from metadata (on open and after
+    /// compaction, which renumbers internal ids).
+    pub(crate) fn load_id_maps(&mut self) -> PyResult<()> {
+        self.id_map.clear();
+        self.reverse_id_map.clear();
+        for (internal_id, meta) in self.db.all_metadata().map_err(to_py)? {
+            // Entries written through the Rust API need not be JSON objects
+            // with a string id; they are simply not addressable by string id.
+            let Ok(value) = serde_json::from_str::<serde_json::Value>(&meta) else {
+                continue;
+            };
+            if let Some(id) = value.get("__id__").and_then(|v| v.as_str()) {
+                self.id_map.insert(id.to_string(), internal_id);
+                self.reverse_id_map.insert(internal_id, id.to_string());
+            }
+        }
+        Ok(())
     }
 }
 

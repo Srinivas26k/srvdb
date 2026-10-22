@@ -1,6 +1,7 @@
 //! The `SrvDB` engine: storage, indexes and metadata behind one API
 
 mod commit;
+mod compact;
 mod constructors;
 mod delete;
 mod modes;
@@ -72,8 +73,9 @@ impl VectorEngine for SrvDB {
         std::fs::create_dir_all(db_path)?;
 
         // Default to 1536 dimensions for backward compatibility
-        let vector_storage = VectorStorage::new(path, 1536)?;
+        // First: opening metadata finishes an interrupted compaction
         let metadata_store = MetadataStore::new(path)?;
+        let vector_storage = VectorStorage::new(path, 1536)?;
 
         let mut db = Self {
             path: db_path.to_path_buf(),
