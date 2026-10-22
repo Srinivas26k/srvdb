@@ -17,6 +17,7 @@ use anyhow::Result;
 use rayon::prelude::*;
 use simsimd::SpatialSimilarity;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 
 pub(crate) const BATCH_SIZE: usize = 256; // Process 256 vectors at once for cache efficiency
 
@@ -33,10 +34,16 @@ pub fn euclidean_distance(a: &[f32], b: &[f32]) -> f32 {
 
 /// Batch compute similarities for cache efficiency
 #[inline]
-fn compute_similarities_batch(query: &[f32], vectors: &[&[f32]], start_id: u64) -> Vec<(u64, f32)> {
+fn compute_similarities_batch(
+    query: &[f32],
+    vectors: &[&[f32]],
+    start_id: u64,
+    deleted: &HashSet<u64>,
+) -> Vec<(u64, f32)> {
     vectors
         .iter()
         .enumerate()
+        .filter(|(i, _)| !deleted.contains(&(start_id + *i as u64)))
         .map(|(i, vec)| {
             let score = cosine_similarity(query, vec);
             (start_id + i as u64, score)
@@ -65,7 +72,13 @@ pub(crate) fn select_top_k(mut candidates: Vec<(u64, f32)>, k: usize) -> Vec<(u6
 }
 
 /// Optimized parallel search with batch processing
-pub fn search_cosine(storage: &VectorStorage, query: &[f32], k: usize) -> Result<Vec<(u64, f32)>> {
+/// Exact search over full-precision vectors, skipping `deleted` ids
+pub fn search_cosine(
+    storage: &VectorStorage,
+    query: &[f32],
+    k: usize,
+    deleted: &HashSet<u64>,
+) -> Result<Vec<(u64, f32)>> {
     let count = storage.count() as usize;
 
     if count == 0 {
@@ -85,7 +98,7 @@ pub fn search_cosine(storage: &VectorStorage, query: &[f32], k: usize) -> Result
 
             // Get batch of vectors (zero-copy)
             if let Some(vectors) = storage.get_batch(start as u64, batch_size) {
-                compute_similarities_batch(query, &vectors, start as u64)
+                compute_similarities_batch(query, &vectors, start as u64, deleted)
             } else {
                 Vec::new()
             }
@@ -101,10 +114,11 @@ pub fn search_batch(
     storage: &VectorStorage,
     queries: &[Vec<f32>],
     k: usize,
+    deleted: &HashSet<u64>,
 ) -> Result<Vec<Vec<(u64, f32)>>> {
     queries
         .par_iter()
-        .map(|query| search_cosine(storage, query.as_slice(), k))
+        .map(|query| search_cosine(storage, query.as_slice(), k, deleted))
         .collect()
 }
 
@@ -145,7 +159,7 @@ mod tests {
         // Convert queries to required format
         let query_slices: Vec<Vec<f32>> = queries.clone();
 
-        let results = search_batch(&storage, &query_slices, 5).unwrap();
+        let results = search_batch(&storage, &query_slices, 5, &HashSet::new()).unwrap();
         assert_eq!(results.len(), 10);
         assert!(results.iter().all(|r| r.len() == 5));
     }

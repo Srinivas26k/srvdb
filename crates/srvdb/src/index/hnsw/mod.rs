@@ -9,6 +9,7 @@
 //! - Support for both full precision and quantized vectors
 //! - Persistence to disk
 
+mod filtered;
 mod graph;
 mod links;
 #[cfg(test)]

@@ -13,6 +13,7 @@ use std::path::Path;
 
 const METADATA_TABLE: TableDefinition<u64, &str> = TableDefinition::new("metadata");
 const STATE_TABLE: TableDefinition<&str, u64> = TableDefinition::new("state");
+const TOMBSTONES: TableDefinition<u64, ()> = TableDefinition::new("tombstones");
 const COMMITTED_COUNT: &str = "committed_count";
 
 pub struct MetadataStore {
@@ -27,6 +28,13 @@ impl MetadataStore {
             Self::create(dir, &db_file)?;
         }
         let db = Database::create(&db_file).context("failed to open metadata.db")?;
+        // Tables added in later versions (e.g. tombstones) must exist before
+        // they are read; opening them in a write transaction creates them.
+        let txn = db.begin_write()?;
+        txn.open_table(METADATA_TABLE)?;
+        txn.open_table(STATE_TABLE)?;
+        txn.open_table(TOMBSTONES)?;
+        txn.commit()?;
         Ok(Self { db })
     }
 
@@ -43,6 +51,7 @@ impl MetadataStore {
             let txn = db.begin_write()?;
             txn.open_table(METADATA_TABLE)?;
             txn.open_table(STATE_TABLE)?;
+            txn.open_table(TOMBSTONES)?;
             txn.commit()?;
         }
         std::fs::rename(&tmp, db_file).context("failed to create metadata.db")?;
@@ -117,13 +126,22 @@ impl MetadataStore {
         Ok(txn.open_table(METADATA_TABLE)?.len()? as usize)
     }
 
-    /// Durably commit: every earlier write, plus `count` as the committed
-    /// number of vectors, survives a crash once this returns.
-    pub fn commit(&mut self, count: u64) -> Result<()> {
+    /// Durably commit: every earlier write, `count` as the committed number
+    /// of vectors, and the `deletes` made since the last commit (tombstone
+    /// recorded, metadata removed) survive a crash once this returns.
+    pub fn commit(&mut self, count: u64, deletes: &[u64]) -> Result<()> {
         let mut txn = self.db.begin_write()?;
         txn.set_durability(Durability::Immediate);
         txn.open_table(STATE_TABLE)?
             .insert(COMMITTED_COUNT, count)?;
+        {
+            let mut metadata = txn.open_table(METADATA_TABLE)?;
+            let mut tombstones = txn.open_table(TOMBSTONES)?;
+            for &id in deletes {
+                metadata.remove(id)?;
+                tombstones.insert(id, ())?;
+            }
+        }
         txn.commit().context("failed to commit metadata.db")?;
         Ok(())
     }
@@ -136,15 +154,24 @@ impl MetadataStore {
         Ok(table.get(COMMITTED_COUNT)?.map(|v| v.value()))
     }
 
-    /// Durably remove metadata for ids at or above `count` (writes that were
-    /// never committed by a durable `commit`).
+    /// Durably remove metadata and tombstones for ids at or above `count`
+    /// (writes that were never committed by a durable `commit`).
     pub fn truncate_from(&mut self, count: u64) -> Result<()> {
         let mut txn = self.db.begin_write()?;
         txn.set_durability(Durability::Immediate);
         txn.open_table(METADATA_TABLE)?
             .retain_in(count.., |_, _| false)?;
+        txn.open_table(TOMBSTONES)?
+            .retain_in(count.., |_, _| false)?;
         txn.commit()?;
         Ok(())
+    }
+
+    /// Every tombstoned id
+    pub fn tombstones(&self) -> Result<Vec<u64>> {
+        let txn = self.db.begin_read()?;
+        let table = txn.open_table(TOMBSTONES)?;
+        table.iter()?.map(|entry| Ok(entry?.0.value())).collect()
     }
 }
 

@@ -10,14 +10,14 @@ impl SrvDB {
             // HNSW-accelerated search (O(log n))
             let raw_results = if self.config.enabled {
                 if let Some(ref qstorage) = self.quantized_storage {
-                    search::search_hnsw_quantized(qstorage, hnsw, &query.data, k)?
+                    search::search_hnsw_quantized(qstorage, hnsw, &query.data, k, &self.deleted)?
                 } else {
                     return Err(Error::invalid_state(
                         "Quantization enabled but quantized storage not initialized",
                     ));
                 }
             } else if let Some(ref vstorage) = self.vector_storage {
-                search::search_hnsw(vstorage, hnsw, &query.data, k)?
+                search::search_hnsw(vstorage, hnsw, &query.data, k, &self.deleted)?
             } else {
                 return Err(Error::invalid_state("Vector storage not initialized"));
             };
@@ -30,7 +30,7 @@ impl SrvDB {
             if ivf.centroids.is_empty() {
                 // Fallback if not trained
                 let raw_results = if let Some(ref vstorage) = self.vector_storage {
-                    search::search_cosine(vstorage, &query.data, k)?
+                    search::search_cosine(vstorage, &query.data, k, &self.deleted)?
                 } else {
                     return Err(Error::invalid_state("Vector storage not initialized"));
                 };
@@ -48,7 +48,7 @@ impl SrvDB {
                         f32::MAX
                     }
                 };
-                let results = hybrid_search::search(ivf, query, k, &distance_fn)?;
+                let results = hybrid_search::search(ivf, query, k, &distance_fn, &self.deleted)?;
                 // Hybrid search returns distances; convert to similarity
                 results
                     .into_iter()
@@ -62,16 +62,16 @@ impl SrvDB {
         } else {
             // Flat search (O(n))
             let raw_results = if let Some(ref scalar) = self.scalar_storage {
-                scalar.search(&query.data, k)?
+                scalar.search(&query.data, k, &self.deleted)?
             } else if self.config.enabled {
                 if let Some(ref qstorage) = self.quantized_storage {
-                    search::search_quantized(qstorage, &query.data, k)?
+                    search::search_quantized(qstorage, &query.data, k, &self.deleted)?
                 } else {
                     // Quantizer not trained yet: nothing has been added
                     Vec::new()
                 }
             } else if let Some(ref vstorage) = self.vector_storage {
-                search::search_cosine(vstorage, &query.data, k)?
+                search::search_cosine(vstorage, &query.data, k, &self.deleted)?
             } else {
                 return Err(Error::invalid_state("Vector storage not initialized"));
             };
@@ -110,19 +110,19 @@ impl SrvDB {
             // SQ8 lacks a dedicated batch search for now, use loop
             let mut results = Vec::with_capacity(queries.len());
             for query in embedded_queries {
-                results.push(scalar.search(query.as_slice(), k)?);
+                results.push(scalar.search(query.as_slice(), k, &self.deleted)?);
             }
             results
         } else if self.config.enabled {
             if let Some(ref qstorage) = self.quantized_storage {
-                search::search_quantized_batch(qstorage, &embedded_queries, k)?
+                search::search_quantized_batch(qstorage, &embedded_queries, k, &self.deleted)?
             } else {
                 return Err(Error::invalid_state(
                     "Quantization enabled but quantized storage not initialized",
                 ));
             }
         } else if let Some(ref vstorage) = self.vector_storage {
-            search::search_batch(vstorage, &embedded_queries, k)?
+            search::search_batch(vstorage, &embedded_queries, k, &self.deleted)?
         } else {
             return Err(Error::invalid_state("Vector storage not initialized"));
         };

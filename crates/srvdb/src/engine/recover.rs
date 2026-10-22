@@ -13,7 +13,7 @@ impl SrvDB {
         let committed = match self.metadata_store.committed_count()? {
             Some(committed) => committed,
             None => {
-                self.metadata_store.commit(stored)?;
+                self.metadata_store.commit(stored, &[])?;
                 stored
             }
         };
@@ -38,6 +38,7 @@ impl SrvDB {
             scalar.truncate_to(committed)?;
         }
         self.metadata_store.truncate_from(committed)?;
+        self.deleted = self.metadata_store.tombstones()?.into_iter().collect();
         Ok(())
     }
 }

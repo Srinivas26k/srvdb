@@ -2,6 +2,7 @@
 
 mod commit;
 mod constructors;
+mod delete;
 mod modes;
 mod open;
 mod read;
@@ -59,6 +60,10 @@ pub struct SrvDB {
     pub current_mode: IndexMode,
     /// Vector dimension every insert and query must match
     pub(crate) dimension: usize,
+    /// Tombstoned ids, skipped by every search (ADR 0004)
+    pub(crate) deleted: std::collections::HashSet<u64>,
+    /// Deletes since the last persist(), written by the next commit
+    pub(crate) pending_deletes: Vec<u64>,
 }
 
 impl VectorEngine for SrvDB {
@@ -83,6 +88,8 @@ impl VectorEngine for SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Flat,
+            deleted: Default::default(),
+            pending_deletes: Default::default(),
             dimension: 1536,
         };
         db.recover()?;
@@ -106,6 +113,9 @@ impl VectorEngine for SrvDB {
     }
 
     fn get_metadata(&self, id: u64) -> Result<Option<String>> {
+        if self.deleted.contains(&id) {
+            return Ok(None);
+        }
         Ok(self.metadata_store.get(id)?)
     }
 

@@ -20,10 +20,16 @@ the HNSW and IVF indexes refer to them directly.
 
 - `SrvDB::delete(id)` records a tombstone and removes the metadata entry.
   The vector stays on disk; no other id changes.
-- Tombstones live in a `redb` table next to the metadata, written with
-  `Durability::None` and made durable by `persist()` like any other write.
-  Recovery (ADR 0003) also drops tombstones for ids that were never
-  committed.
+- A delete takes effect immediately in memory (searches skip the id and
+  its metadata is no longer returned) and is written to disk only by the
+  next `persist()`: the durable commit transaction records the tombstone
+  and removes the metadata. An unpersisted delete is therefore undone on
+  reopen exactly like an unpersisted add, whether the process crashed or
+  exited cleanly. (Writing tombstones with `Durability::None` was
+  rejected: redb persists those on a clean shutdown, so whether a delete
+  survived would depend on how the process exited.)
+- Tombstones live in a `redb` table next to the metadata. Recovery
+  (ADR 0003) also drops tombstones for ids that were never committed.
 - Every search path skips tombstoned ids while it searches, not by
   filtering a finished top-k list: flat, SQ8 and PQ scans skip them;
   HNSW still traverses deleted nodes (they keep the graph connected) but

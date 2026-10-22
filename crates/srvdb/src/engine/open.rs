@@ -47,6 +47,8 @@ impl SrvDB {
             ivf_config: None,
             current_mode,
             dimension,
+            deleted: Default::default(),
+            pending_deletes: Default::default(),
         };
         db.recover()?;
 

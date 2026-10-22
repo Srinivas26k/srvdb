@@ -9,6 +9,7 @@ use super::record_file::RecordFile;
 use crate::error::Error;
 use crate::quant::scalar::ScalarQuantizer;
 use anyhow::{Context, Result};
+use std::collections::HashSet;
 use std::path::Path;
 
 pub const FILE_NAME: &str = "sq8_vectors.bin";
@@ -103,8 +104,14 @@ impl ScalarQuantizedStorage {
         Some(self.quantizer.decode(self.file.get(index)?))
     }
 
-    /// Exhaustive search comparing the full-precision query to every code
-    pub fn search(&self, query: &[f32], k: usize) -> Result<Vec<(u64, f32)>> {
+    /// Exhaustive search comparing the full-precision query to every
+    /// code, skipping `deleted` ids
+    pub fn search(
+        &self,
+        query: &[f32],
+        k: usize,
+        deleted: &HashSet<u64>,
+    ) -> Result<Vec<(u64, f32)>> {
         let count = self.file.count();
         let Some(codes) = self.file.range(0, count as usize) else {
             return Ok(Vec::new());
@@ -112,6 +119,7 @@ impl ScalarQuantizedStorage {
         let mut results: Vec<(u64, f32)> = codes
             .chunks_exact(self.dimension)
             .enumerate()
+            .filter(|(i, _)| !deleted.contains(&(*i as u64)))
             .map(|(i, code)| (i as u64, self.quantizer.asymmetric_distance(query, code)))
             .collect();
         results.sort_by(|a, b| b.1.total_cmp(&a.1));

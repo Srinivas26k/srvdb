@@ -4,73 +4,53 @@ use super::{select_top_k, BATCH_SIZE};
 use crate::storage::pq::QuantizedVectorStorage;
 use anyhow::Result;
 use rayon::prelude::*;
+use std::collections::HashSet;
 
 /// Optimized quantized search with Asymmetric Distance Computation
 /// NOTE: Temporarily disabled - requires quantization.rs refactoring for dynamic dimensions
+/// Scan of PQ codes using asymmetric distance, skipping `deleted` ids
 pub fn search_quantized(
     storage: &QuantizedVectorStorage,
     query: &[f32],
     k: usize,
+    deleted: &HashSet<u64>,
 ) -> Result<Vec<(u64, f32)>> {
-    let count = storage.count();
+    let count = storage.count() as usize;
     if count == 0 {
         return Ok(Vec::new());
     }
-
-    // 1. Precompute Distance Table (O(D * K))
-    // We assume the query is already normalized or handled by quantizer
+    // Distance table: query sub-vector to every centroid, computed once
     let dtable = storage.quantizer.compute_distance_table(query);
+    let q_size = storage.q_size;
 
-    // 2. Scan all vectors (O(N * M))
-    // Use parallel iterator for speed
-    let num_batches = (count as usize).div_ceil(BATCH_SIZE);
-
-    let all_scores: Vec<(u64, f32)> = (0..num_batches)
+    let all_scores: Vec<(u64, f32)> = (0..count.div_ceil(BATCH_SIZE))
         .into_par_iter()
-        .flat_map(|batch_idx| {
-            let start = batch_idx * BATCH_SIZE;
-            let end = (start + BATCH_SIZE).min(count as usize);
-            let mut results = Vec::with_capacity(end - start);
-
-            // Access local Mmap slice for this batch if possible?
-            // storage.get() does bounds check every time.
-            // get_batch() is better.
-            if let Some(batch_data) = storage.get_batch(start as u64, end - start) {
-                // batch_data is a flat slice of [u8].
-                // We know each vector has storage.q_size bytes.
-                let q_size = storage.q_size;
-
-                for (i, chunk) in batch_data.chunks(q_size).enumerate() {
-                    if chunk.len() == q_size {
-                        let dist = storage.quantizer.asymmetric_distance(chunk, &dtable);
-                        results.push(((start + i) as u64, dist));
-                    }
-                }
-            } else {
-                // Fallback to individual gets if batch fails (shouldn't happen)
-                for i in start..end {
-                    if let Some(qvec) = storage.get(i as u64) {
-                        let dist = storage.quantizer.asymmetric_distance(qvec, &dtable);
-                        results.push((i as u64, dist));
-                    }
-                }
-            }
-            results
+        .flat_map_iter(|batch| {
+            let start = batch * BATCH_SIZE;
+            let n = BATCH_SIZE.min(count - start);
+            let codes = storage.get_batch(start as u64, n).unwrap_or(&[]);
+            codes
+                .chunks_exact(q_size)
+                .enumerate()
+                .map(move |(i, code)| ((start + i) as u64, code))
+                .filter(|(id, _)| !deleted.contains(id))
+                .map(|(id, code)| (id, storage.quantizer.asymmetric_distance(code, &dtable)))
+                .collect::<Vec<_>>()
         })
         .collect();
 
     Ok(select_top_k(all_scores, k))
 }
 
-/// Batch quantized search
-/// NOTE: Temporarily disabled
+/// Batch PQ search
 pub fn search_quantized_batch(
     storage: &QuantizedVectorStorage,
     queries: &[Vec<f32>],
     k: usize,
+    deleted: &HashSet<u64>,
 ) -> Result<Vec<Vec<(u64, f32)>>> {
     queries
         .par_iter()
-        .map(|query| search_quantized(storage, query, k))
+        .map(|query| search_quantized(storage, query, k, deleted))
         .collect()
 }
