@@ -17,7 +17,7 @@ bytemuck = "1.16"
 crc32fast = "1.4"
 log = "0.4"
 memmap2 = "0.9"
-parking_lot = "0.12"
+parking_lot = "0.13"
 postcard = { version = "1.0", default-features = false, features = ["alloc"] }
 rand = "0.8"
 rayon = "1.10"
