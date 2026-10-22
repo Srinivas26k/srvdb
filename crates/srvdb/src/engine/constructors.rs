@@ -15,6 +15,7 @@ impl SrvDB {
         let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
 
         // First: opening metadata finishes an interrupted compaction
+        let lock = storage::lock::acquire(Path::new(path))?;
         let metadata_store = MetadataStore::new(path)?;
         let quantized_storage =
             crate::quantized_storage::QuantizedVectorStorage::new_with_training(path, &embedded)?;
@@ -39,6 +40,7 @@ impl SrvDB {
             current_mode: IndexMode::Flat, // PQ is technically a flat scan of compressed vectors
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            _lock: lock,
             dimension,
         };
         db.recover()?;
@@ -63,6 +65,7 @@ impl SrvDB {
         }
 
         // First: opening metadata finishes an interrupted compaction
+        let lock = storage::lock::acquire(Path::new(path))?;
         let metadata_store = MetadataStore::new(path)?;
         let scalar_storage =
             ScalarQuantizedStorage::new_with_training(path, dimension, training_vectors)?;
@@ -88,6 +91,7 @@ impl SrvDB {
             current_mode: IndexMode::Sq8,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            _lock: lock,
             dimension,
         };
         db.recover()?;
@@ -114,6 +118,7 @@ impl SrvDB {
         std::fs::create_dir_all(db_path)?;
 
         // First: opening metadata finishes an interrupted compaction
+        let lock = storage::lock::acquire(Path::new(path))?;
         let metadata_store = MetadataStore::new(path)?;
         let vector_storage = VectorStorage::new(path, dimension)?;
 
@@ -132,6 +137,7 @@ impl SrvDB {
             current_mode: IndexMode::Hnsw,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            _lock: lock,
             dimension,
         };
         db.recover()?;
@@ -167,6 +173,7 @@ impl SrvDB {
         let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
 
         // First: opening metadata finishes an interrupted compaction
+        let lock = storage::lock::acquire(Path::new(path))?;
         let metadata_store = MetadataStore::new(path)?;
         let quantized_storage =
             crate::quantized_storage::QuantizedVectorStorage::new_with_training(path, &embedded)?;
@@ -195,6 +202,7 @@ impl SrvDB {
             current_mode: IndexMode::Hnsw,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            _lock: lock,
             // Non-empty: storage training above rejects an empty set
             dimension: embedded[0].len(),
         };

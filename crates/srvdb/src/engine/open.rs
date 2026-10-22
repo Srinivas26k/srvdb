@@ -12,6 +12,7 @@ impl SrvDB {
         std::fs::create_dir_all(db_path)?;
 
         let dimension = config.dimension;
+        let lock = storage::lock::acquire(Path::new(path))?;
         let metadata_store = MetadataStore::new(path)?;
 
         let quant = &config.quantization;
@@ -49,6 +50,7 @@ impl SrvDB {
             dimension,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            _lock: lock,
         };
         db.recover()?;
 
