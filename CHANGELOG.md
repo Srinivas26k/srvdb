@@ -31,6 +31,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Library logging goes through the `log` crate; nothing is printed to
   stdout or stderr.
 
+### Added
+- Delete that really deletes: `SrvDB::delete(id)` (Rust) and
+  `Database.delete(ids)` (Python) tombstone vectors so no search returns
+  them, and searches still return `k` results. Previously Python's delete
+  only hid the id while the vector kept occupying top-k slots.
+- `SrvDB::replace(id, vector, metadata)` and `Database.upsert(ids, ...)`:
+  existing ids point at the new vector, new ids are added.
+- `SrvDB::live_count()`; Python `count()` now counts searchable vectors.
+- Deletes follow the same durability rules as adds: made durable by
+  `persist()`, undone on reopen otherwise (ADR 0004).
+
 ### Durability
 - `persist()` is now a real commit point (ADR 0003): everything added
   before it returns survives a crash or power loss, and a database

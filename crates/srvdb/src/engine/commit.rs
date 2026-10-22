@@ -44,11 +44,6 @@ impl SrvDB {
         Ok(all)
     }
 
-    /// Remove the metadata entry for an id
-    pub fn delete_metadata(&mut self, id: u64) -> Result<()> {
-        Ok(self.metadata_store.delete(id)?)
-    }
-
     /// Get compression statistics
     pub fn get_stats(&self) -> Option<quantized_storage::StorageStats> {
         self.quantized_storage.as_ref().map(|s| s.get_stats())

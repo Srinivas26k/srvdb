@@ -5,76 +5,9 @@ use crate::errors::to_py;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use srvdb::VectorEngine;
-use std::collections::HashSet;
 
 #[pymethods]
 impl PyDatabase {
-    /// Add vectors to database
-    ///
-    /// Args:
-    ///     ids: List of string IDs
-    ///     embeddings: List of vectors (each must match database dimension)
-    ///     metadatas: List of JSON metadata strings
-    ///
-    /// Returns:
-    ///     Number of vectors added
-    fn add(
-        &mut self,
-        ids: Vec<String>,
-        embeddings: Vec<Vec<f32>>,
-        metadatas: Vec<String>,
-    ) -> PyResult<usize> {
-        if ids.len() != embeddings.len() || ids.len() != metadatas.len() {
-            return Err(PyValueError::new_err(format!(
-                "ids, embeddings and metadatas must have the same length \
-                 (got {}, {} and {})",
-                ids.len(),
-                embeddings.len(),
-                metadatas.len()
-            )));
-        }
-
-        // Ids must be non-empty and unique, in this batch and the database
-        let mut seen = HashSet::with_capacity(ids.len());
-        for (i, id) in ids.iter().enumerate() {
-            if id.is_empty() {
-                return Err(PyValueError::new_err(format!("id {i} is empty")));
-            }
-            if !seen.insert(id.as_str()) {
-                return Err(PyValueError::new_err(format!(
-                    "duplicate id '{id}' within this batch"
-                )));
-            }
-            if self.id_map.contains_key(id) {
-                return Err(PyValueError::new_err(format!(
-                    "id '{id}' already exists; use a new id or delete() it first"
-                )));
-            }
-        }
-
-        // Metadata must be a JSON object: the string id is stored in it
-        let enriched_metas = ids
-            .iter()
-            .zip(&metadatas)
-            .enumerate()
-            .map(|(i, (id, meta))| with_id(i, id, meta))
-            .collect::<PyResult<Vec<String>>>()?;
-
-        let vectors: Vec<srvdb::Vector> = embeddings.into_iter().map(srvdb::Vector::new).collect();
-
-        // Batch insert
-        let internal_ids =
-            VectorEngine::add_batch(&mut self.db, &vectors, &enriched_metas).map_err(to_py)?;
-
-        // Update mappings
-        for (i, internal_id) in internal_ids.iter().enumerate() {
-            self.id_map.insert(ids[i].clone(), *internal_id);
-            self.reverse_id_map.insert(*internal_id, ids[i].clone());
-        }
-
-        Ok(ids.len())
-    }
-
     /// Search for k nearest neighbors
     ///
     /// Args:
@@ -135,24 +68,13 @@ impl PyDatabase {
         VectorEngine::get_metadata(&self.db, *internal_id).map_err(to_py)
     }
 
+    /// Number of searchable vectors (deleted ones are not counted)
     fn count(&self) -> usize {
-        VectorEngine::count(&self.db) as usize
+        self.db.live_count() as usize
     }
 
     fn persist(&mut self) -> PyResult<()> {
         VectorEngine::persist(&mut self.db).map_err(to_py)
-    }
-
-    fn delete(&mut self, ids: Vec<String>) -> PyResult<usize> {
-        let mut deleted = 0;
-        for id in ids {
-            if let Some(internal_id) = self.id_map.remove(&id) {
-                self.reverse_id_map.remove(&internal_id);
-                self.db.delete_metadata(internal_id).map_err(to_py)?;
-                deleted += 1;
-            }
-        }
-        Ok(deleted)
     }
 
     /// Get all IDs in the database
@@ -219,18 +141,4 @@ impl PyDatabase {
     fn __repr__(&self) -> PyResult<String> {
         self.info()
     }
-}
-
-/// Add the string id to one metadata object as `__id__`.
-fn with_id(index: usize, id: &str, meta: &str) -> PyResult<String> {
-    let mut value: serde_json::Value = serde_json::from_str(meta)
-        .map_err(|e| PyValueError::new_err(format!("metadata {index} is not valid JSON: {e}")))?;
-    let object = value
-        .as_object_mut()
-        .ok_or_else(|| PyValueError::new_err(format!("metadata {index} must be a JSON object")))?;
-    object.insert(
-        "__id__".to_string(),
-        serde_json::Value::String(id.to_string()),
-    );
-    Ok(value.to_string())
 }
