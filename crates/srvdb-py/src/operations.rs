@@ -16,11 +16,13 @@ impl PyDatabase {
     ///
     /// Returns:
     ///     List of (id, score) tuples sorted by score descending
-    fn search(&mut self, query: Vec<f32>, k: usize) -> PyResult<Vec<(String, f32)>> {
-        let results = Python::attach(|py| {
-            py.detach(|| VectorEngine::search(&self.db, &srvdb::Vector::new(query), k))
-        })
-        .map_err(to_py)?;
+    ///
+    /// Releases the GIL; several threads may search one Database at once.
+    fn search(&self, py: Python<'_>, query: Vec<f32>, k: usize) -> PyResult<Vec<(String, f32)>> {
+        let query = srvdb::Vector::new(query);
+        let results = py
+            .detach(|| VectorEngine::search(&self.db, &query, k))
+            .map_err(to_py)?;
 
         Ok(results
             .into_iter()
@@ -32,17 +34,18 @@ impl PyDatabase {
             .collect())
     }
 
-    /// Batch search
+    /// Batch search; releases the GIL like search()
     fn search_batch(
-        &mut self,
+        &self,
+        py: Python<'_>,
         queries: Vec<Vec<f32>>,
         k: usize,
     ) -> PyResult<Vec<Vec<(String, f32)>>> {
         let query_vecs: Vec<srvdb::Vector> = queries.into_iter().map(srvdb::Vector::new).collect();
 
-        let results =
-            Python::attach(|py| py.detach(|| VectorEngine::search_batch(&self.db, &query_vecs, k)))
-                .map_err(to_py)?;
+        let results = py
+            .detach(|| VectorEngine::search_batch(&self.db, &query_vecs, k))
+            .map_err(to_py)?;
 
         Ok(results
             .into_iter()

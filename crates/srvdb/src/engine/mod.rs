@@ -45,7 +45,17 @@ pub trait VectorEngine {
     fn count(&self) -> u64;
 }
 
-/// Main database implementation
+/// An open SrvDB database.
+///
+/// # Concurrency (ADR 0005)
+/// - One open instance per database directory: opening takes an exclusive
+///   OS lock on `srvdb.lock`, held until this value is dropped. A second
+///   open, in this process or another, fails with [`Error::Locked`].
+/// - `SrvDB` is `Send + Sync`. Searches take `&self` and may run from many
+///   threads at once (for example through an `Arc<SrvDB>`).
+/// - Writes (`add`, `delete`, `persist`, `compact`, ...) take `&mut self`
+///   and are exclusive; to mix readers and a writer across threads, wrap
+///   the database in an `RwLock`.
 pub struct SrvDB {
     pub(crate) path: std::path::PathBuf,
     pub(crate) vector_storage: Option<storage::flat::VectorStorage>,
@@ -65,6 +75,8 @@ pub struct SrvDB {
     pub(crate) deleted: std::collections::HashSet<u64>,
     /// Deletes since the last persist(), written by the next commit
     pub(crate) pending_deletes: Vec<u64>,
+    /// Exclusive lock on the database directory, held while open
+    pub(crate) _lock: storage::lock::DbLock,
 }
 
 impl VectorEngine for SrvDB {
@@ -74,6 +86,7 @@ impl VectorEngine for SrvDB {
 
         // Default to 1536 dimensions for backward compatibility
         // First: opening metadata finishes an interrupted compaction
+        let lock = storage::lock::acquire(Path::new(path))?;
         let metadata_store = MetadataStore::new(path)?;
         let vector_storage = VectorStorage::new(path, 1536)?;
 
@@ -92,6 +105,7 @@ impl VectorEngine for SrvDB {
             current_mode: IndexMode::Flat,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            _lock: lock,
             dimension: 1536,
         };
         db.recover()?;

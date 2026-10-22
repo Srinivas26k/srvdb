@@ -20,6 +20,7 @@ impl PyDatabase {
     ///     Number of vectors added
     fn add(
         &mut self,
+        py: Python<'_>,
         ids: Vec<String>,
         embeddings: Vec<Vec<f32>>,
         metadatas: Vec<String>,
@@ -29,7 +30,7 @@ impl PyDatabase {
                 "id '{id}' already exists; use upsert() to replace it or delete() it first"
             )));
         }
-        self.write(ids, embeddings, metadatas)
+        self.write(py, ids, embeddings, metadatas)
     }
 
     /// Add new vectors and replace existing ones, by string id.
@@ -41,11 +42,12 @@ impl PyDatabase {
     ///     Number of vectors written
     fn upsert(
         &mut self,
+        py: Python<'_>,
         ids: Vec<String>,
         embeddings: Vec<Vec<f32>>,
         metadatas: Vec<String>,
     ) -> PyResult<usize> {
-        self.write(ids, embeddings, metadatas)
+        self.write(py, ids, embeddings, metadatas)
     }
 
     /// Delete vectors by string id; unknown ids are ignored.
@@ -74,8 +76,9 @@ impl PyDatabase {
     ///
     /// Returns:
     ///     Number of vectors removed
-    fn compact(&mut self) -> PyResult<u64> {
-        let removed = self.db.compact().map_err(to_py)?;
+    fn compact(&mut self, py: Python<'_>) -> PyResult<u64> {
+        let db = &mut self.db;
+        let removed = py.detach(|| db.compact()).map_err(to_py)?;
         self.load_id_maps()?;
         Ok(removed)
     }
@@ -84,16 +87,20 @@ impl PyDatabase {
 impl PyDatabase {
     /// Validate a whole batch, store it, then retire the vectors that
     /// existing ids pointed to. Nothing changes if validation fails.
+    /// Releases the GIL while vectors are stored and indexed.
     fn write(
         &mut self,
+        py: Python<'_>,
         ids: Vec<String>,
         embeddings: Vec<Vec<f32>>,
         metadatas: Vec<String>,
     ) -> PyResult<usize> {
         let metas = prepare(&ids, &embeddings, &metadatas)?;
         let vectors: Vec<srvdb::Vector> = embeddings.into_iter().map(srvdb::Vector::new).collect();
-        let internal_ids =
-            VectorEngine::add_batch(&mut self.db, &vectors, &metas).map_err(to_py)?;
+        let db = &mut self.db;
+        let internal_ids = py
+            .detach(|| VectorEngine::add_batch(db, &vectors, &metas))
+            .map_err(to_py)?;
 
         for (id, internal_id) in ids.iter().zip(internal_ids) {
             if let Some(old) = self.id_map.insert(id.clone(), internal_id) {

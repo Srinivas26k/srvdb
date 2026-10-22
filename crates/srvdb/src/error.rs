@@ -31,6 +31,11 @@ pub enum Error {
     #[error("invalid state: {0}")]
     InvalidState(String),
 
+    /// The database is already open in another `SrvDB` instance, in this
+    /// process or another one. Only one may have it open at a time.
+    #[error("database is locked: {0}")]
+    Locked(String),
+
     /// An on-disk file is missing, truncated or not a SrvDB file.
     #[error("corrupt or incompatible database file: {0}")]
     Corrupt(String),
