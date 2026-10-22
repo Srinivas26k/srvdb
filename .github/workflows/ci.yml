@@ -58,6 +58,20 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - run: cargo test --workspace --locked
 
+  crash:
+    name: Crash test (1000 kills)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      - name: Kill a writer at random moments and verify recovery
+        env:
+          SRVDB_CRASH_ITERATIONS: "334" # per mode: flat, hnsw, sq8
+        run: cargo test --locked -p srvdb --test test_crash -- --nocapture
+
   test-python:
     name: Python ${{ matrix.python }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
