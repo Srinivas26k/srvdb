@@ -46,6 +46,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deletes follow the same durability rules as adds: made durable by
   `persist()`, undone on reopen otherwise (ADR 0004).
 
+### Concurrency
+- A database can be open in only one place at a time: a second open (same
+  or another process) fails with `Error::Locked` / Python
+  `BlockingIOError` instead of risking corruption. The lock is released
+  automatically when a process exits, even on a crash (ADR 0005).
+- `SrvDB` is `Send + Sync`: searches run in parallel through `&SrvDB`.
+- Python releases the GIL during `add`, `upsert`, `compact` and searches;
+  searches from several threads on one `Database` run in parallel.
+- Requires Rust 1.89 or newer to build.
+
 ### Durability
 - `persist()` is now a real commit point (ADR 0003): everything added
   before it returns survives a crash or power loss, and a database
