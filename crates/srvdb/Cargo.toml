@@ -21,7 +21,9 @@ parking_lot = "0.13"
 postcard = { version = "1.0", default-features = false, features = ["alloc"] }
 rand = "0.10"
 rayon = "1.10"
-redb = "2.0"
+redb = "4.4"
+# Only to migrate metadata.db files written by redb 2.x (SrvDB <= 0.2)
+redb2 = { package = "redb", version = "2.6" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json.workspace = true
 simsimd = "6.2"

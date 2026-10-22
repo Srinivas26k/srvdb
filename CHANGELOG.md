@@ -73,6 +73,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or foreign files are reported as corrupt instead of being misread. The
   unmaintained `bincode` dependency is gone. v0.2 quantizer files still
   load, and v0.2 index files are rebuilt automatically.
+- `metadata.db` now uses the redb 4 file format. A database created by
+  SrvDB 0.2 is upgraded automatically on first open (after which 0.2 can
+  no longer open it).
 
 ### Fixed
 - HNSW inserts from multiple threads (used to fill IVF partitions) could

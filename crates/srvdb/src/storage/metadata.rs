@@ -7,8 +7,11 @@
 //! crash redb rolls back to the last durable commit, so metadata and the
 //! committed count always agree.
 
+use crate::error::Error;
 use anyhow::{Context, Result};
-use redb::{Database, Durability, ReadableTable, ReadableTableMetadata, TableDefinition};
+use redb::{
+    Database, Durability, ReadableDatabase, ReadableTable, ReadableTableMetadata, TableDefinition,
+};
 use std::path::Path;
 
 const METADATA_TABLE: TableDefinition<u64, &str> = TableDefinition::new("metadata");
@@ -16,6 +19,25 @@ const STATE_TABLE: TableDefinition<&str, u64> = TableDefinition::new("state");
 const TOMBSTONES: TableDefinition<u64, ()> = TableDefinition::new("tombstones");
 const COMMITTED_COUNT: &str = "committed_count";
 const COMPACT_PENDING: &str = "compact_pending";
+
+/// Open metadata.db, first converting it to the current redb file format
+/// if it was written by redb 2.x (SrvDB 0.2 and earlier). redb 4 cannot
+/// read that format; redb 2.6's `upgrade()` converts the file in place.
+fn open_or_upgrade(db_file: &Path) -> Result<Database> {
+    match Database::create(db_file) {
+        Err(redb::DatabaseError::UpgradeRequired(version)) => {
+            log::info!("upgrading metadata.db from redb file format v{version}");
+            {
+                let mut old = redb2::Database::create(db_file)
+                    .context("failed to open metadata.db for upgrade")?;
+                old.upgrade()
+                    .map_err(|e| Error::Corrupt(format!("cannot upgrade metadata.db: {e}")))?;
+            }
+            Database::create(db_file).context("failed to open upgraded metadata.db")
+        }
+        other => other.context("failed to open metadata.db"),
+    }
+}
 
 pub struct MetadataStore {
     db: Database,
@@ -28,7 +50,7 @@ impl MetadataStore {
         if !db_file.exists() {
             Self::create(dir, &db_file)?;
         }
-        let db = Database::create(&db_file).context("failed to open metadata.db")?;
+        let db = open_or_upgrade(&db_file)?;
         // Tables added in later versions (e.g. tombstones) must exist before
         // they are read; opening them in a write transaction creates them.
         let txn = db.begin_write()?;
@@ -72,7 +94,7 @@ impl MetadataStore {
     /// Run `write` in a non-durable transaction (made durable by `commit`).
     fn write(&self, write: impl FnOnce(&mut redb::Table<u64, &str>) -> Result<()>) -> Result<()> {
         let mut txn = self.db.begin_write()?;
-        txn.set_durability(Durability::None);
+        txn.set_durability(Durability::None)?;
         {
             let mut table = txn.open_table(METADATA_TABLE)?;
             write(&mut table)?;
@@ -142,7 +164,7 @@ impl MetadataStore {
     /// recorded, metadata removed) survive a crash once this returns.
     pub fn commit(&mut self, count: u64, deletes: &[u64]) -> Result<()> {
         let mut txn = self.db.begin_write()?;
-        txn.set_durability(Durability::Immediate);
+        txn.set_durability(Durability::Immediate)?;
         txn.open_table(STATE_TABLE)?
             .insert(COMMITTED_COUNT, count)?;
         {
@@ -169,7 +191,7 @@ impl MetadataStore {
     /// file swap is done (`storage::compaction`).
     pub fn compact(&mut self, keep: &[u64]) -> Result<()> {
         let mut txn = self.db.begin_write()?;
-        txn.set_durability(Durability::Immediate);
+        txn.set_durability(Durability::Immediate)?;
         {
             let mut metadata = txn.open_table(METADATA_TABLE)?;
             let mut old: std::collections::HashMap<u64, String> = metadata
@@ -197,7 +219,7 @@ impl MetadataStore {
     /// Clear the pending-compaction flag once the files are in place
     pub fn finish_compaction(&mut self) -> Result<()> {
         let mut txn = self.db.begin_write()?;
-        txn.set_durability(Durability::Immediate);
+        txn.set_durability(Durability::Immediate)?;
         txn.open_table(STATE_TABLE)?.remove(COMPACT_PENDING)?;
         txn.commit()?;
         Ok(())
@@ -215,7 +237,7 @@ impl MetadataStore {
     /// (writes that were never committed by a durable `commit`).
     pub fn truncate_from(&mut self, count: u64) -> Result<()> {
         let mut txn = self.db.begin_write()?;
-        txn.set_durability(Durability::Immediate);
+        txn.set_durability(Durability::Immediate)?;
         txn.open_table(METADATA_TABLE)?
             .retain_in(count.., |_, _| false)?;
         txn.open_table(TOMBSTONES)?
@@ -234,4 +256,4 @@ impl MetadataStore {
 
 #[cfg(test)]
 #[path = "metadata_tests.rs"]
-mod tests;
+pub(crate) mod tests;
