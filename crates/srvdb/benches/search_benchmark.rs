@@ -1,12 +1,12 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rand::Rng;
+use rand::RngExt;
 use srvdb::{SrvDB, Vector, VectorEngine};
 
 const DIM: usize = 1536;
 
 fn generate_random_vector() -> Vector {
-    let mut rng = rand::thread_rng();
-    let data: Vec<f32> = (0..DIM).map(|_| rng.gen::<f32>() - 0.5).collect();
+    let mut rng = rand::rng();
+    let data: Vec<f32> = (0..DIM).map(|_| rng.random::<f32>() - 0.5).collect();
     Vector::new(data)
 }
 

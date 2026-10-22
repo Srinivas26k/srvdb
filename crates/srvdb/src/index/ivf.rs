@@ -5,7 +5,7 @@
 
 use anyhow::Result;
 use parking_lot::RwLock;
-use rand::Rng;
+use rand::RngExt;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -87,10 +87,10 @@ impl IVFIndex {
         );
 
         // 1. Initialize Centroids (Random Point Pick)
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut centroids: Vec<Vec<f32>> = Vec::with_capacity(k);
         for _ in 0..k {
-            let idx = rng.gen_range(0..training_data.len());
+            let idx = rng.random_range(0..training_data.len());
             centroids.push(training_data[idx].data.clone());
         }
 
@@ -137,7 +137,7 @@ impl IVFIndex {
                     }
                 } else {
                     // Re-init empty cluster with random point to avoid dead clusters
-                    let idx = rng.gen_range(0..training_data.len());
+                    let idx = rng.random_range(0..training_data.len());
                     new_centroids[i] = training_data[idx].data.clone();
                 }
 

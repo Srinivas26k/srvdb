@@ -122,14 +122,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // Helpers
 fn generate_adversarial_data(n: usize, dim: usize) -> (Vec<Vec<f32>>, Vec<String>) {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
+    use rand::RngExt;
+    let mut rng = rand::rng();
     let mut vecs = Vec::with_capacity(n);
     let mut ids = Vec::with_capacity(n);
 
     for i in 0..n {
         ids.push(format!(r#"{{"id": "vec_{}"}}"#, i));
-        let mut v: Vec<f32> = (0..dim).map(|_| rng.gen()).collect();
+        let mut v: Vec<f32> = (0..dim).map(|_| rng.random()).collect();
         // Normalize
         let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
         if norm > 0.0 {
@@ -143,11 +143,11 @@ fn generate_adversarial_data(n: usize, dim: usize) -> (Vec<Vec<f32>>, Vec<String
 }
 
 fn generate_random_queries(n: usize, dim: usize) -> Vec<Vec<f32>> {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
+    use rand::RngExt;
+    let mut rng = rand::rng();
     (0..n)
         .map(|_| {
-            let mut v: Vec<f32> = (0..dim).map(|_| rng.gen()).collect();
+            let mut v: Vec<f32> = (0..dim).map(|_| rng.random()).collect();
             let norm: f32 = v.iter().map(|x| x * x).sum::<f32>().sqrt();
             if norm > 0.0 {
                 for x in v.iter_mut() {

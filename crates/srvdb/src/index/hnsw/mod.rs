@@ -17,7 +17,7 @@ mod tests;
 
 use anyhow::Result;
 use parking_lot::RwLock;
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -176,8 +176,8 @@ impl HNSWIndex {
     /// Assign a random level to a new node using exponential decay
     /// P(level=l) = exp(-l * ln(M)) = (1/M)^l
     fn random_level(&self) -> usize {
-        let mut rng = rand::thread_rng();
-        let uniform: f32 = rng.gen();
+        let mut rng = rand::rng();
+        let uniform: f32 = rng.random();
         let level = (-uniform.ln() * self.config.ml) as usize;
         level.min(16) // Cap at 16 levels
     }
