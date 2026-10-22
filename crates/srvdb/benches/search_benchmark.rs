@@ -1,6 +1,7 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use rand::RngExt;
 use srvdb::{SrvDB, Vector, VectorEngine};
+use std::hint::black_box;
 
 const DIM: usize = 1536;
 
