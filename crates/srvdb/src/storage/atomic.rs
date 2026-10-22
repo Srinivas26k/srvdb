@@ -31,14 +31,14 @@ pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
 }
 
 #[cfg(unix)]
-fn sync_dir(dir: &Path) -> Result<()> {
+pub(crate) fn sync_dir(dir: &Path) -> Result<()> {
     File::open(dir)
         .and_then(|d| d.sync_all())
         .with_context(|| format!("failed to fsync directory {}", dir.display()))
 }
 
 #[cfg(not(unix))]
-fn sync_dir(_dir: &Path) -> Result<()> {
+pub(crate) fn sync_dir(_dir: &Path) -> Result<()> {
     // Windows offers no directory fsync; MoveFileEx used by rename is
     // already durable once the call returns with the file flushed.
     Ok(())

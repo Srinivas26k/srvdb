@@ -21,13 +21,32 @@ pub struct MetadataStore {
 
 impl MetadataStore {
     pub fn new(db_path: &str) -> Result<Self> {
-        let db_file = Path::new(db_path).join("metadata.db");
-        let db = Database::create(db_file).context("failed to open metadata.db")?;
-        let txn = db.begin_write()?;
-        txn.open_table(METADATA_TABLE)?;
-        txn.open_table(STATE_TABLE)?;
-        txn.commit()?;
+        let dir = Path::new(db_path);
+        let db_file = dir.join("metadata.db");
+        if !db_file.exists() {
+            Self::create(dir, &db_file)?;
+        }
+        let db = Database::create(&db_file).context("failed to open metadata.db")?;
         Ok(Self { db })
+    }
+
+    /// Build a new metadata.db under a temporary name and rename it into
+    /// place, so a crash during creation never leaves a partial file at
+    /// the real name (redb cannot open one).
+    fn create(dir: &Path, db_file: &Path) -> Result<()> {
+        let tmp = dir.join(".metadata.db.tmp");
+        if tmp.exists() {
+            std::fs::remove_file(&tmp)?; // left by a crash during creation
+        }
+        {
+            let db = Database::create(&tmp).context("failed to create metadata.db")?;
+            let txn = db.begin_write()?;
+            txn.open_table(METADATA_TABLE)?;
+            txn.open_table(STATE_TABLE)?;
+            txn.commit()?;
+        }
+        std::fs::rename(&tmp, db_file).context("failed to create metadata.db")?;
+        super::atomic::sync_dir(dir)
     }
 
     /// Run `write` in a non-durable transaction (made durable by `commit`).

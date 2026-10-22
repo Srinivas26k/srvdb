@@ -46,16 +46,18 @@ impl RecordFile {
         record_size: usize,
         mode: u8,
     ) -> Result<Self> {
-        let exists = path.exists();
+        // A zero-length file is what a crash right after creation leaves
+        let exists = path.exists() && std::fs::metadata(path)?.len() > 0;
+        if !exists {
+            Self::create(path, dimension, mode)?;
+        }
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
-            .create(true)
-            .truncate(false)
             .open(path)
             .with_context(|| format!("failed to open {}", path.display()))?;
 
-        let header = if exists && file.metadata()?.len() > 0 {
+        let header = {
             let mut bytes = [0u8; VectorHeader::SIZE];
             std::io::Read::read_exact(&mut file, &mut bytes).map_err(|_| {
                 Error::Corrupt(format!("{} has a truncated header", path.display()))
@@ -71,11 +73,6 @@ impl RecordFile {
                 ))
                 .into());
             }
-            header
-        } else {
-            let header = VectorHeader::new_quantized(dimension, mode)?;
-            file.write_all(&header.to_bytes())?;
-            file.sync_all()?;
             header
         };
 
@@ -93,6 +90,13 @@ impl RecordFile {
         };
         this.remap()?;
         Ok(this)
+    }
+
+    /// Write a new file holding only the header, atomically, so a crash
+    /// during creation never leaves a partial header at `path`.
+    fn create(path: &Path, dimension: usize, mode: u8) -> Result<()> {
+        let header = VectorHeader::new_quantized(dimension, mode)?;
+        super::atomic::write_atomic(path, &header.to_bytes())
     }
 
     pub(crate) fn count(&self) -> u64 {

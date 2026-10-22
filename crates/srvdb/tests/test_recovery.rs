@@ -150,3 +150,18 @@ fn sq8_crash_during_first_training_reopens_untrained() {
     db.persist().unwrap();
     assert_eq!(db.search(&vectors[15], 1).unwrap()[0].id, 5);
 }
+
+#[test]
+fn crash_during_database_creation_leaves_it_openable() {
+    // States a kill during the very first open can leave behind
+    let dir = TempDir::new().unwrap();
+    std::fs::write(dir.path().join(".metadata.db.tmp"), b"partial redb file").unwrap();
+    std::fs::write(dir.path().join("vectors.bin"), b"").unwrap();
+
+    let mut db = open(&dir, None);
+    db.add(&vector(1), "{}").unwrap();
+    db.persist().unwrap();
+    drop(db);
+    assert_eq!(open(&dir, None).count(), 1);
+    assert!(!dir.path().join(".metadata.db.tmp").exists());
+}
