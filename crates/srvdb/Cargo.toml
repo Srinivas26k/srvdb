@@ -29,3 +29,7 @@ simsimd = "6.2"
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }
 tempfile = "3.10"
+
+[[bench]]
+name = "search_benchmark"
+harness = false
