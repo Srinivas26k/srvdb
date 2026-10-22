@@ -8,9 +8,10 @@ the current mode raise ValueError; operating-system I/O failures raise
 OSError, and opening a database that is already open elsewhere raises
 BlockingIOError (an OSError); anything unexpected raises RuntimeError.
 
-Threads: search methods release the GIL and may run from several threads
-at once; add, upsert and compact release the GIL but are exclusive, so a
-call overlapping a write on the same Database raises RuntimeError.
+Threads: a Database is safe to share between threads. Every method releases
+the GIL; searches run in parallel, and writes (add, upsert, delete,
+persist, compact) wait for each other and for running searches instead of
+failing.
 """
 
 from collections.abc import Sequence

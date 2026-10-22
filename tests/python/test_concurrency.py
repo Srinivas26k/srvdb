@@ -1,5 +1,6 @@
 """Concurrency contract (ADR 0005) through the Python API."""
 
+import json
 import random
 import threading
 import time
@@ -67,3 +68,45 @@ def test_add_releases_the_gil(tmp_path):
         f"main thread was blocked: it ran for {covered:.3f}s "
         f"of a {insert_time:.3f}s insert"
     )
+
+
+def test_mixed_reads_and_writes_from_many_threads(tmp_path):
+    """Writers and readers share one Database without errors or deadlock."""
+    db = srvdb.Database(str(tmp_path), dimension=DIM)
+    base = vectors(200, seed=11)
+    db.add([f"base{i}" for i in range(200)], base, ["{}"] * 200)
+    errors = []
+
+    def writer(w):
+        try:
+            mine = vectors(60, seed=100 + w)
+            for i in range(60):
+                db.add([f"w{w}-{i}"], [mine[i]], ['{"v": 1}'])
+            for i in range(0, 60, 2):
+                db.upsert([f"w{w}-{i}"], [mine[i]], ['{"v": 2}'])
+            db.delete([f"w{w}-{i}" for i in range(1, 60, 3)])
+        except Exception as e:  # collected and asserted below
+            errors.append(repr(e))
+
+    def reader():
+        try:
+            for i in range(150):
+                assert db.search(base[i], 1)[0][0] == f"base{i}"
+                db.count()
+                db.get(f"base{i}")
+        except Exception as e:  # collected and asserted below
+            errors.append(repr(e))
+
+    threads = [threading.Thread(target=writer, args=(w,)) for w in range(4)]
+    threads += [threading.Thread(target=reader) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=120)
+    assert not any(t.is_alive() for t in threads), "threads deadlocked"
+    assert errors == []
+
+    deleted_per_writer = len(range(1, 60, 3))
+    assert db.count() == 200 + 4 * (60 - deleted_per_writer)
+    assert json.loads(db.get("w0-0"))["v"] == 2
+    assert "w0-1" not in db.get_all_ids()
