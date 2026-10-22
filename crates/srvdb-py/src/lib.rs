@@ -6,6 +6,7 @@
 mod database;
 mod errors;
 mod operations;
+mod writes;
 
 use database::PyDatabase;
 use pyo3::prelude::*;

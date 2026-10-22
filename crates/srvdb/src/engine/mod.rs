@@ -1,7 +1,9 @@
 //! The `SrvDB` engine: storage, indexes and metadata behind one API
 
 mod commit;
+mod compact;
 mod constructors;
+mod delete;
 mod modes;
 mod open;
 mod read;
@@ -59,6 +61,10 @@ pub struct SrvDB {
     pub current_mode: IndexMode,
     /// Vector dimension every insert and query must match
     pub(crate) dimension: usize,
+    /// Tombstoned ids, skipped by every search (ADR 0004)
+    pub(crate) deleted: std::collections::HashSet<u64>,
+    /// Deletes since the last persist(), written by the next commit
+    pub(crate) pending_deletes: Vec<u64>,
 }
 
 impl VectorEngine for SrvDB {
@@ -67,8 +73,9 @@ impl VectorEngine for SrvDB {
         std::fs::create_dir_all(db_path)?;
 
         // Default to 1536 dimensions for backward compatibility
-        let vector_storage = VectorStorage::new(path, 1536)?;
+        // First: opening metadata finishes an interrupted compaction
         let metadata_store = MetadataStore::new(path)?;
+        let vector_storage = VectorStorage::new(path, 1536)?;
 
         let mut db = Self {
             path: db_path.to_path_buf(),
@@ -83,6 +90,8 @@ impl VectorEngine for SrvDB {
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Flat,
+            deleted: Default::default(),
+            pending_deletes: Default::default(),
             dimension: 1536,
         };
         db.recover()?;
@@ -106,6 +115,9 @@ impl VectorEngine for SrvDB {
     }
 
     fn get_metadata(&self, id: u64) -> Result<Option<String>> {
+        if self.deleted.contains(&id) {
+            return Ok(None);
+        }
         Ok(self.metadata_store.get(id)?)
     }
 

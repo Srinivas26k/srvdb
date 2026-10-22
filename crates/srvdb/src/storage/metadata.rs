@@ -13,7 +13,9 @@ use std::path::Path;
 
 const METADATA_TABLE: TableDefinition<u64, &str> = TableDefinition::new("metadata");
 const STATE_TABLE: TableDefinition<&str, u64> = TableDefinition::new("state");
+const TOMBSTONES: TableDefinition<u64, ()> = TableDefinition::new("tombstones");
 const COMMITTED_COUNT: &str = "committed_count";
+const COMPACT_PENDING: &str = "compact_pending";
 
 pub struct MetadataStore {
     db: Database,
@@ -27,7 +29,24 @@ impl MetadataStore {
             Self::create(dir, &db_file)?;
         }
         let db = Database::create(&db_file).context("failed to open metadata.db")?;
-        Ok(Self { db })
+        // Tables added in later versions (e.g. tombstones) must exist before
+        // they are read; opening them in a write transaction creates them.
+        let txn = db.begin_write()?;
+        txn.open_table(METADATA_TABLE)?;
+        txn.open_table(STATE_TABLE)?;
+        txn.open_table(TOMBSTONES)?;
+        txn.commit()?;
+        let mut store = Self { db };
+
+        // Before any vector file is opened: finish a compaction whose redb
+        // commit happened, or discard one that never committed (ADR 0004)
+        if store.state(COMPACT_PENDING)?.is_some() {
+            super::compaction::finish(dir)?;
+            store.finish_compaction()?;
+        } else {
+            super::compaction::discard_abandoned(dir)?;
+        }
+        Ok(store)
     }
 
     /// Build a new metadata.db under a temporary name and rename it into
@@ -43,6 +62,7 @@ impl MetadataStore {
             let txn = db.begin_write()?;
             txn.open_table(METADATA_TABLE)?;
             txn.open_table(STATE_TABLE)?;
+            txn.open_table(TOMBSTONES)?;
             txn.commit()?;
         }
         std::fs::rename(&tmp, db_file).context("failed to create metadata.db")?;
@@ -117,14 +137,69 @@ impl MetadataStore {
         Ok(txn.open_table(METADATA_TABLE)?.len()? as usize)
     }
 
-    /// Durably commit: every earlier write, plus `count` as the committed
-    /// number of vectors, survives a crash once this returns.
-    pub fn commit(&mut self, count: u64) -> Result<()> {
+    /// Durably commit: every earlier write, `count` as the committed number
+    /// of vectors, and the `deletes` made since the last commit (tombstone
+    /// recorded, metadata removed) survive a crash once this returns.
+    pub fn commit(&mut self, count: u64, deletes: &[u64]) -> Result<()> {
         let mut txn = self.db.begin_write()?;
         txn.set_durability(Durability::Immediate);
         txn.open_table(STATE_TABLE)?
             .insert(COMMITTED_COUNT, count)?;
+        {
+            let mut metadata = txn.open_table(METADATA_TABLE)?;
+            let mut tombstones = txn.open_table(TOMBSTONES)?;
+            for &id in deletes {
+                metadata.remove(id)?;
+                tombstones.insert(id, ())?;
+            }
+        }
         txn.commit().context("failed to commit metadata.db")?;
+        Ok(())
+    }
+
+    fn state(&self, key: &str) -> Result<Option<u64>> {
+        let txn = self.db.begin_read()?;
+        let table = txn.open_table(STATE_TABLE)?;
+        Ok(table.get(key)?.map(|v| v.value()))
+    }
+
+    /// Durably renumber for compaction: metadata of `keep[i]` moves to id
+    /// `i`, tombstones are cleared, the committed count becomes
+    /// `keep.len()` and the compaction is marked pending until the vector
+    /// file swap is done (`storage::compaction`).
+    pub fn compact(&mut self, keep: &[u64]) -> Result<()> {
+        let mut txn = self.db.begin_write()?;
+        txn.set_durability(Durability::Immediate);
+        {
+            let mut metadata = txn.open_table(METADATA_TABLE)?;
+            let mut old: std::collections::HashMap<u64, String> = metadata
+                .iter()?
+                .map(|entry| {
+                    let (k, v) = entry?;
+                    Ok((k.value(), v.value().to_string()))
+                })
+                .collect::<Result<_>>()?;
+            metadata.retain(|_, _| false)?;
+            for (new_id, old_id) in keep.iter().enumerate() {
+                if let Some(meta) = old.remove(old_id) {
+                    metadata.insert(new_id as u64, meta.as_str())?;
+                }
+            }
+            txn.open_table(TOMBSTONES)?.retain(|_, _| false)?;
+            let mut state = txn.open_table(STATE_TABLE)?;
+            state.insert(COMMITTED_COUNT, keep.len() as u64)?;
+            state.insert(COMPACT_PENDING, 1)?;
+        }
+        txn.commit().context("failed to commit compaction")?;
+        Ok(())
+    }
+
+    /// Clear the pending-compaction flag once the files are in place
+    pub fn finish_compaction(&mut self) -> Result<()> {
+        let mut txn = self.db.begin_write()?;
+        txn.set_durability(Durability::Immediate);
+        txn.open_table(STATE_TABLE)?.remove(COMPACT_PENDING)?;
+        txn.commit()?;
         Ok(())
     }
 
@@ -136,15 +211,24 @@ impl MetadataStore {
         Ok(table.get(COMMITTED_COUNT)?.map(|v| v.value()))
     }
 
-    /// Durably remove metadata for ids at or above `count` (writes that were
-    /// never committed by a durable `commit`).
+    /// Durably remove metadata and tombstones for ids at or above `count`
+    /// (writes that were never committed by a durable `commit`).
     pub fn truncate_from(&mut self, count: u64) -> Result<()> {
         let mut txn = self.db.begin_write()?;
         txn.set_durability(Durability::Immediate);
         txn.open_table(METADATA_TABLE)?
             .retain_in(count.., |_, _| false)?;
+        txn.open_table(TOMBSTONES)?
+            .retain_in(count.., |_, _| false)?;
         txn.commit()?;
         Ok(())
+    }
+
+    /// Every tombstoned id
+    pub fn tombstones(&self) -> Result<Vec<u64>> {
+        let txn = self.db.begin_read()?;
+        let table = txn.open_table(TOMBSTONES)?;
+        table.iter()?.map(|entry| Ok(entry?.0.value())).collect()
     }
 }
 

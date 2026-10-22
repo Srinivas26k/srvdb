@@ -167,6 +167,27 @@ impl RecordFile {
         Ok(())
     }
 
+    /// Write a new file at `dest` holding only the records in `keep`, in
+    /// that order, and fsync it (compaction, ADR 0004).
+    pub(crate) fn write_compacted(&self, dest: &Path, keep: &[u64]) -> Result<()> {
+        let mut header = self.header;
+        header.count = keep.len() as u64;
+        let mut out = std::io::BufWriter::new(
+            File::create(dest).with_context(|| format!("failed to create {}", dest.display()))?,
+        );
+        out.write_all(&header.to_bytes())?;
+        for &id in keep {
+            let record = self.get(id).ok_or_else(|| {
+                Error::Internal(format!("record {id} vanished during compaction"))
+            })?;
+            out.write_all(record)?;
+        }
+        out.into_inner()
+            .map_err(|e| e.into_error())?
+            .sync_all()
+            .with_context(|| format!("failed to fsync {}", dest.display()))
+    }
+
     /// Drop every record from `count` on, shrinking the file. Used on open
     /// to discard writes that were never committed.
     pub(crate) fn truncate_to(&mut self, count: u64) -> Result<()> {

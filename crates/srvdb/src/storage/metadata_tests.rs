@@ -33,7 +33,7 @@ fn committed_writes_survive_reopen() {
     {
         let mut store = store(&dir);
         store.set(0, "{}").unwrap();
-        store.commit(1).unwrap();
+        store.commit(1, &[]).unwrap();
     }
     let store = store(&dir);
     assert_eq!(store.committed_count().unwrap(), Some(1));

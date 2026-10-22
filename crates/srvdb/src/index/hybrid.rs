@@ -9,7 +9,7 @@ use crate::Vector;
 use anyhow::Result;
 use rayon::prelude::*;
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct HybridSearchResult {
@@ -50,6 +50,7 @@ pub fn search<F>(
     query: &Vector,
     k: usize,
     distance_fn: &F,
+    deleted: &HashSet<u64>,
 ) -> Result<Vec<HybridSearchResult>>
 where
     F: Fn(u64, u64) -> f32 + Sync,
@@ -81,7 +82,7 @@ where
     }
 
     // 2. Fine Search (Parallel search in partitions)
-    let candidates = fine_search(ivf, &target_partitions, k, distance_fn)?;
+    let candidates = fine_search(ivf, &target_partitions, k, distance_fn, deleted)?;
 
     // 3. Merge and formatting
     Ok(candidates)
@@ -93,6 +94,7 @@ fn fine_search<F>(
     partitions: &[usize],
     k: usize,
     distance_fn: &F,
+    deleted: &HashSet<u64>,
 ) -> Result<Vec<HybridSearchResult>>
 where
     F: Fn(u64, u64) -> f32 + Sync,
@@ -102,7 +104,11 @@ where
     let all_candidates: Vec<Vec<(u64, f32)>> = partitions
         .par_iter()
         .filter(|&&part_id| part_id < ivf.partitions.len())
-        .map(|&part_id| ivf.partitions[part_id].read().search(0, k * 2, distance_fn))
+        .map(|&part_id| {
+            ivf.partitions[part_id]
+                .read()
+                .search_filtered(0, k, distance_fn, deleted)
+        })
         .collect::<Result<_>>()?;
 
     // Max-heap on distance keeps the k smallest

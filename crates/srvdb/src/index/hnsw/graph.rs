@@ -139,7 +139,7 @@ impl HNSWIndex {
 
     /// Search a single layer (Algorithm 2 from paper)
     /// Returns the single nearest neighbor
-    fn search_layer_single<F>(
+    pub(super) fn search_layer_single<F>(
         &self,
         query_id: u64,
         entry_id: u64,

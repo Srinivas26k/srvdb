@@ -1,6 +1,7 @@
 //! On-disk storage: vector files, metadata and index persistence
 
 pub(crate) mod atomic;
+pub(crate) mod compaction;
 pub mod flat;
 pub(crate) mod format;
 pub mod header;

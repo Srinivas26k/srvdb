@@ -23,7 +23,8 @@ impl SrvDB {
 
         // 2. The commit point (ADR 0003): metadata and the count are durable
         let count = self.count();
-        self.metadata_store.commit(count)?;
+        self.metadata_store.commit(count, &self.pending_deletes)?;
+        self.pending_deletes.clear();
 
         // 3. Derived indexes, each replaced atomically
         if let Some(ref ivf) = self.ivf_index {
@@ -38,12 +39,9 @@ impl SrvDB {
 
     /// All stored (id, metadata) pairs
     pub fn all_metadata(&self) -> Result<Vec<(u64, String)>> {
-        Ok(self.metadata_store.all()?)
-    }
-
-    /// Remove the metadata entry for an id
-    pub fn delete_metadata(&mut self, id: u64) -> Result<()> {
-        Ok(self.metadata_store.delete(id)?)
+        let mut all = self.metadata_store.all()?;
+        all.retain(|(id, _)| !self.deleted.contains(id));
+        Ok(all)
     }
 
     /// Get compression statistics

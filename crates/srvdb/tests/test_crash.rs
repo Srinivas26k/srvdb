@@ -63,6 +63,9 @@ fn crash_child_entry() {
     };
     let mode = std::env::var(CHILD_MODE).unwrap();
     let mut db = open(Path::new(&dir), &mode);
+    if mode == "churn" {
+        churn_child(db);
+    }
     let mut stdout = std::io::stdout();
     loop {
         let first = db.count();
@@ -74,6 +77,77 @@ fn crash_child_entry() {
         writeln!(stdout, "COMMITTED {}", db.count()).unwrap();
         stdout.flush().unwrap();
     }
+}
+
+/// Churn child: each round adds a batch, deletes every original number
+/// divisible by 7, and compacts every 4th round (otherwise persists).
+/// Reports the number of originals added so far.
+fn churn_child(mut db: SrvDB) -> ! {
+    let mut next = next_original(&db);
+    let mut stdout = std::io::stdout();
+    for round in 1.. {
+        let originals = next..next + BATCH;
+        let vectors: Vec<Vector> = originals.clone().map(vector).collect();
+        let metas: Vec<String> = originals.clone().map(meta).collect();
+        let ids = db.add_batch(&vectors, &metas).unwrap();
+        for (id, original) in ids.into_iter().zip(originals) {
+            if original % 7 == 0 {
+                db.delete(id).unwrap();
+            }
+        }
+        next += BATCH;
+        if round % 4 == 0 {
+            db.compact().unwrap(); // persists first
+        } else {
+            db.persist().unwrap();
+        }
+        writeln!(stdout, "COMMITTED {next}").unwrap();
+        stdout.flush().unwrap();
+    }
+    unreachable!()
+}
+
+/// (internal id, original number) of every live vector
+fn originals(db: &SrvDB) -> Vec<(u64, u64)> {
+    let mut found: Vec<(u64, u64)> = db
+        .all_metadata()
+        .unwrap()
+        .into_iter()
+        .map(|(id, json)| {
+            let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+            (id, value["id"].as_u64().unwrap())
+        })
+        .collect();
+    found.sort_by_key(|&(_, original)| original);
+    found
+}
+
+/// Originals are added in whole batches, and every batch keeps some
+fn next_original(db: &SrvDB) -> u64 {
+    originals(db)
+        .last()
+        .map_or(0, |&(_, last)| (last + 1).div_ceil(BATCH) * BATCH)
+}
+
+fn verify_churn(dir: &Path, last_reported: u64, previous: u64) -> u64 {
+    let db = open(dir, "churn");
+    let floor = last_reported.max(previous);
+    let next = next_original(&db);
+    assert!(
+        next == floor || next == floor + BATCH,
+        "churn: {next} originals added, last confirmed {floor}"
+    );
+    // Exactly the committed adds minus the committed deletes survive
+    let found = originals(&db);
+    let survivors: Vec<u64> = found.iter().map(|&(_, o)| o).collect();
+    let expected: Vec<u64> = (0..next).filter(|o| o % 7 != 0).collect();
+    assert_eq!(survivors, expected, "churn: surviving originals");
+    assert_eq!(db.live_count(), expected.len() as u64, "churn: live count");
+    for &(id, original) in found.iter().step_by((found.len() / 30).max(1)) {
+        let hit = db.search(&vector(original), 1).unwrap();
+        assert_eq!(hit[0].id, id, "churn: original {original} not at its id");
+    }
+    next
 }
 
 /// Run the child until a random moment, kill it, return the last count it
@@ -175,7 +249,11 @@ fn crash_repeatedly(mode: &str) {
         let mut committed = 0;
         for _ in start..iterations.min(start + KILLS_PER_DATABASE) {
             let reported = run_and_kill(dir.path(), mode);
-            committed = verify(dir.path(), mode, reported, committed);
+            committed = if mode == "churn" {
+                verify_churn(dir.path(), reported, committed)
+            } else {
+                verify(dir.path(), mode, reported, committed)
+            };
         }
         verified += committed;
     }
@@ -195,4 +273,9 @@ fn crash_hnsw() {
 #[test]
 fn crash_sq8() {
     crash_repeatedly("sq8");
+}
+
+#[test]
+fn crash_churn() {
+    crash_repeatedly("churn");
 }
