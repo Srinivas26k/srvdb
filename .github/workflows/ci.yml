@@ -69,7 +69,7 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - name: Kill a writer at random moments and verify recovery
         env:
-          SRVDB_CRASH_ITERATIONS: "334" # per mode: flat, hnsw, sq8
+          SRVDB_CRASH_ITERATIONS: "250" # per mode: flat, hnsw, sq8, churn
         run: cargo test --locked -p srvdb --test test_crash -- --nocapture
 
   test-python:
