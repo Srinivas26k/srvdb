@@ -4,6 +4,7 @@
 //! `scalar_quantizer.bin` (per-dimension ranges, written atomically).
 
 use super::atomic::write_atomic;
+use super::format;
 use super::record_file::RecordFile;
 use crate::error::Error;
 use crate::quant::scalar::ScalarQuantizer;
@@ -42,7 +43,10 @@ impl ScalarQuantizedStorage {
         }
 
         let quantizer = ScalarQuantizer::train(training_data)?;
-        write_atomic(&dir.join(QUANTIZER_FILE), &bincode::serialize(&quantizer)?)?;
+        write_atomic(
+            &dir.join(QUANTIZER_FILE),
+            &format::encode(format::SQ8_QUANTIZER, &quantizer)?,
+        )?;
         Ok(Self {
             file: existing,
             dimension,
@@ -55,8 +59,11 @@ impl ScalarQuantizedStorage {
         let dir = Path::new(db_path);
         let bytes = std::fs::read(dir.join(QUANTIZER_FILE))
             .with_context(|| format!("failed to read {QUANTIZER_FILE}"))?;
-        let quantizer: ScalarQuantizer = bincode::deserialize(&bytes)
-            .map_err(|e| Error::Corrupt(format!("{QUANTIZER_FILE}: {e}")))?;
+        let quantizer: ScalarQuantizer = if format::is_enveloped(&bytes) {
+            format::decode(format::SQ8_QUANTIZER, &bytes)?
+        } else {
+            super::legacy::scalar_quantizer(&bytes)?
+        };
         Ok(Self {
             file: RecordFile::open(&dir.join(FILE_NAME), dimension, dimension, MODE_SQ8)?,
             dimension,

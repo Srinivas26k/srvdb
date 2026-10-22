@@ -135,12 +135,16 @@ impl ProductQuantizer {
 
     /// Save codebooks to bytes
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
-        bincode::serialize(self).context("Failed to serialize quantizer")
+        crate::storage::format::encode(crate::storage::format::PQ_CODEBOOKS, self)
     }
 
-    /// Load codebooks from bytes
+    /// Load codebooks from bytes (current format, or as written by v0.2)
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        bincode::deserialize(bytes).context("Failed to deserialize quantizer")
+        if crate::storage::format::is_enveloped(bytes) {
+            crate::storage::format::decode(crate::storage::format::PQ_CODEBOOKS, bytes)
+        } else {
+            crate::storage::legacy::product_quantizer(bytes)
+        }
     }
 }
 

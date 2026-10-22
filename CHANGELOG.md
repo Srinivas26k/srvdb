@@ -42,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   vectors.
 - Index and quantizer files are replaced atomically (temp file, fsync,
   rename).
+- Index and quantizer files carry a versioned, checksummed header; damaged
+  or foreign files are reported as corrupt instead of being misread. The
+  unmaintained `bincode` dependency is gone. v0.2 quantizer files still
+  load, and v0.2 index files are rebuilt automatically.
 
 ### Fixed
 - HNSW inserts from multiple threads (used to fill IVF partitions) could

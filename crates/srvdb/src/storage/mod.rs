@@ -2,8 +2,10 @@
 
 pub(crate) mod atomic;
 pub mod flat;
+pub(crate) mod format;
 pub mod header;
 pub mod ivf;
+pub(crate) mod legacy;
 pub mod metadata;
 pub mod pq;
 mod record_file;

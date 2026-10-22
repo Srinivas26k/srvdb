@@ -199,7 +199,7 @@ impl HNSWIndex {
 
         let data = (&*nodes, entry_point, max_level, &self.config);
 
-        Ok(bincode::serialize(&data)?)
+        crate::storage::format::encode(crate::storage::format::HNSW_GRAPH, &data)
     }
 
     /// Deserialize the HNSW graph from bytes
@@ -209,7 +209,7 @@ impl HNSWIndex {
             Option<u64>,
             usize,
             HNSWConfig,
-        ) = bincode::deserialize(bytes)?;
+        ) = crate::storage::format::decode(crate::storage::format::HNSW_GRAPH, bytes)?;
 
         Ok(Self {
             nodes: Arc::new(RwLock::new(nodes)),

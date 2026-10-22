@@ -7,6 +7,7 @@
 //! the stored vectors.
 
 use super::atomic::write_atomic;
+use super::format;
 use crate::error::Error;
 use crate::hnsw::HNSWIndex;
 use crate::ivf::{IVFConfig, IVFIndex};
@@ -43,7 +44,10 @@ impl IVFStorage {
             centroids: index.centroids.clone(),
             partitions,
         };
-        write_atomic(&db_path.join(FILE_NAME), &bincode::serialize(&saved)?)
+        write_atomic(
+            &db_path.join(FILE_NAME),
+            &format::encode(format::IVF_INDEX, &saved)?,
+        )
     }
 
     /// Load the index saved by [`Self::save`], or `None` if there is none
@@ -53,8 +57,7 @@ impl IVFStorage {
             return Ok(None);
         }
         let bytes = std::fs::read(&path).with_context(|| format!("failed to read {FILE_NAME}"))?;
-        let saved: SavedIvf = bincode::deserialize(&bytes)
-            .map_err(|e| Error::Corrupt(format!("{FILE_NAME}: {e}")))?;
+        let saved: SavedIvf = format::decode(format::IVF_INDEX, &bytes)?;
         let partitions = saved
             .partitions
             .iter()
