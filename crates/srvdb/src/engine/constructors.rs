@@ -23,7 +23,7 @@ impl SrvDB {
             ..Default::default()
         };
 
-        Ok(Self {
+        let mut db = Self {
             path: db_path.to_path_buf(),
             vector_storage: None,
             quantized_storage: Some(quantized_storage),
@@ -37,7 +37,9 @@ impl SrvDB {
             ivf_config: None,
             current_mode: IndexMode::Flat, // PQ is technically a flat scan of compressed vectors
             dimension,
-        })
+        };
+        db.recover()?;
+        Ok(db)
     }
 
     /// Create new database with Scalar Quantization (SQ8)
@@ -67,7 +69,7 @@ impl SrvDB {
             ..Default::default()
         };
 
-        Ok(Self {
+        let mut db = Self {
             path: db_path.to_path_buf(),
             vector_storage: None, // Disable full precision storage!
             quantized_storage: None,
@@ -81,7 +83,9 @@ impl SrvDB {
             ivf_config: None,
             current_mode: IndexMode::Sq8,
             dimension,
-        })
+        };
+        db.recover()?;
+        Ok(db)
     }
 
     /// Create new database with HNSW indexing (full precision vectors)
@@ -121,6 +125,7 @@ impl SrvDB {
             current_mode: IndexMode::Hnsw,
             dimension,
         };
+        db.recover()?;
         db.attach_hnsw(hnsw_config)?;
         Ok(db)
     }
@@ -165,7 +170,7 @@ impl SrvDB {
         hnsw_cfg.use_quantization = true;
         let _hnsw_index = hnsw::HNSWIndex::new(hnsw_cfg.clone());
 
-        Ok(Self {
+        let mut db = Self {
             path: db_path.to_path_buf(),
             vector_storage: None,
             quantized_storage: Some(quantized_storage),
@@ -180,6 +185,8 @@ impl SrvDB {
             current_mode: IndexMode::Hnsw,
             // Non-empty: storage training above rejects an empty set
             dimension: embedded[0].len(),
-        })
+        };
+        db.recover()?;
+        Ok(db)
     }
 }

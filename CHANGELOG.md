@@ -31,6 +31,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Library logging goes through the `log` crate; nothing is printed to
   stdout or stderr.
 
+### Durability
+- `persist()` is now a real commit point (ADR 0003): everything added
+  before it returns survives a crash or power loss, and a database
+  reopens exactly as of the last successful `persist()`. Writes made after
+  it are discarded on reopen instead of being half-present.
+- Searches see added vectors immediately, without `persist()`.
+- Fixed: after a crash, new vectors could be written behind leftover bytes
+  while ids were computed from the old count, so ids pointed at the wrong
+  vectors.
+- Index and quantizer files are replaced atomically (temp file, fsync,
+  rename).
+- Index and quantizer files carry a versioned, checksummed header; damaged
+  or foreign files are reported as corrupt instead of being misread. The
+  unmaintained `bincode` dependency is gone. v0.2 quantizer files still
+  load, and v0.2 index files are rebuilt automatically.
+
 ### Fixed
 - HNSW inserts from multiple threads (used to fill IVF partitions) could
   leave vectors unfindable and could panic.

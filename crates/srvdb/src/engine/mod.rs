@@ -5,6 +5,7 @@ mod constructors;
 mod modes;
 mod open;
 mod read;
+mod recover;
 mod validate;
 mod write;
 
@@ -69,7 +70,7 @@ impl VectorEngine for SrvDB {
         let vector_storage = VectorStorage::new(path, 1536)?;
         let metadata_store = MetadataStore::new(path)?;
 
-        Ok(Self {
+        let mut db = Self {
             path: db_path.to_path_buf(),
             vector_storage: Some(vector_storage),
             quantized_storage: None,
@@ -83,7 +84,9 @@ impl VectorEngine for SrvDB {
             ivf_config: None,
             current_mode: IndexMode::Flat,
             dimension: 1536,
-        })
+        };
+        db.recover()?;
+        Ok(db)
     }
 
     fn add(&mut self, vec: &Vector, meta: &str) -> Result<u64> {

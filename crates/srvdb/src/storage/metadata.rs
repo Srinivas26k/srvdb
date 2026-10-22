@@ -1,262 +1,153 @@
-//! Optimized metadata storage with batch operations
+//! Metadata store and commit point (`metadata.db`, backed by redb)
 //!
-//! Improvements:
-//! - Batch set/get operations
-//! - Write-through caching for hot metadata
-//! - Reduced transaction overhead
+//! Durability (ADR 0003): metadata writes use `Durability::None`, which is
+//! cheap and becomes durable only with a later durable commit. `commit`
+//! records the committed vector count in one `Durability::Immediate`
+//! transaction; that is the moment `persist()` makes data permanent. After a
+//! crash redb rolls back to the last durable commit, so metadata and the
+//! committed count always agree.
 
 use anyhow::{Context, Result};
-use redb::{Database, ReadableTable, ReadableTableMetadata, TableDefinition};
-use std::collections::HashMap;
+use redb::{Database, Durability, ReadableTable, ReadableTableMetadata, TableDefinition};
 use std::path::Path;
 
 const METADATA_TABLE: TableDefinition<u64, &str> = TableDefinition::new("metadata");
-const CACHE_SIZE: usize = 1000; // Cache last 1000 accessed items
+const STATE_TABLE: TableDefinition<&str, u64> = TableDefinition::new("state");
+const COMMITTED_COUNT: &str = "committed_count";
 
 pub struct MetadataStore {
     db: Database,
-    write_cache: HashMap<u64, String>,
-    cache_dirty: bool,
 }
 
 impl MetadataStore {
     pub fn new(db_path: &str) -> Result<Self> {
-        let db_file = Path::new(db_path).join("metadata.db");
-
-        let db = Database::create(db_file).context("Failed to create metadata.db")?;
-
-        // Initialize table
-        let write_txn = db.begin_write()?;
-        {
-            let _table = write_txn.open_table(METADATA_TABLE)?;
+        let dir = Path::new(db_path);
+        let db_file = dir.join("metadata.db");
+        if !db_file.exists() {
+            Self::create(dir, &db_file)?;
         }
-        write_txn.commit()?;
+        let db = Database::create(&db_file).context("failed to open metadata.db")?;
+        Ok(Self { db })
+    }
 
-        Ok(Self {
-            db,
-            write_cache: HashMap::with_capacity(CACHE_SIZE),
-            cache_dirty: false,
+    /// Build a new metadata.db under a temporary name and rename it into
+    /// place, so a crash during creation never leaves a partial file at
+    /// the real name (redb cannot open one).
+    fn create(dir: &Path, db_file: &Path) -> Result<()> {
+        let tmp = dir.join(".metadata.db.tmp");
+        if tmp.exists() {
+            std::fs::remove_file(&tmp)?; // left by a crash during creation
+        }
+        {
+            let db = Database::create(&tmp).context("failed to create metadata.db")?;
+            let txn = db.begin_write()?;
+            txn.open_table(METADATA_TABLE)?;
+            txn.open_table(STATE_TABLE)?;
+            txn.commit()?;
+        }
+        std::fs::rename(&tmp, db_file).context("failed to create metadata.db")?;
+        super::atomic::sync_dir(dir)
+    }
+
+    /// Run `write` in a non-durable transaction (made durable by `commit`).
+    fn write(&self, write: impl FnOnce(&mut redb::Table<u64, &str>) -> Result<()>) -> Result<()> {
+        let mut txn = self.db.begin_write()?;
+        txn.set_durability(Durability::None);
+        {
+            let mut table = txn.open_table(METADATA_TABLE)?;
+            write(&mut table)?;
+        }
+        txn.commit()?;
+        Ok(())
+    }
+
+    pub fn set(&mut self, id: u64, metadata: &str) -> Result<()> {
+        self.write(|table| {
+            table.insert(id, metadata)?;
+            Ok(())
         })
     }
 
-    /// Set metadata with write-through cache
-    pub fn set(&mut self, id: u64, metadata: &str) -> Result<()> {
-        // Add to cache
-        self.write_cache.insert(id, metadata.to_string());
-        self.cache_dirty = true;
-
-        // Flush if cache is full
-        if self.write_cache.len() >= CACHE_SIZE {
-            self.flush_cache()?;
-        }
-
-        Ok(())
-    }
-
-    /// Batch set operation (much faster than individual sets)
+    /// Write many entries in one transaction
     pub fn set_batch(&mut self, items: &[(u64, String)]) -> Result<()> {
-        let write_txn = self.db.begin_write()?;
-        {
-            let mut table = write_txn.open_table(METADATA_TABLE)?;
+        self.write(|table| {
             for (id, metadata) in items {
                 table.insert(*id, metadata.as_str())?;
             }
-        }
-        write_txn.commit()?;
-        Ok(())
+            Ok(())
+        })
     }
 
-    /// Get metadata with cache lookup
     pub fn get(&self, id: u64) -> Result<Option<String>> {
-        // Check cache first
-        if let Some(metadata) = self.write_cache.get(&id) {
-            return Ok(Some(metadata.clone()));
-        }
-
-        // Fall back to database
-        let read_txn = self.db.begin_read()?;
-        let table = read_txn.open_table(METADATA_TABLE)?;
-
-        let result = table.get(id)?;
-        Ok(result.map(|v| v.value().to_string()))
+        let txn = self.db.begin_read()?;
+        let table = txn.open_table(METADATA_TABLE)?;
+        Ok(table.get(id)?.map(|v| v.value().to_string()))
     }
 
-    /// Batch get operation
     pub fn get_batch(&self, ids: &[u64]) -> Result<Vec<Option<String>>> {
-        let read_txn = self.db.begin_read()?;
-        let table = read_txn.open_table(METADATA_TABLE)?;
-
-        let mut results = Vec::with_capacity(ids.len());
-        for id in ids {
-            // Check cache first
-            if let Some(metadata) = self.write_cache.get(id) {
-                results.push(Some(metadata.clone()));
-            } else {
-                let result = table.get(*id)?;
-                results.push(result.map(|v| v.value().to_string()));
-            }
-        }
-
-        Ok(results)
+        let txn = self.db.begin_read()?;
+        let table = txn.open_table(METADATA_TABLE)?;
+        ids.iter()
+            .map(|id| Ok(table.get(*id)?.map(|v| v.value().to_string())))
+            .collect()
     }
 
     pub fn delete(&mut self, id: u64) -> Result<()> {
-        // Remove from cache
-        self.write_cache.remove(&id);
-
-        let write_txn = self.db.begin_write()?;
-        {
-            let mut table = write_txn.open_table(METADATA_TABLE)?;
+        self.write(|table| {
             table.remove(id)?;
-        }
-        write_txn.commit()?;
-        Ok(())
+            Ok(())
+        })
     }
 
-    /// Flush write cache to disk
-    fn flush_cache(&mut self) -> Result<()> {
-        if !self.cache_dirty || self.write_cache.is_empty() {
-            return Ok(());
-        }
-
-        let items: Vec<_> = self
-            .write_cache
-            .iter()
-            .map(|(id, meta)| (*id, meta.clone()))
-            .collect();
-
-        self.set_batch(&items)?;
-        self.write_cache.clear();
-        self.cache_dirty = false;
-
-        Ok(())
-    }
-
-    pub fn flush(&mut self) -> Result<()> {
-        self.flush_cache()?;
-        Ok(())
-    }
-
-    /// All (id, metadata) entries, including unflushed cached writes
+    /// All (id, metadata) entries
     pub fn all(&self) -> Result<Vec<(u64, String)>> {
-        let read_txn = self.db.begin_read()?;
-        let table = read_txn.open_table(METADATA_TABLE)?;
-        let mut items: HashMap<u64, String> = HashMap::new();
-        for entry in table.iter()? {
-            let (k, v) = entry?;
-            items.insert(k.value(), v.value().to_string());
-        }
-        for (id, meta) in &self.write_cache {
-            items.insert(*id, meta.clone());
-        }
-        Ok(items.into_iter().collect())
+        let txn = self.db.begin_read()?;
+        let table = txn.open_table(METADATA_TABLE)?;
+        table
+            .iter()?
+            .map(|entry| {
+                let (k, v) = entry?;
+                Ok((k.value(), v.value().to_string()))
+            })
+            .collect()
     }
 
-    /// Get total count of metadata entries
     pub fn count(&self) -> Result<usize> {
-        let read_txn = self.db.begin_read()?;
-        let table = read_txn.open_table(METADATA_TABLE)?;
-        Ok(table.len()? as usize)
+        let txn = self.db.begin_read()?;
+        Ok(txn.open_table(METADATA_TABLE)?.len()? as usize)
     }
-}
 
-impl Drop for MetadataStore {
-    fn drop(&mut self) {
-        let _ = self.flush();
+    /// Durably commit: every earlier write, plus `count` as the committed
+    /// number of vectors, survives a crash once this returns.
+    pub fn commit(&mut self, count: u64) -> Result<()> {
+        let mut txn = self.db.begin_write()?;
+        txn.set_durability(Durability::Immediate);
+        txn.open_table(STATE_TABLE)?
+            .insert(COMMITTED_COUNT, count)?;
+        txn.commit().context("failed to commit metadata.db")?;
+        Ok(())
+    }
+
+    /// The committed vector count, or `None` for a database written before
+    /// v0.3 (which had no commit record).
+    pub fn committed_count(&self) -> Result<Option<u64>> {
+        let txn = self.db.begin_read()?;
+        let table = txn.open_table(STATE_TABLE)?;
+        Ok(table.get(COMMITTED_COUNT)?.map(|v| v.value()))
+    }
+
+    /// Durably remove metadata for ids at or above `count` (writes that were
+    /// never committed by a durable `commit`).
+    pub fn truncate_from(&mut self, count: u64) -> Result<()> {
+        let mut txn = self.db.begin_write()?;
+        txn.set_durability(Durability::Immediate);
+        txn.open_table(METADATA_TABLE)?
+            .retain_in(count.., |_, _| false)?;
+        txn.commit()?;
+        Ok(())
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::TempDir;
-
-    #[test]
-    fn test_write_cache() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut store = MetadataStore::new(temp_dir.path().to_str().unwrap()).unwrap();
-
-        // Add to cache
-        for i in 0..500 {
-            store.set(i, &format!(r#"{{"id": {}}}"#, i)).unwrap();
-        }
-
-        // Should still be in cache (not flushed)
-        assert!(store.cache_dirty);
-        assert_eq!(store.write_cache.len(), 500);
-
-        // Get from cache
-        let result = store.get(100).unwrap();
-        assert_eq!(result, Some(r#"{"id": 100}"#.to_string()));
-
-        // Flush
-        store.flush().unwrap();
-        assert!(!store.cache_dirty);
-        assert_eq!(store.write_cache.len(), 0);
-    }
-
-    #[test]
-    fn test_batch_operations() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut store = MetadataStore::new(temp_dir.path().to_str().unwrap()).unwrap();
-
-        // Batch set
-        let items: Vec<_> = (0..100)
-            .map(|i| (i, format!(r#"{{"id": {}}}"#, i)))
-            .collect();
-
-        store.set_batch(&items).unwrap();
-
-        // Batch get
-        let ids: Vec<u64> = (0..100).collect();
-        let results = store.get_batch(&ids).unwrap();
-
-        assert_eq!(results.len(), 100);
-        assert!(results.iter().all(|r| r.is_some()));
-    }
-
-    #[test]
-    fn test_auto_flush_on_full_cache() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut store = MetadataStore::new(temp_dir.path().to_str().unwrap()).unwrap();
-
-        // Fill cache (should auto-flush at CACHE_SIZE)
-        for i in 0..(CACHE_SIZE + 100) {
-            store.set(i as u64, &format!(r#"{{"id": {}}}"#, i)).unwrap();
-        }
-
-        // Cache should have been flushed
-        assert!(store.write_cache.len() < CACHE_SIZE);
-    }
-
-    #[test]
-    fn test_all_includes_cache_and_disk() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut store = MetadataStore::new(temp_dir.path().to_str().unwrap()).unwrap();
-
-        store.set(1, "a").unwrap();
-        store.flush().unwrap();
-        store.set(2, "b").unwrap(); // still cached
-        store.delete(1).unwrap();
-
-        let all = store.all().unwrap();
-        assert_eq!(all, vec![(2, "b".to_string())]);
-    }
-
-    #[test]
-    fn test_persistence() {
-        let temp_dir = TempDir::new().unwrap();
-        let path = temp_dir.path().to_str().unwrap();
-
-        {
-            let mut store = MetadataStore::new(path).unwrap();
-            store.set(42, r#"{"test": "data"}"#).unwrap();
-            store.flush().unwrap();
-        }
-
-        // Reopen and verify
-        let store = MetadataStore::new(path).unwrap();
-        let result = store.get(42).unwrap();
-        assert_eq!(result, Some(r#"{"test": "data"}"#.to_string()));
-    }
-}
+#[path = "metadata_tests.rs"]
+mod tests;

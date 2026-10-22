@@ -7,14 +7,7 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
-ignore = [
-    # bincode 1.x is unmaintained with no successor release. It serializes
-    # the HNSW graph, IVF centroids and quantizer files, so replacing it is
-    # an on-disk format change. Scheduled for the 0.3 durability work
-    # (versioned formats with a reader for the old one). Remove this entry
-    # when that lands.
-    { id = "RUSTSEC-2025-0141", reason = "replacement planned with the 0.3 file-format change" },
-]
+ignore = []
 
 [licenses]
 version = 2

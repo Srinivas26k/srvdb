@@ -18,12 +18,15 @@ impl SrvDB {
         let (mut vector_storage, mut quantized_storage, mut scalar_storage) = (None, None, None);
         let mut current_mode = IndexMode::Flat;
         if quant.enabled && quant.mode == types::QuantizationMode::Scalar {
-            if db_path.join("sq8_vectors.bin").exists() {
+            // Trained means the quantizer file exists: a crash during the
+            // first training can leave sq8_vectors.bin without it, and such
+            // a database simply trains again on the next batch.
+            if db_path.join(storage::sq::QUANTIZER_FILE).exists() {
                 scalar_storage = Some(ScalarQuantizedStorage::load(path, dimension)?);
             }
             current_mode = IndexMode::Sq8;
         } else if quant.enabled && quant.mode == types::QuantizationMode::Product {
-            if db_path.join("codebooks.bin").exists() {
+            if db_path.join(storage::pq::CODEBOOK_FILE).exists() {
                 quantized_storage = Some(QuantizedVectorStorage::load(path)?);
             }
         } else {
@@ -45,6 +48,7 @@ impl SrvDB {
             current_mode,
             dimension,
         };
+        db.recover()?;
 
         if config.index_type == types::IndexType::HNSW || db_path.join("hnsw.graph").exists() {
             db.attach_hnsw(hnsw::HNSWConfig::default())?;

@@ -1,4 +1,4 @@
-//! Persistence: flushing storage and saving indexes
+//! Persistence: the commit protocol from ADR 0003
 
 use super::*;
 
@@ -10,6 +10,7 @@ impl SrvDB {
             log::warn!("auto-tune migration skipped: {e}");
         }
 
+        // 1. Vectors on disk (fsync)
         if let Some(ref mut vstorage) = self.vector_storage {
             vstorage.flush()?;
         }
@@ -20,35 +21,18 @@ impl SrvDB {
             scalar.flush()?;
         }
 
+        // 2. The commit point (ADR 0003): metadata and the count are durable
+        let count = self.count();
+        self.metadata_store.commit(count)?;
+
+        // 3. Derived indexes, each replaced atomically
         if let Some(ref ivf) = self.ivf_index {
             storage::ivf::IVFStorage::save(ivf, &self.path)?;
         }
-
-        // HNSW Persistence
         if let Some(ref hnsw) = self.hnsw_index {
-            let graph_path = self.path.join("hnsw.graph");
-            let bytes = hnsw.to_bytes()?;
-            std::fs::write(graph_path, bytes)?;
+            storage::atomic::write_atomic(&self.path.join("hnsw.graph"), &hnsw.to_bytes()?)?;
         }
 
-        self.metadata_store.flush()?;
-        Ok(())
-    }
-
-    /// Make buffered vector writes visible to search.
-    ///
-    /// Cheap compared to `persist()`: only flushes vector storage (a no-op when
-    /// nothing was added) and does not serialize indexes or run auto-tuning.
-    pub fn sync(&mut self) -> Result<()> {
-        if let Some(ref mut vstorage) = self.vector_storage {
-            vstorage.flush()?;
-        }
-        if let Some(ref mut qstorage) = self.quantized_storage {
-            qstorage.flush()?;
-        }
-        if let Some(ref mut scalar) = self.scalar_storage {
-            scalar.flush()?;
-        }
         Ok(())
     }
 

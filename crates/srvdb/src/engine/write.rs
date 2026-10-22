@@ -16,12 +16,10 @@ impl SrvDB {
             return Ok(());
         }
 
-        let Some(ref mut vstorage) = self.vector_storage else {
+        // Appended vectors are readable immediately (RecordFile)
+        let Some(ref vstorage) = self.vector_storage else {
             return Ok(());
         };
-        // Graph insertion reads vectors back through the mmap
-        vstorage.make_visible()?;
-        let vstorage = &*vstorage;
 
         let distance_fn = |a_id: u64, b_id: u64| -> f32 {
             if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
