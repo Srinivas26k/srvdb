@@ -1,102 +1,98 @@
-//! `Database` methods: insert, search, delete and maintenance
+//! `Database` methods: search, lookup and maintenance
+//!
+//! Every method goes through `read` or `write` (database.rs), so it is safe
+//! to call from several Python threads at once.
 
-use crate::database::PyDatabase;
+use crate::database::{PyDatabase, State};
 use crate::errors::to_py;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use srvdb::VectorEngine;
+use srvdb::{SearchResult, VectorEngine};
+
+/// Translate internal ids to string ids, dropping entries without one
+fn named(state: &State, results: Vec<SearchResult>) -> Vec<(String, f32)> {
+    results
+        .into_iter()
+        .filter_map(|r| {
+            state
+                .reverse_id_map
+                .get(&r.id)
+                .map(|id| (id.clone(), r.score))
+        })
+        .collect()
+}
 
 #[pymethods]
 impl PyDatabase {
-    /// Search for k nearest neighbors
-    ///
-    /// Args:
-    ///     query: Query vector (must match database dimension)
-    ///     k: Number of results
+    /// Search for the k nearest neighbours of `query`.
     ///
     /// Returns:
-    ///     List of (id, score) tuples sorted by score descending
+    ///     List of (id, score) tuples, best first
     ///
-    /// Releases the GIL; several threads may search one Database at once.
+    /// Releases the GIL; searches from several threads run in parallel.
     fn search(&self, py: Python<'_>, query: Vec<f32>, k: usize) -> PyResult<Vec<(String, f32)>> {
         let query = srvdb::Vector::new(query);
-        let results = py
-            .detach(|| VectorEngine::search(&self.db, &query, k))
-            .map_err(to_py)?;
-
-        Ok(results
-            .into_iter()
-            .filter_map(|r| {
-                self.reverse_id_map
-                    .get(&r.id)
-                    .map(|id| (id.clone(), r.score))
-            })
-            .collect())
+        self.read(py, |s| {
+            let results = VectorEngine::search(&s.db, &query, k).map_err(to_py)?;
+            Ok(named(s, results))
+        })
     }
 
-    /// Batch search; releases the GIL like search()
+    /// Search for several queries at once; releases the GIL like search()
     fn search_batch(
         &self,
         py: Python<'_>,
         queries: Vec<Vec<f32>>,
         k: usize,
     ) -> PyResult<Vec<Vec<(String, f32)>>> {
-        let query_vecs: Vec<srvdb::Vector> = queries.into_iter().map(srvdb::Vector::new).collect();
-
-        let results = py
-            .detach(|| VectorEngine::search_batch(&self.db, &query_vecs, k))
-            .map_err(to_py)?;
-
-        Ok(results
-            .into_iter()
-            .map(|batch| {
-                batch
-                    .into_iter()
-                    .filter_map(|r| {
-                        self.reverse_id_map
-                            .get(&r.id)
-                            .map(|id| (id.clone(), r.score))
-                    })
-                    .collect()
-            })
-            .collect())
+        let queries: Vec<srvdb::Vector> = queries.into_iter().map(srvdb::Vector::new).collect();
+        self.read(py, |s| {
+            let batches = VectorEngine::search_batch(&s.db, &queries, k).map_err(to_py)?;
+            Ok(batches.into_iter().map(|b| named(s, b)).collect())
+        })
     }
 
-    fn get(&self, id: String) -> PyResult<Option<String>> {
-        let internal_id = self
-            .id_map
-            .get(&id)
-            .ok_or_else(|| PyValueError::new_err(format!("ID not found: {}", id)))?;
-
-        VectorEngine::get_metadata(&self.db, *internal_id).map_err(to_py)
+    /// Metadata stored for `id`
+    fn get(&self, py: Python<'_>, id: String) -> PyResult<Option<String>> {
+        self.read(py, |s| {
+            let internal_id = s
+                .id_map
+                .get(&id)
+                .ok_or_else(|| PyValueError::new_err(format!("ID not found: {id}")))?;
+            VectorEngine::get_metadata(&s.db, *internal_id).map_err(to_py)
+        })
     }
 
     /// Number of searchable vectors (deleted ones are not counted)
-    fn count(&self) -> usize {
-        self.db.live_count() as usize
+    fn count(&self, py: Python<'_>) -> PyResult<usize> {
+        self.read(py, |s| Ok(s.db.live_count() as usize))
     }
 
-    fn persist(&mut self) -> PyResult<()> {
-        VectorEngine::persist(&mut self.db).map_err(to_py)
+    /// Make everything written so far durable (crash-safe commit)
+    fn persist(&self, py: Python<'_>) -> PyResult<()> {
+        self.write(py, |s| VectorEngine::persist(&mut s.db).map_err(to_py))
     }
 
-    /// Get all IDs in the database
-    fn get_all_ids(&self) -> PyResult<Vec<String>> {
-        Ok(self.id_map.keys().cloned().collect())
+    /// Every string id in the database
+    fn get_all_ids(&self, py: Python<'_>) -> PyResult<Vec<String>> {
+        self.read(py, |s| Ok(s.id_map.keys().cloned().collect()))
     }
 
-    /// Set index mode
-    fn set_mode(&mut self, mode: String) -> PyResult<()> {
-        match mode.to_lowercase().as_str() {
-            "flat" => self.db.set_mode(srvdb::IndexMode::Flat),
-            "hnsw" => self.db.set_mode(srvdb::IndexMode::Hnsw),
-            "sq8" | "scalar" => self.db.set_mode(srvdb::IndexMode::Sq8),
-            "ivf" => self.db.set_mode(srvdb::IndexMode::Ivf),
-            "auto" => self.db.set_mode(srvdb::IndexMode::Auto),
-            _ => return Err(PyValueError::new_err(format!("Invalid mode: {}", mode))),
-        }
-        self.index_type = mode;
-        Ok(())
+    /// Switch the index mode: 'flat', 'hnsw', 'sq8', 'ivf' or 'auto'
+    fn set_mode(&self, py: Python<'_>, mode: String) -> PyResult<()> {
+        let index_mode = match mode.to_lowercase().as_str() {
+            "flat" => srvdb::IndexMode::Flat,
+            "hnsw" => srvdb::IndexMode::Hnsw,
+            "sq8" | "scalar" => srvdb::IndexMode::Sq8,
+            "ivf" => srvdb::IndexMode::Ivf,
+            "auto" => srvdb::IndexMode::Auto,
+            _ => return Err(PyValueError::new_err(format!("Invalid mode: {mode}"))),
+        };
+        self.write(py, |s| {
+            s.db.set_mode(index_mode);
+            s.index_type = mode;
+            Ok(())
+        })
     }
 
     /// Configure IVF parameters
@@ -105,7 +101,7 @@ impl PyDatabase {
     ///     nlist: Number of partitions (centroids)
     ///     nprobe: Number of partitions to search (search quality vs speed)
     #[pyo3(signature = (nlist=100, nprobe=10))]
-    fn configure_ivf(&mut self, nlist: usize, nprobe: usize) -> PyResult<()> {
+    fn configure_ivf(&self, py: Python<'_>, nlist: usize, nprobe: usize) -> PyResult<()> {
         let config = srvdb::ivf::IVFConfig {
             nlist,
             nprobe,
@@ -113,35 +109,33 @@ impl PyDatabase {
             tolerance: 0.001,
             hnsw_config: Default::default(),
         };
-        self.db.configure_ivf(config).map_err(to_py)
+        self.write(py, |s| s.db.configure_ivf(config).map_err(to_py))
     }
 
-    /// Train IVF index
-    fn train_ivf(&mut self) -> PyResult<()> {
-        // Python holds the GIL, but training is heavy. Release GIL?
-        // Yes, allow threads.
-        Python::attach(|py| py.detach(|| self.db.train_ivf())).map_err(to_py)
+    /// Train the IVF index on the stored vectors (releases the GIL)
+    fn train_ivf(&self, py: Python<'_>) -> PyResult<()> {
+        self.write(py, |s| s.db.train_ivf().map_err(to_py))
     }
 
-    fn info(&self) -> PyResult<String> {
-        let stats = if let Some(stats) = self.db.get_stats() {
-            format!(
-                "vectors={}, memory={}MB, compression={:.1}x",
-                stats.vector_count,
-                stats.memory_bytes / 1024 / 1024,
-                stats.compression_ratio
-            )
-        } else {
-            format!("vectors={}", self.count())
-        };
-
-        Ok(format!(
-            "SrvDB(dimension={}, mode='{}', {})",
-            self.dimension, self.index_type, stats
-        ))
+    fn info(&self, py: Python<'_>) -> PyResult<String> {
+        self.read(py, |s| {
+            let stats = match s.db.get_stats() {
+                Some(stats) => format!(
+                    "vectors={}, memory={}MB, compression={:.1}x",
+                    stats.vector_count,
+                    stats.memory_bytes / 1024 / 1024,
+                    stats.compression_ratio
+                ),
+                None => format!("vectors={}", s.db.live_count()),
+            };
+            Ok(format!(
+                "SrvDB(dimension={}, mode='{}', {stats})",
+                s.dimension, s.index_type
+            ))
+        })
     }
 
-    fn __repr__(&self) -> PyResult<String> {
-        self.info()
+    fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+        self.info(py)
     }
 }

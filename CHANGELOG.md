@@ -52,8 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BlockingIOError` instead of risking corruption. The lock is released
   automatically when a process exits, even on a crash (ADR 0005).
 - `SrvDB` is `Send + Sync`: searches run in parallel through `&SrvDB`.
-- Python releases the GIL during `add`, `upsert`, `compact` and searches;
-  searches from several threads on one `Database` run in parallel.
+- A Python `Database` is safe to share between threads without your own
+  lock: every method releases the GIL, searches run in parallel, and
+  writes wait for each other instead of failing.
 - Requires Rust 1.89 or newer to build.
 
 ### Durability

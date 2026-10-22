@@ -35,13 +35,19 @@ on a crash, so a stale lock never blocks recovery.
 
 ### Python
 
-- Search methods borrow the database shared and release the GIL, so
-  searches from several Python threads run in parallel.
-- `add`, `upsert` and `compact` release the GIL during the work, so
-  other Python threads keep running.
-- A call that overlaps a write on the same `Database` object raises an
-  error from PyO3's borrow check instead of racing; applications that
-  write from several threads use their own lock.
+- A `Database` is safe to share between threads without any lock of
+  the caller's. Its state (the `SrvDB` and the string-id maps) sits
+  behind one `RwLock`: searches take it shared and run in parallel,
+  writes take it exclusively, and other calls wait instead of failing.
+- Every method releases the GIL before waiting for the lock. A thread
+  that held the GIL while waiting could block a writer that needs the
+  GIL, and both would hang. Python objects are built only after the lock
+  is released.
+- A panic while the lock is held poisons it; later calls raise a
+  `RuntimeError` asking to reopen the database instead of using
+  half-updated state.
+- (Revised: an earlier version raised an error when a call overlapped a
+  write and left locking to the application.)
 
 ## Alternatives considered
 

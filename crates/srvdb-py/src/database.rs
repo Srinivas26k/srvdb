@@ -1,12 +1,13 @@
 //! `Database` class: construction and id-map bookkeeping
 
 use crate::errors::to_py;
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use rustc_hash::FxHashMap;
+use std::sync::RwLock;
 
-#[pyclass(name = "Database", module = "srvdb")]
-pub struct PyDatabase {
+/// Everything a Python `Database` owns, behind one lock
+pub(crate) struct State {
     pub(crate) db: srvdb::SrvDB,
     pub(crate) id_map: FxHashMap<String, u64>,
     pub(crate) reverse_id_map: FxHashMap<u64, String>,
@@ -14,21 +15,7 @@ pub struct PyDatabase {
     pub(crate) index_type: String,
 }
 
-impl PyDatabase {
-    /// Wrap a database, rebuilding the string-id maps from the `__id__`
-    /// field persisted in each metadata entry.
-    fn from_db(db: srvdb::SrvDB, dimension: usize, index_type: String) -> PyResult<Self> {
-        let mut this = Self {
-            db,
-            id_map: FxHashMap::default(),
-            reverse_id_map: FxHashMap::default(),
-            dimension,
-            index_type,
-        };
-        this.load_id_maps()?;
-        Ok(this)
-    }
-
+impl State {
     /// Rebuild the string-id maps from metadata (on open and after
     /// compaction, which renumbers internal ids).
     pub(crate) fn load_id_maps(&mut self) -> PyResult<()> {
@@ -46,6 +33,61 @@ impl PyDatabase {
             }
         }
         Ok(())
+    }
+}
+
+/// A SrvDB database, safe to share between Python threads (ADR 0005).
+///
+/// Searches share a read lock and run in parallel; writes take the lock
+/// exclusively, so other calls wait for them instead of failing. The lock is
+/// always waited on with the GIL released: a thread holding the GIL while
+/// waiting could block a writer that needs the GIL, and both would hang.
+#[pyclass(name = "Database", module = "srvdb", frozen)]
+pub struct PyDatabase {
+    state: RwLock<State>,
+}
+
+/// A panic while holding the lock leaves the state possibly half-updated
+fn poisoned() -> PyErr {
+    PyRuntimeError::new_err(
+        "this Database is unusable after an internal error; open it again \
+         (committed data is safe)",
+    )
+}
+
+impl PyDatabase {
+    /// Wrap a database, rebuilding the string-id maps from the `__id__`
+    /// field persisted in each metadata entry.
+    fn from_db(db: srvdb::SrvDB, dimension: usize, index_type: String) -> PyResult<Self> {
+        let mut state = State {
+            db,
+            id_map: FxHashMap::default(),
+            reverse_id_map: FxHashMap::default(),
+            dimension,
+            index_type,
+        };
+        state.load_id_maps()?;
+        Ok(Self {
+            state: RwLock::new(state),
+        })
+    }
+
+    /// Run `f` under the shared lock, with the GIL released
+    pub(crate) fn read<R: Send>(
+        &self,
+        py: Python<'_>,
+        f: impl FnOnce(&State) -> PyResult<R> + Send,
+    ) -> PyResult<R> {
+        py.detach(|| f(&*self.state.read().map_err(|_| poisoned())?))
+    }
+
+    /// Run `f` under the exclusive lock, with the GIL released
+    pub(crate) fn write<R: Send>(
+        &self,
+        py: Python<'_>,
+        f: impl FnOnce(&mut State) -> PyResult<R> + Send,
+    ) -> PyResult<R> {
+        py.detach(|| f(&mut *self.state.write().map_err(|_| poisoned())?))
     }
 }
 

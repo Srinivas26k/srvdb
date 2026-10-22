@@ -1,6 +1,6 @@
 //! `Database` write methods: add, upsert and delete
 
-use crate::database::PyDatabase;
+use crate::database::{PyDatabase, State};
 use crate::errors::to_py;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -18,19 +18,26 @@ impl PyDatabase {
     ///
     /// Returns:
     ///     Number of vectors added
+    ///
+    /// Releases the GIL. Safe to call from several threads; concurrent
+    /// calls on the same Database wait for each other.
     fn add(
-        &mut self,
+        &self,
         py: Python<'_>,
         ids: Vec<String>,
         embeddings: Vec<Vec<f32>>,
         metadatas: Vec<String>,
     ) -> PyResult<usize> {
-        if let Some(id) = ids.iter().find(|id| self.id_map.contains_key(*id)) {
-            return Err(PyValueError::new_err(format!(
-                "id '{id}' already exists; use upsert() to replace it or delete() it first"
-            )));
-        }
-        self.write(py, ids, embeddings, metadatas)
+        let batch = Batch::new(ids, embeddings, metadatas)?;
+        self.write(py, |s| {
+            // Checked under the lock, so no other thread can add it meanwhile
+            if let Some(id) = batch.ids.iter().find(|id| s.id_map.contains_key(*id)) {
+                return Err(PyValueError::new_err(format!(
+                    "id '{id}' already exists; use upsert() to replace it or delete() it first"
+                )));
+            }
+            batch.store(s)
+        })
     }
 
     /// Add new vectors and replace existing ones, by string id.
@@ -41,13 +48,14 @@ impl PyDatabase {
     /// Returns:
     ///     Number of vectors written
     fn upsert(
-        &mut self,
+        &self,
         py: Python<'_>,
         ids: Vec<String>,
         embeddings: Vec<Vec<f32>>,
         metadatas: Vec<String>,
     ) -> PyResult<usize> {
-        self.write(py, ids, embeddings, metadatas)
+        let batch = Batch::new(ids, embeddings, metadatas)?;
+        self.write(py, |s| batch.store(s))
     }
 
     /// Delete vectors by string id; unknown ids are ignored.
@@ -56,16 +64,18 @@ impl PyDatabase {
     ///
     /// Returns:
     ///     Number of vectors deleted
-    fn delete(&mut self, ids: Vec<String>) -> PyResult<usize> {
-        let mut deleted = 0;
-        for id in ids {
-            if let Some(internal_id) = self.id_map.remove(&id) {
-                self.reverse_id_map.remove(&internal_id);
-                self.db.delete(internal_id).map_err(to_py)?;
-                deleted += 1;
+    fn delete(&self, py: Python<'_>, ids: Vec<String>) -> PyResult<usize> {
+        self.write(py, |s| {
+            let mut deleted = 0;
+            for id in ids {
+                if let Some(internal_id) = s.id_map.remove(&id) {
+                    s.reverse_id_map.remove(&internal_id);
+                    s.db.delete(internal_id).map_err(to_py)?;
+                    deleted += 1;
+                }
             }
-        }
-        Ok(deleted)
+            Ok(deleted)
+        })
     }
 
     /// Remove deleted vectors from disk.
@@ -76,40 +86,47 @@ impl PyDatabase {
     ///
     /// Returns:
     ///     Number of vectors removed
-    fn compact(&mut self, py: Python<'_>) -> PyResult<u64> {
-        let db = &mut self.db;
-        let removed = py.detach(|| db.compact()).map_err(to_py)?;
-        self.load_id_maps()?;
-        Ok(removed)
+    fn compact(&self, py: Python<'_>) -> PyResult<u64> {
+        self.write(py, |s| {
+            let removed = s.db.compact().map_err(to_py)?;
+            s.load_id_maps()?;
+            Ok(removed)
+        })
     }
 }
 
-impl PyDatabase {
-    /// Validate a whole batch, store it, then retire the vectors that
-    /// existing ids pointed to. Nothing changes if validation fails.
-    /// Releases the GIL while vectors are stored and indexed.
-    fn write(
-        &mut self,
-        py: Python<'_>,
-        ids: Vec<String>,
-        embeddings: Vec<Vec<f32>>,
-        metadatas: Vec<String>,
-    ) -> PyResult<usize> {
-        let metas = prepare(&ids, &embeddings, &metadatas)?;
-        let vectors: Vec<srvdb::Vector> = embeddings.into_iter().map(srvdb::Vector::new).collect();
-        let db = &mut self.db;
-        let internal_ids = py
-            .detach(|| VectorEngine::add_batch(db, &vectors, &metas))
-            .map_err(to_py)?;
+/// A validated batch, ready to store
+struct Batch {
+    ids: Vec<String>,
+    vectors: Vec<srvdb::Vector>,
+    metas: Vec<String>,
+}
 
-        for (id, internal_id) in ids.iter().zip(internal_ids) {
-            if let Some(old) = self.id_map.insert(id.clone(), internal_id) {
-                self.reverse_id_map.remove(&old);
-                self.db.delete(old).map_err(to_py)?;
+impl Batch {
+    /// Validate lengths, ids and metadata (no lock needed)
+    fn new(ids: Vec<String>, embeddings: Vec<Vec<f32>>, metadatas: Vec<String>) -> PyResult<Self> {
+        let metas = prepare(&ids, &embeddings, &metadatas)?;
+        let vectors = embeddings.into_iter().map(srvdb::Vector::new).collect();
+        Ok(Self {
+            ids,
+            vectors,
+            metas,
+        })
+    }
+
+    /// Store the batch, then retire the vectors that existing ids pointed
+    /// to. Runs under the exclusive lock.
+    fn store(self, s: &mut State) -> PyResult<usize> {
+        let internal_ids =
+            VectorEngine::add_batch(&mut s.db, &self.vectors, &self.metas).map_err(to_py)?;
+        for (id, internal_id) in self.ids.iter().zip(internal_ids) {
+            if let Some(old) = s.id_map.insert(id.clone(), internal_id) {
+                s.reverse_id_map.remove(&old);
+                s.db.delete(old).map_err(to_py)?;
             }
-            self.reverse_id_map.insert(internal_id, id.clone());
+            s.reverse_id_map.insert(internal_id, id.clone());
         }
-        Ok(ids.len())
+        Ok(self.ids.len())
     }
 }
 
