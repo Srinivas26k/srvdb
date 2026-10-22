@@ -55,7 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A Python `Database` is safe to share between threads without your own
   lock: every method releases the GIL, searches run in parallel, and
   writes wait for each other instead of failing.
-- Requires Rust 1.89 or newer to build.
+- Building from source requires Rust 1.99 or newer (wheels from PyPI need no
+  Rust toolchain).
 
 ### Durability
 - `persist()` is now a real commit point (ADR 0003): everything added
