@@ -39,7 +39,8 @@ jobs:
           - { os: ubuntu-24.04, target: x86_64 }
           - { os: ubuntu-24.04, target: aarch64 }
           - { os: macos-latest, target: aarch64 }
-          - { os: macos-13, target: x86_64 }
+          # macos-13 was retired; macos-15-intel is the Intel macOS runner
+          - { os: macos-15-intel, target: x86_64 }
           - { os: windows-latest, target: x64 }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
