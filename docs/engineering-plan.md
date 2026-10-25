@@ -171,11 +171,10 @@ the same directory fails. That is accidental, not designed. In-process,
   third-party permission. Before accepting outside contributions, add a CLA
   or DCO-plus-licence-grant policy, otherwise future dual licensing gets
   harder.
-- **Inconsistency:** `Cargo.toml` says `AGPL-3.0-only`; the PyPI classifier
-  says `AGPLv3+` (or later). Pick one (recommend `AGPL-3.0-only` for a
-  dual-licence model) and align both files and the README.
+- **Resolved (ADR 0006):** SrvDB is licensed Apache-2.0 from 0.3; Cargo,
+  PyPI metadata and the README agree.
 - **Dependencies:** all Rust dependencies are MIT, Apache-2.0, BSD,
-  Unlicense or compatible dual licences; none conflict with AGPL or
+  Unlicense or compatible dual licences; none conflict with Apache-2.0 or
   proprietary licensing. Add `cargo-deny` to CI to keep it that way.
 - Commits before `01c5d83` (2025-12-25 21:44) shipped without a licence
   file; as sole author this does not create obligations, but note it in

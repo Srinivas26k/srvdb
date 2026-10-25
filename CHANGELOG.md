@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Licence
+- SrvDB is now licensed under the Apache License 2.0 (was AGPL-3.0), so it
+  can be used in open-source and commercial products alike (ADR 0006).
+  Releases up to 0.2.0 remain under AGPL-3.0.
+
 ### Changed
 - The Python class is now `srvdb.Database` (was `srvdb.SrvDBPython`). The
   old name still works but emits a `DeprecationWarning` and will be removed

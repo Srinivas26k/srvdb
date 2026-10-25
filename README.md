@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Rust](https://img.shields.io/badge/rust-1.99+-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-AGPL-red.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](docs/index.md)
 
 **[📚 Read the Full Documentation](docs/index.md)**
@@ -190,20 +190,12 @@ Benchmark results from different hardware are welcome in
 
 ## License
 
-SrvDB is open-source software licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**.
+SrvDB is licensed under the [Apache License 2.0](LICENSE): free to use,
+modify and ship in open-source and commercial products, with an explicit
+patent grant. Releases up to and including 0.2.0 were published under
+AGPL-3.0.
 
-### 🟢 Open Source Use
-You are free to use SrvDB for personal projects, academic research, and open-source applications under the terms of the AGPLv3.
-
-### 🔴 Commercial & Cloud Use
-If you are building a proprietary application, a cloud service (SaaS), or embedding SrvDB in a commercial product where you cannot or do not wish to open-source your code, you must purchase a **Commercial License**.
-
-**Commercial Licensing Benefits:**
-* Exemption from AGPLv3 open-source requirements.
-* Priority support & direct access to the maintainer.
-* Legal assurance for enterprise deployment.
-
-For commercial licensing inquiries, please contact: **srinivasvarma764@gmail.com**
+Commercial support and consulting: **srinivasvarma764@gmail.com**
 
 ---
 
