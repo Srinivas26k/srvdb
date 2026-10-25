@@ -7,3 +7,6 @@ dist
 python/srvdb/*.so
 python/srvdb/*.pyd
 __pycache__/
+
+# Brand kit build font (download, do not commit)
+assets/brand/tools/font/
