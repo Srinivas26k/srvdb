@@ -99,8 +99,13 @@ machine lost power.
 
 ## Security issues
 
-Do not open a public issue for a vulnerability. Email
-<srinivasvarma764@gmail.com> with details and a reproduction.
+Do not open a public issue for a vulnerability. Follow
+[SECURITY.md](SECURITY.md): report privately through GitHub or by email.
+
+## Code of conduct
+
+Everyone taking part in SrvDB follows the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Licence
 
