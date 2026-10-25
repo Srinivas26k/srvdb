@@ -93,3 +93,10 @@ def test_old_class_name_still_works_with_warning(tmp_path):
         cls = srvdb.SrvDBPython
     assert cls is srvdb.Database
     assert cls(str(tmp_path), dimension=DIM).count() == 0
+
+
+def test_set_ef_search(tmp_path):
+    db = srvdb.Database.new_hnsw(str(tmp_path), dimension=DIM)
+    db.set_ef_search(200)
+    with pytest.raises(ValueError, match="at least 1"):
+        db.set_ef_search(0)

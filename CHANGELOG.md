@@ -78,6 +78,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no longer open it).
 
 ### Fixed
+- HNSW with PQ storage (`new_with_hnsw_quantized`) now builds its graph;
+  it indexed nothing before, so every search returned no results. The
+  graph is saved by `persist()`, and calling the constructor on an
+  existing database reopens it with its codebooks instead of failing.
+- Auto mode now only chooses an index: above the size threshold it builds
+  an HNSW graph (saved by `persist()` and reloaded on open). It no longer
+  converts storage to SQ8 behind the caller's back, and the mode stays
+  `Auto` after the decision.
+- A trained IVF index is reloaded when the database is opened; it used to
+  be saved by `persist()` but never read back, so it had to be retrained
+  after every restart.
+- `search_batch()` uses the active index (HNSW, IVF, SQ8, PQ) like
+  `search()`; it used to scan every vector exactly, ignoring the index.
+- `set_ef_search()` now changes HNSW search quality (it edited a copy that
+  search never read); it applies to IVF partitions too, is saved with the
+  index, rejects 0 and is available from Python.
+- Search scores are true cosine similarities in [-1, 1]. Flat (and HNSW
+  and IVF) search used to report (1 + cos) / 2, so an orthogonal vector
+  scored 0.5 and scores differed in scale from SQ8 search. Result order is
+  unchanged; code with score thresholds should be checked.
 - HNSW inserts from multiple threads (used to fill IVF partitions) could
   leave vectors unfindable and could panic.
 - IVF searches no longer hide errors from individual partitions.

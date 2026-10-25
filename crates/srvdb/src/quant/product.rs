@@ -98,6 +98,20 @@ impl ProductQuantizer {
         quantized
     }
 
+    /// Approximate reconstruction of a quantized vector: the chosen
+    /// centroid of every sub-space, concatenated. `None` if `codes` does not
+    /// match this quantizer (wrong length or an unknown centroid index).
+    pub fn decode(&self, codes: &[u8]) -> Option<Vec<f32>> {
+        if codes.len() != self.m {
+            return None;
+        }
+        let mut vector = Vec::with_capacity(self.m * self.d_sub);
+        for (codebook, &code) in self.codebooks.iter().zip(codes) {
+            vector.extend_from_slice(codebook.centroids.get(code as usize)?);
+        }
+        Some(vector)
+    }
+
     // Legacy alias
     pub fn encode(&self, vector: &[f32]) -> QuantizedVector {
         self.quantize(vector)

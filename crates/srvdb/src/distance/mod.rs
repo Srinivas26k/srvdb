@@ -22,9 +22,11 @@ use std::collections::HashSet;
 pub(crate) const BATCH_SIZE: usize = 256; // Process 256 vectors at once for cache efficiency
 
 #[inline]
+/// Cosine similarity in [-1, 1] (1 = same direction). simsimd returns the
+/// cosine distance, 1 - cos; a failed computation counts as opposite (-1).
 pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     let distance = f32::cosine(a, b).unwrap_or(2.0) as f32;
-    1.0 - (distance / 2.0)
+    1.0 - distance
 }
 
 #[inline]
@@ -125,6 +127,18 @@ pub fn search_batch(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cosine_similarity_is_the_true_cosine() {
+        let a = [1.0f32, 0.0, 0.0, 0.0];
+        let close = [1.0f32, 1.0, 0.0, 0.0];
+        let orthogonal = [0.0f32, 1.0, 0.0, 0.0];
+        let opposite = [-2.0f32, 0.0, 0.0, 0.0];
+        assert!((cosine_similarity(&a, &a) - 1.0).abs() < 1e-5);
+        assert!((cosine_similarity(&a, &close) - std::f32::consts::FRAC_1_SQRT_2).abs() < 1e-5);
+        assert!(cosine_similarity(&a, &orthogonal).abs() < 1e-5);
+        assert!((cosine_similarity(&a, &opposite) + 1.0).abs() < 1e-5);
+    }
     use crate::VectorStorage;
     use tempfile::TempDir;
 

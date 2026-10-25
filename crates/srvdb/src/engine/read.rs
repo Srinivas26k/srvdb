@@ -95,54 +95,18 @@ impl SrvDB {
         enriched_results
     }
 
+    /// Search several queries in parallel, each exactly as `search_vectors`
+    /// would (same index, tombstones and metadata).
     pub(super) fn search_vectors_batch(
         &self,
         queries: &[Vector],
         k: usize,
     ) -> Result<Vec<Vec<SearchResult>>> {
+        use rayon::prelude::*;
         validate::k(k)?;
-        for query in queries {
-            validate::vector(&query.data, self.dimension)?;
-        }
-        let embedded_queries: Vec<Vec<f32>> = queries.iter().map(|q| q.data.clone()).collect();
-
-        let batch_results = if let Some(ref scalar) = self.scalar_storage {
-            // SQ8 lacks a dedicated batch search for now, use loop
-            let mut results = Vec::with_capacity(queries.len());
-            for query in embedded_queries {
-                results.push(scalar.search(query.as_slice(), k, &self.deleted)?);
-            }
-            results
-        } else if self.config.enabled {
-            if let Some(ref qstorage) = self.quantized_storage {
-                search::search_quantized_batch(qstorage, &embedded_queries, k, &self.deleted)?
-            } else {
-                return Err(Error::invalid_state(
-                    "Quantization enabled but quantized storage not initialized",
-                ));
-            }
-        } else if let Some(ref vstorage) = self.vector_storage {
-            search::search_batch(vstorage, &embedded_queries, k, &self.deleted)?
-        } else {
-            return Err(Error::invalid_state("Vector storage not initialized"));
-        };
-
-        // Enrich with metadata
-        batch_results
-            .into_iter()
-            .map(|results| {
-                results
-                    .into_iter()
-                    .map(|(id, score)| {
-                        let metadata = self.metadata_store.get(id)?;
-                        Ok(SearchResult {
-                            id,
-                            score,
-                            metadata,
-                        })
-                    })
-                    .collect()
-            })
+        queries
+            .par_iter()
+            .map(|query| self.search_vectors(query, k))
             .collect()
     }
 }

@@ -57,6 +57,9 @@ impl SrvDB {
         if config.index_type == types::IndexType::HNSW || db_path.join("hnsw.graph").exists() {
             db.attach_hnsw(hnsw::HNSWConfig::default())?;
         }
+        if let Some(ivf) = storage::ivf::IVFStorage::load(db_path)? {
+            db.attach_ivf(ivf)?;
+        }
 
         Ok(db)
     }
@@ -64,7 +67,7 @@ impl SrvDB {
     /// Enable HNSW: load `hnsw.graph` if present (its stored config wins),
     /// otherwise start a new graph. Stored vectors missing from the graph
     /// (e.g. added after the last persist) are indexed.
-    pub(super) fn attach_hnsw(&mut self, config: hnsw::HNSWConfig) -> Result<()> {
+    pub(crate) fn attach_hnsw(&mut self, config: hnsw::HNSWConfig) -> Result<()> {
         let graph_path = self.path.join("hnsw.graph");
         let loaded = if graph_path.exists() {
             match std::fs::read(&graph_path)
@@ -85,12 +88,34 @@ impl SrvDB {
         let indexed = index.len() as u64;
         self.hnsw_index = Some(index);
         self.hnsw_config = Some(config);
-        self.index_type = types::IndexType::HNSW;
         self.current_mode = IndexMode::Hnsw;
 
-        let count = self.vector_storage.as_ref().map_or(0, |s| s.count());
+        let count = if let Some(ref qstorage) = self.quantized_storage {
+            self.index_type = types::IndexType::HNSWQuantized;
+            qstorage.count()
+        } else {
+            self.index_type = types::IndexType::HNSW;
+            self.vector_storage.as_ref().map_or(0, |s| s.count())
+        };
         let missing: Vec<u64> = (indexed..count).collect();
         self.index_new_ids(&missing)
+    }
+
+    /// Use a saved IVF index: switch to IVF mode and index vectors committed
+    /// after the index was saved. An index covering more vectors than are
+    /// committed (not produced by SrvDB itself) is retrained instead.
+    fn attach_ivf(&mut self, ivf: ivf::IVFIndex) -> Result<()> {
+        let covered: u64 = ivf.partitions.iter().map(|p| p.read().len() as u64).sum();
+        self.ivf_config = Some(ivf.config.clone());
+        self.ivf_index = Some(ivf);
+        self.current_mode = IndexMode::Ivf;
+        let count = self.count();
+        if covered > count {
+            log::warn!("ivf.index covers {covered} vectors but {count} are committed; retraining");
+            return self.train_ivf();
+        }
+        let missing: Vec<u64> = (covered..count).collect();
+        self.index_into(&missing, false, true)
     }
 
     /// Train quantized storage from the first vectors added when the
