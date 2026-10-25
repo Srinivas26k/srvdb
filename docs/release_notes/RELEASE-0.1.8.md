@@ -24,7 +24,7 @@ This release introduces **HNSW (Hierarchical Navigable Small World)** approximat
 1. **HNSW with Full Precision**
    ```python
    import srvdb
-   
+
    # Create database with HNSW indexing
    db = srvdb.SrvDB.new_with_hnsw(
        "path/to/db",

@@ -21,7 +21,7 @@ def main():
     print("Initializing database...")
     # v0.2.0 requirement: dimension argument
     dim = 1536
-    db = srvdb.SrvDBPython("./python_demo_db", dimension=dim)
+    db = srvdb.Database("./python_demo_db", dimension=dim)
     print(f"✓ Created: {db}\n")
 
     # Prepare data
@@ -91,7 +91,7 @@ def main():
         
     print("Initializing SQ8 quantized database (4x compression)...")
     # SQ8 needs training data to init
-    db_sq = srvdb.SrvDBPython.new_scalar_quantized("./python_sq8_db", dim, embeddings)
+    db_sq = srvdb.Database.new_scalar_quantized("./python_sq8_db", dim, embeddings)
     print("✓ SQ8 Database initialized")
     
     db_sq.add(["sq_doc1"], [embeddings[0]], ['{"info": "minified"}'])

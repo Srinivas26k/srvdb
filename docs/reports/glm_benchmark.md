@@ -1,5 +1,10 @@
 # SrvDB Performance and Correctness Audit
 
+> **Historical report.** This audit measured SrvDB v0.1.8, before the 0.3
+> correctness fixes (in those versions the HNSW path could fall back to a flat
+> scan, HNSW with PQ indexed nothing, and scores were not true cosine). Its
+> numbers do not describe current releases and are kept for the record only.
+
 ## Abstract
 This document presents a comprehensive technical audit of SrvDB v0.1.8, a Rust-based embedded vector database. The evaluation focuses on ingestion throughput, search latency, memory efficiency, and correctness (Recall) using an adversarial dataset designed to mimic real-world semantic distributions. The benchmark was executed on constrained consumer hardware (Consumer NVMe SSD, 8-core CPU, 2GB available RAM) to assess performance under resource limitations typical of offline and edge-computing environments.
 
@@ -122,6 +127,6 @@ SrvDB v0.1.8 is a robust embedded database suitable for offline indexing and vec
 
 ---
 
-**Benchmark Tool**: `srvdb_ultimate_benchmark`  
-**Data Strategy**: 70% Random Gaussian / 30% Clustered Blobs (Adversarial Mix)  
+**Benchmark Tool**: `srvdb_ultimate_benchmark`
+**Data Strategy**: 70% Random Gaussian / 30% Clustered Blobs (Adversarial Mix)
 **Report Date**: 2025-12-26

@@ -1,0 +1,48 @@
+# Install once: pip install pre-commit && pre-commit install
+# Run on everything: pre-commit run --all-files
+# Hook revisions are pinned to commit SHAs (supply-chain rule in AGENTS.md).
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+        args: [--unsafe] # mkdocs.yml uses custom tags
+      - id: detect-private-key
+      - id: end-of-file-fixer
+        files: ^(crates|python|tests/python|scripts|docs|\.github)/
+      - id: trailing-whitespace
+        files: ^(crates|python|tests/python|scripts|docs|\.github)/
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 38bfb07c0c64c304f47eb52090f8288150c77730 # frozen: v0.17.1
+    hooks:
+      - id: ruff-check
+        files: ^(python|tests/python|scripts)/
+      - id: ruff-format
+        files: ^(python|tests/python|scripts)/
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --workspace --all-targets -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: file-length
+        name: 300-line file limit
+        entry: python3 scripts/check_file_length.py
+        language: system
+        types_or: [rust, python, pyi]
+        pass_filenames: false

@@ -1,0 +1,133 @@
+//! Engine-level unit tests
+
+use super::*;
+use tempfile::TempDir;
+
+#[test]
+fn test_batch_operations() {
+    let temp_dir = TempDir::new().unwrap();
+    let mut db = SrvDB::new(temp_dir.path().to_str().unwrap()).unwrap();
+
+    let vectors: Vec<Vector> = (0..100)
+        .map(|i| Vector::new(vec![i as f32 / 100.0; 1536]))
+        .collect();
+
+    let metas: Vec<String> = (0..100).map(|i| format!(r#"{{"id": {}}}"#, i)).collect();
+
+    let ids = db.add_batch(&vectors, &metas).unwrap();
+    assert_eq!(ids.len(), 100);
+
+    db.persist().unwrap();
+
+    let results = db.search(&vectors[0], 5).unwrap();
+    assert_eq!(results.len(), 5);
+    assert!(results[0].score > 0.99);
+}
+
+#[test]
+fn test_concurrent_search() {
+    use std::sync::Arc;
+    use std::thread;
+
+    let temp_dir = TempDir::new().unwrap();
+    let mut db = SrvDB::new(temp_dir.path().to_str().unwrap()).unwrap();
+
+    // Add vectors
+    let vectors: Vec<Vector> = (0..1000)
+        .map(|_| Vector::new(vec![rand::random::<f32>(); 1536]))
+        .collect();
+    let metas: Vec<String> = (0..1000).map(|i| format!(r#"{{"id": {}}}"#, i)).collect();
+    db.add_batch(&vectors, &metas).unwrap();
+    db.persist().unwrap();
+
+    let db = Arc::new(db);
+    let query = Vector::new(vec![0.5; 1536]);
+
+    // Spawn multiple search threads
+    let handles: Vec<_> = (0..8)
+        .map(|_| {
+            let db = Arc::clone(&db);
+            let q = query.clone();
+            thread::spawn(move || {
+                for _ in 0..100 {
+                    let _ = db.search(&q, 10);
+                }
+            })
+        })
+        .collect();
+
+    for h in handles {
+        h.join().unwrap();
+    }
+}
+
+#[test]
+fn rejects_invalid_input_without_writing() {
+    let temp_dir = TempDir::new().unwrap();
+    let path = temp_dir.path().to_str().unwrap();
+    let mut db = SrvDB::new_with_config(path, types::DatabaseConfig::new(128).unwrap()).unwrap();
+    let good = Vector::new(vec![0.1; 128]);
+    let mut nan = vec![0.1; 128];
+    nan[5] = f32::NAN;
+
+    let err = db.add(&Vector::new(vec![0.1; 64]), "{}").unwrap_err();
+    assert!(matches!(err, Error::DimensionMismatch { .. }));
+    let err = db.add(&Vector::new(nan.clone()), "{}").unwrap_err();
+    assert!(matches!(err, Error::InvalidInput(_)));
+    let err = db.add(&good, "not json").unwrap_err();
+    assert!(matches!(err, Error::InvalidInput(_)));
+
+    // One bad item rejects the whole batch before anything is stored
+    let batch = vec![good.clone(), Vector::new(nan)];
+    let metas = vec!["{}".to_string(), "{}".to_string()];
+    assert!(db.add_batch(&batch, &metas).is_err());
+    assert!(db.add_batch(&batch[..1], &metas).is_err());
+    assert_eq!(db.count(), 0);
+
+    db.add(&good, "{}").unwrap();
+    // Visible to search immediately, without persist()
+    assert!(matches!(db.search(&good, 0), Err(Error::InvalidInput(_))));
+    assert!(matches!(
+        db.search(&Vector::new(vec![0.1; 3]), 1),
+        Err(Error::DimensionMismatch { .. })
+    ));
+    assert!(db.search_batch(std::slice::from_ref(&good), 0).is_err());
+    assert_eq!(db.search(&good, 1).unwrap().len(), 1);
+}
+
+#[test]
+fn database_written_by_v02_opens_and_searches() {
+    // vectors.bin (unchanged format) plus metadata.db in redb 2.x format
+    let temp_dir = TempDir::new().unwrap();
+    let path = temp_dir.path().to_str().unwrap();
+    let vectors: Vec<Vec<f32>> = (0..3)
+        .map(|i| (0..128).map(|j| ((i * 37 + j) % 11) as f32 - 5.0).collect())
+        .collect();
+    {
+        let mut storage = VectorStorage::new(path, 128).unwrap();
+        storage.append_batch(&vectors).unwrap();
+        storage.flush().unwrap();
+    }
+    crate::storage::metadata::tests::write_v02_metadata(
+        temp_dir.path(),
+        &[
+            (0, r#"{"__id__": "a"}"#),
+            (1, r#"{"__id__": "b"}"#),
+            (2, r#"{"__id__": "c"}"#),
+        ],
+    );
+
+    let db = SrvDB::new_with_config(path, types::DatabaseConfig::new(128).unwrap()).unwrap();
+    assert_eq!(db.count(), 3);
+    assert_eq!(
+        db.get_metadata(1).unwrap().as_deref(),
+        Some(r#"{"__id__": "b"}"#)
+    );
+    assert_eq!(
+        db.search(&Vector::new(vectors[2].clone()), 1).unwrap()[0].id,
+        2
+    );
+    drop(db);
+    let db = SrvDB::new_with_config(path, types::DatabaseConfig::new(128).unwrap()).unwrap();
+    assert_eq!(db.count(), 3);
+}

@@ -1,445 +1,193 @@
-# SrvDB: Embedded Vector Database for Offline AI Applications
+<p align="center">
+  <a href="https://srinivas26k.github.io/srvdb/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/brand/png/srvdb-logo-horizontal-dark.png">
+      <img src="assets/brand/png/srvdb-logo-horizontal.png" alt="SrvDB" height="110">
+    </picture>
+  </a>
+</p>
 
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-AGPL-red.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](docs/index.md)
+<h3 align="center">The sharpest eye for your local AI.</h3>
 
-**[📚 Read the Full Documentation](docs/index.md)**
+<p align="center">
+  An embedded vector database that runs inside your app, needs no server,<br>
+  and keeps your data safe through crashes. Rust core, Python first.
+</p>
 
+<p align="center">
+  <a href="https://pypi.org/project/srvdb/"><img src="https://img.shields.io/pypi/v/srvdb?color=F2B134&labelColor=1B2A4A" alt="PyPI"></a>
+  <a href="https://pypi.org/project/srvdb/"><img src="https://img.shields.io/pypi/pyversions/srvdb?color=F2B134&labelColor=1B2A4A" alt="Python versions"></a>
+  <a href="https://github.com/Srinivas26k/srvdb/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Srinivas26k/srvdb/ci.yml?branch=master&label=CI&labelColor=1B2A4A" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-C8102E?labelColor=1B2A4A" alt="License: Apache-2.0"></a>
+</p>
 
-SrvDB is a Rust-based embedded vector database designed for offline and edge AI deployments. It provides exact nearest neighbor search with a focus on simplicity, deterministic behavior, and zero external dependencies.
-
----
-
-## Design Philosophy
-
-**Target Use Cases:**
-- **RAG (Retrieval-Augmented Generation)**: Local knowledge bases where accuracy is critical.
-- **Edge Deployment**: Raspberry Pi, mobile devices, and air-gapped systems.
-- **Desktop Analytics**: High-throughput batch processing on consumer hardware.
-- **Offline Applications**: Environments where network connectivity cannot be assumed.
-
-**Core Principles:**
-- **Simplicity**: Drop-in deployment (`pip install srvdb`) with zero configuration required.
-- **Accuracy First**: Exact search modes guarantee 100% recall, ensuring reliable AI responses.
-- **Resource Efficiency**: Optimized for low-memory CPUs and limited storage bandwidth.
-
----
-
-## Architecture
-
-```
-Storage Layer          Index Layer             API Layer
----------------        -----------------       --------------
-| vectors.bin |        | Flat Index    |       | Python API |
-| (mmap)      |        | (Exact)       |       | (PyO3)     |
-|             |        |               |       | (Native)   |
-| metadata.db |        | HNSW Graph    |       | Rust API   |
-| (redb)      |        | (Approximate) |       |            |
-|             |        |               |       |            |
-----------------       ----------------        --------------
-     ^                      ^                       ^
-  SIMD Accel          Thread Safety         GIL-Free Search
-(AVX-512/NEON)        (parking_lot)          (Concurrent)
-```
+<p align="center">
+  <a href="https://srinivas26k.github.io/srvdb/"><b>Documentation</b></a> ·
+  <a href="https://srinivas26k.github.io/srvdb/start/quickstart/">Quickstart</a> ·
+  <a href="https://srinivas26k.github.io/srvdb/guides/local-rag/">Local RAG guide</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="https://github.com/Srinivas26k/srvdb/discussions">Discussions</a>
+</p>
 
 ---
 
-## Performance Characteristics
+## Why SrvDB
 
-### Benchmarks on M1 MacBook (16GB RAM, Apple Silicon)
+- 🦅 **In-process, offline.** A library, not a service: no server, no Docker,
+  no network access. `pip install srvdb` and go.
+- 🛡️ **Crash-safe by design.** After `persist()` returns, your data survives a
+  crash or power loss, and the database reopens exactly as it was. Every write
+  path has a crash test.
+- 🎯 **Honest results.** True cosine scores in [-1, 1] in every mode. Bad input
+  (wrong dimension, NaN, duplicate ids, invalid metadata) is rejected before
+  anything is written.
+- ⚖️ **Your trade-off.** Exact search, HNSW, IVF, or 4× / up to 32× smaller
+  storage with SQ8 and PQ: one argument to switch.
+- 🧵 **Thread-safe.** Share one database between threads; every call releases
+  the GIL and searches run in parallel.
+- 🦀 **Rust inside.** SIMD distance kernels, typed errors, no Python runtime
+  dependencies. Usable from Rust too.
 
-| Mode | Ingestion | Search Latency (P99) | Memory (RAM) | Disk Usage | Recall@10 |
-|------|-----------|---------------------|--------------|------------|-----------|
-| Flat | 23,978 vec/s | 11.2ms | 78MB | 594MB | 99.9% |
-| HNSW | 23,562 vec/s | 10.6ms | 21MB | 594MB | 99.9% |
-| HNSW+PQ | 4,613 vec/s | 3.5ms | -79MB* | 28MB | 13.4%** |
-
-*Negative value indicates memory reclamation during PQ training  
-**PQ recall degrades significantly on clustered semantic data**
-
-### Benchmarks on Consumer Linux Laptop (5.6GB RAM, x86_64)
-
-| Mode | Ingestion | Search Latency (P99) | Memory (RAM) | Disk Usage | Recall@10 |
-|------|-----------|---------------------|--------------|------------|-----------|
-| Flat | 8,211 vec/s | 4.67ms | 42.16MB | 59.52MB | 99.9% |
-| HNSW | 8,772 vec/s | 6.73ms | -1.01MB | 59.52MB | 99.9% |
-| SQ8 (Scalar Quantization) | 9,560 vec/s | 45.79ms | 61.49MB | 16.03MB | 92.4% |
-| SQ8 (IVF-HNSW) | 2,142 vec/s | 5.98ms | 43.38MB | 16.03MB | 92.4% |
-
-**Observation**: The SQ8 mode offers 4x disk compression (60MB -> 16MB) but introduces significant latency (45ms). The IVF-HNSW variant attempts to mitigate this by combining compression with graph indexing but remains latency-bound compared to pure graph approaches.
-
----
-
-## Installation
+## Install
 
 ```bash
 pip install srvdb
 ```
 
-### Build from Source
+Wheels for Python 3.9–3.14 on Linux, macOS and Windows. Building from source
+needs Rust 1.99+ ([details](https://srinivas26k.github.io/srvdb/start/installation/)).
 
-```bash
-git clone https://github.com/Srinivas26k/srvdb
-cd srvdb
-cargo build --release --features python
-maturin develop --release
-```
-
----
-
-## Quick Start
+## 60-second quickstart
 
 ```python
+import json
 import srvdb
-import numpy as np
 
-# Initialize database (Default: 1536-dim, Flat mode)
-db = srvdb.SrvDBPython("./vectors", dimension=1536, mode="flat")
-
-# Bulk insert
-ids = [f"doc_{i}" for i in range(10000)]
-embeddings = np.random.randn(10000, 1536).astype(np.float32)
-metadatas = [f'{{"id": {i}}}' for i in range(10000)]
+db = srvdb.Database("./my-db", dimension=384)    # any dimension 128–4096
 
 db.add(
-    ids=ids,
-    embeddings=embeddings.tolist(),
-    metadatas=metadatas
+    ids=["intro", "pricing"],
+    embeddings=[intro_vector, pricing_vector],   # lists of 384 floats
+    metadatas=[json.dumps({"page": "intro"}), json.dumps({"page": "pricing"})],
+)
+db.persist()                                     # crash-safe from here on
+
+for doc_id, score in db.search(question_vector, k=5):
+    print(doc_id, round(score, 3), db.get(doc_id))
+
+db.upsert(ids=["pricing"], embeddings=[new_vector], metadatas=['{"page": "pricing", "v": 2}'])
+db.delete(["intro"])
+db.persist()
+```
+
+## Local RAG in a few lines
+
+```python
+import json
+import srvdb
+from sentence_transformers import SentenceTransformer   # pip install sentence-transformers
+
+model = SentenceTransformer("all-MiniLM-L6-v2")          # 384-dim, runs offline
+db = srvdb.Database("./rag-db", dimension=384)
+
+chunks = ["SrvDB stores vectors on local disk.", "persist() makes writes crash-safe."]
+db.upsert(
+    ids=[f"chunk-{i}" for i in range(len(chunks))],
+    embeddings=model.encode(chunks).tolist(),
+    metadatas=[json.dumps({"text": c}) for c in chunks],
 )
 db.persist()
 
-# Fast search
-results = db.search(query=[0.1] * 1536, k=10)
-
-for id, score in results:
-    print(f"{id}: {score:.4f}")
+question = model.encode("How do I make writes durable?").tolist()
+context = [json.loads(db.get(i))["text"] for i, _ in db.search(question, k=2)]
 ```
 
----
+Full walkthrough with chunking and a local LLM:
+[Build a local RAG app](https://srinivas26k.github.io/srvdb/guides/local-rag/).
 
-## Supported Embedding Models
+## Index modes
 
-**Supported Dimensions: 128 - 4096 (Runtime)**
+| Mode | Search | Storage per vector | Use when |
+|------|--------|--------------------|----------|
+| `flat` (default) | Exact | 4 B × dim | You want exact results |
+| `hnsw` | Graph, approximate | vectors + graph | Search must be faster on large data |
+| `ivf` | Partitions + graph | vectors + index | Very large collections |
+| `sq8` | Scan, approximate | 1 B × dim (4×) | Storage matters |
+| `pq` | Scan, approximate | dim ÷ 8 B (up to 32×) | Storage matters most |
+| `auto` | Flat, then HNSW | vectors | You'd rather not choose |
 
-**Compatible Models:**
-- OpenAI `text-embedding-ada-002` (1536-dim)
-- OpenAI `text-embedding-3-small` (1536-dim)
-- Nomic `nomic-embed-text-v1` (768-dim, 1536-dim variant)
-- Cohere `embed-english-v3.0` (1024-dim, unsupported) - *Use workaround below*
+Approximate modes trade accuracy for speed or size, depending on your data:
+measure recall against `flat` before switching.
+[How to choose](https://srinivas26k.github.io/srvdb/guides/index-modes/).
 
-**Workaround for Non-1536 Embeddings:**
-```python
-from sentence_transformers import SentenceTransformer
-import numpy as np
+## The durability promise
 
-# Load model
-model = SentenceTransformer('all-MiniLM-L6-v2')  # 384-dim
-texts = ["sample text 1", "sample text 2"]
-embeddings = model.encode(texts)  # Shape: (2, 384)
+> When `persist()` returns, every earlier `add`, `upsert` and `delete`
+> survives a process crash or power loss. After a crash the database reopens
+> in exactly the state of the last `persist()`: later writes are absent,
+> never half-present.
 
-# Pad to 1536 dimensions
-padded = np.pad(embeddings, ((0, 0), (0, 1536 - 384)), mode='constant')
-padded = padded.astype(np.float32)
+How it works: [Durability](https://srinivas26k.github.io/srvdb/guides/durability/) ·
+[ADR 0003](docs/adr/0003-durability.md).
 
-# Now compatible with SrvDB
-db.add(
-    ids=["id1", "id2"],
-    embeddings=padded.tolist(),
-    metadatas=['{"source": "text1"}', '{"source": "text2"}']
-)
-```
+## Performance
 
----
-
-## Indexing Modes
-
-### 1. Flat Index (Exact Search)
-**Description:** Brute-force linear scan with SIMD-accelerated cosine similarity.
-
-**When to Use:**
-- Datasets < 50,000 vectors.
-- 100% recall required.
-- Predictable latency needed.
-
-**Characteristics:**
-- Time Complexity: O(n)
-- Space Complexity: 6KB per vector (1536-dim x 4 bytes)
-- Recall: 100% (exact)
-
-### 2. HNSW Graph Index
-**Description:** Hierarchical Navigable Small World graph for O(log n) search.
-
-**When to Use:**
-- Datasets > 100,000 vectors.
-- Sub-millisecond latency required.
-- 95-99% recall acceptable.
-
-**Characteristics:**
-- Time Complexity: O(log n)
-- Space Complexity: ~6.2KB per vector (graph overhead: ~200 bytes)
-- Recall: 95-99.9% (configurable via `ef_search`)
-
-### 3. HNSW + Product Quantization (Memory-Efficient Hybrid)
-**Description:** Combines HNSW with 32x vector compression.
-
-**When to Use:**
-- Memory-constrained environments (edge devices).
-- Dataset > 500,000 vectors.
-- 85-95% recall acceptable.
-
-**Characteristics:**
-- Time Complexity: O(log n)
-- Space Complexity: ~392 bytes per vector (32x compression)
-- Recall: 90-95% (dependent on data distribution)
-
-**Critical Limitation:** PQ mode exhibits recall degradation (13-20%) on clustered semantic data (e.g., document embeddings from the same topic). It is safe for uniformly distributed data but **not recommended for RAG applications** unless high recall loss is acceptable.
-
-### 4. SQ8 (Scalar Quantization)
-**Description:** Stores vectors as 8-bit integers on disk with 32x compression. Optimized for read-heavy workloads.
-
-**When to Use:**
-- Read-mostly workloads (archival, backups).
-- Disk storage is at a premium.
-
-**Characteristics:**
-- Time Complexity: O(n) (Linear scan)
-- Space Complexity: ~1.5KB per vector (32-bit integer)
-- Recall: 92.4% (Adversarial Mix: 70% Random / 30% Clustered)
-- Latency: Significantly higher than HNSW (10-45ms P99 at 50k vectors).
-
-### 5. IVF-HNSW (Scalable Inverted File)
-**Description:** Partitions vector space into Voronoi cells (Inverted File) and refines candidates using HNSW. Optimized for datasets exceeding 1M vectors.
-
-**When to Use:**
-- Massive scale datasets (1M+ vectors).
-- Sub-10ms latency requirement (P99).
-- High recall (90-99%) maintained at scale.
-
-**Architecture:**
-- **Coarse Search:** Identifies closest Voronoi cell centers (partitions) for the query.
-- **Fine Search:** Performs HNSW graph traversal only within the selected partitions.
-- **Parallelism:** Uses Rayon for concurrent partition access.
-
-**Performance:**
-- Latency: ~6ms P50 at 100k vectors.
-- Scalability: Linear throughput up to 1M vectors.
-- Memory: Low overhead per partition compared to full graph.
-
----
-
-## API Reference
-
-### Initialization
-
-### Initialization
-
-```python
-# Standard Initialization
-# modes: 'flat', 'hnsw', 'sq8', 'pq', 'ivf', 'auto'
-db = srvdb.SrvDBPython(path="db_path", dimension=1536, mode="flat")
-
-# HNSW Mode with Custom Parameters
-db = srvdb.SrvDBPython.new_hnsw(
-    path="db_hnsw",
-    dimension=1536,
-    m=16,
-    ef_construction=200,
-    ef_search=50
-)
-
-# Scalar Quantization (SQ8) - Requires training data
-# 4x compression, good for large datasets on disk
-db = srvdb.SrvDBPython.new_scalar_quantized(
-    path="db_sq8",
-    dimension=1536,
-    training_vectors=vectors_list # List[List[float]]
-)
-
-# Product Quantization (PQ) - Requires training data
-# 32x compression, optimized for edge/low-memory
-db = srvdb.SrvDBPython.new_product_quantized(
-    path="db_pq",
-    dimension=1536,
-    training_vectors=vectors_list
-)
-```
-
-### Operations
-
-```python
-# Insert vectors
-db.add(
-    ids: List[str],
-    embeddings: List[List[float]],  # 1536-dim default
-    metadatas: List[str]             # JSON strings
-) -> int
-
-# Search
-db.search(
-    query: List[float],  # 1536-dim
-    k: int
-) -> List[Tuple[str, float]]
-
-# Batch search (parallel)
-db.search_batch(
-    queries: List[List[float]],
-    k: int
-) -> List[List[Tuple[str, float]]]
-
-# HNSW runtime tuning
-db.set_ef_search(ef: int) -> None  # HNSW and IVF modes only
-
-# Get metadata
-db.get(id: str) -> Optional[str]
-
-# Count vectors
-db.count() -> int
-
-# Persist to disk
-db.persist() -> None
-
-# IVF specific training
-# Switch to IVF mode first: db.set_mode("ivf")
-db.configure_ivf(nlist=100, nprobe=10)
-db.train_ivf() # Uses existing data in DB to train
-```
-
----
-
-## Performance Tuning
-
-### HNSW Parameters
-
-```python
-# High accuracy (slower, more memory)
-db = srvdb.SrvDBPython.new_with_hnsw(
-    path,
-    m=32,              # More connections
-    ef_construction=500,
-    ef_search=200
-)
-
-# Balanced (recommended)
-db = srvdb.SrvDBPython.new_with_hnsw(
-    path,
-    m=16,
-    ef_construction=200,
-    ef_search=50
-)
-
-# Fast (lower accuracy)
-db = srvdb.SrvDBPython.new_with_hnsw(
-    path,
-    m=8,
-    ef_construction=100,
-    ef_search=20
-)
-```
-
----
-
-## Benchmarking Your Hardware
-
-We provide a standardized benchmark script to validate performance on your specific hardware.
+SrvDB publishes performance numbers only from a committed, reproducible
+benchmark (hardware, OS, dataset, commit and command listed). That suite is
+coming in 0.4; numbers from earlier versions were withdrawn because they
+measured code with bugs fixed in 0.3. Measure on your own machine:
 
 ```bash
-pip install srvdb numpy scikit-learn psutil
-python universal_benchmark.py
+pip install "srvdb[bench]"
+python benchmarks/universal_benchmark.py
 ```
 
-The script automatically detects available RAM, adjusts dataset size (10k-1M vectors), and uses an adversarial data mix (70% random / 30% clustered) to stress-test quantization accuracy.
+## Use it from Rust
 
-**Community Contribution:**  
-Share your results in [GitHub Discussions](https://github.com/Srinivas26k/srvdb/discussions) to help validate performance across different CPU architectures (Intel, AMD, ARM/M1).
+```rust
+use srvdb::{types::DatabaseConfig, SrvDB, Vector, VectorEngine};
 
----
+let mut db = SrvDB::new_with_config("./rust-db", DatabaseConfig::new(384)?)?;
+db.add(&Vector::new(vec![0.1; 384]), r#"{"title": "first"}"#)?;
+db.persist()?;
+let hits = db.search(&Vector::new(vec![0.1; 384]), 5)?;
+```
 
-## Known Limitations
+[Rust guide](https://srinivas26k.github.io/srvdb/guides/rust/)
 
-### Critical Limitations
+## Roadmap
 
-1.  **Dimensionality:** v0.2.0 fully supports dynamic dimensions (128-4096).
-2.  **Product Quantization (PQ) Recall:** PQ mode exhibits severe recall degradation (13-20%) on clustered semantic data (e.g., RAG documents). It is recommended to use Flat or HNSW modes for semantic tasks.
-3.  **Concurrent Write Contention:** Single-writer design; multiple processes cannot write simultaneously.
-4.  **No Dynamic Updates:** Vector deletion/update requires index rebuild.
+- **0.3 — Trustworthy storage** ✅ crash safety, delete/upsert/compact,
+  validation, typed errors, thread safety, Apache-2.0
+- **0.4 — Retrieval**: metadata filtering, hybrid search, LangChain and
+  LlamaIndex integrations, reproducible benchmarks, research into
+  training-free quantization
 
-### Minor Limitations
-
-5.  **SQ8 Latency:** Scalar Quantization (SQ8) is optimized for disk compression and read-heavy workloads but incurs significant latency (10-45ms) for search.
-6.  **Memory Measurement:** Benchmark reports may show inconsistent memory deltas due to OS caching behavior.
-
----
-
-## Future Work
-
-### v0.2.1 Roadmap (Q1 2026)
-
-**High Priority:**
-- [ ] Incremental vector updates/deletion.
-- [ ] Async I/O for ingestion.
-- [ ] Memory optimization (target: <100MB for 10k vectors).
-
-**Medium Priority:**
-- [ ] IVF optimization (OPQ - Optimized Product Quantization) to solve PQ recall loss on clustered data.
-- [ ] Filtered search (metadata-based pre-filtering).
-- [ ] GPU acceleration (CUDA/Metal) for SIMD operations.
-
-**Low Priority:**
-- [ ] Distributed sharding (multi-node deployment).
-- [ ] Approximate quantization (scalar/binary).
-
----
+[Full roadmap](https://srinivas26k.github.io/srvdb/project/roadmap/)
 
 ## Contributing
 
-We invite you to help shape the future of offline vector search.
-
-**Areas of Focus:**
-1.  **Algorithm Improvements:** Better clustering for PQ/OPQ, alternative indexing structures (IVF, LSH).
-2.  **Engineering:** Dimension flexibility, async I/O refactoring, memory profiling.
-3.  **Testing:** Benchmark validation on diverse hardware and integration with popular embedding models.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
-
----
+Bug reports, docs, tests, benchmarks from your hardware and code are all
+welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the engineering rules
+every change follows are in [AGENTS.md](AGENTS.md). Questions and ideas:
+[GitHub Discussions](https://github.com/Srinivas26k/srvdb/discussions).
+Security issues: email srinivasvarma764@gmail.com privately.
 
 ## License
 
-SrvDB is open-source software licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**.
+SrvDB is licensed under the [Apache License 2.0](LICENSE): free to use, modify
+and ship in open-source and commercial products, with an explicit patent
+grant. Releases up to and including 0.2.0 were published under AGPL-3.0.
+The SrvDB name and eagle logo are not covered by the licence
+([brand guide](assets/brand/README.md)).
 
-### 🟢 Open Source Use
-You are free to use SrvDB for personal projects, academic research, and open-source applications under the terms of the AGPLv3.
-
-### 🔴 Commercial & Cloud Use
-If you are building a proprietary application, a cloud service (SaaS), or embedding SrvDB in a commercial product where you cannot or do not wish to open-source your code, you must purchase a **Commercial License**.
-
-**Commercial Licensing Benefits:**
-* Exemption from AGPLv3 open-source requirements.
-* Priority support & direct access to the maintainer.
-* Legal assurance for enterprise deployment.
-
-For commercial licensing inquiries, please contact: **srinivasvarma764@gmail.com**
-
----
+Commercial support and consulting: **srinivasvarma764@gmail.com**
 
 ## Acknowledgments
 
-SrvDB relies on the following open-source projects:
+Built on [SimSIMD](https://github.com/ashvardanian/simsimd),
+[Rayon](https://github.com/rayon-rs/rayon), [PyO3](https://github.com/PyO3/pyo3),
+[redb](https://github.com/cberner/redb) and
+[parking_lot](https://github.com/Amanieu/parking_lot).
 
-- [SimSIMD](https://github.com/ashvardanian/simsimd) - SIMD distance kernels
-- [Rayon](https://github.com/rayon-rs/rayon) - Data parallelism
-- [PyO3](https://github.com/PyO3/pyo3) - Python-Rust bindings
-- [redb](https://github.com/cberner/redb) - Embedded key-value store
-- [parking_lot](https://github.com/Amanieu/parking_lot) - Fast synchronization primitives
-
----
-
-## Support
-
-- **Issues:** [GitHub Issues](https://github.com/Srinivas26k/srvdb/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/Srinivas26k/srvdb/discussions)
-- **Email:** srinivasvarma764@gmail.com
-
-For bug reports or feature requests, please include system information and minimal reproduction code.
+<p align="center"><img src="assets/brand/srvdb-eagle.svg" alt="" width="48"></p>

@@ -1,0 +1,40 @@
+[package]
+name = "srvdb"
+description = "Embedded vector database for local and offline AI applications"
+keywords = ["vector", "database", "embedding", "search", "quantization"]
+categories = ["database", "embedded"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage = "https://srinivas26k.github.io/srvdb/"
+documentation = "https://docs.rs/srvdb"
+readme = "../../README.md"
+
+[dependencies]
+anyhow.workspace = true
+thiserror = "2.0"
+bytemuck = "1.16"
+crc32fast = "1.4"
+log = "0.4"
+memmap2 = "0.9"
+parking_lot = "0.13"
+postcard = { version = "1.0", default-features = false, features = ["alloc"] }
+rand = "0.10"
+rayon = "1.10"
+redb = "4.4"
+# Only to migrate metadata.db files written by redb 2.x (SrvDB <= 0.2)
+redb2 = { package = "redb", version = "2.6" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json.workspace = true
+simsimd = "6.2"
+
+[dev-dependencies]
+criterion = { version = "0.8", features = ["html_reports"] }
+tempfile = "3.10"
+
+[[bench]]
+name = "search_benchmark"
+harness = false
