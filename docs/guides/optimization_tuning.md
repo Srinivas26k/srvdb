@@ -66,6 +66,6 @@ db.add_batch(ids, vectors, metadata)
 
 ### Memory Management
 If you are running out of RAM:
-1. **Switch to PQ**: `new_product_quantized` reduces memory by 32x.
+1. **Switch to PQ**: `new_product_quantized` stores vectors up to 32× smaller.
 2. **Reduce `m`**: Lowering `m` from 32 to 16 cuts the graph memory overhead in half.
 3. **Use `persist()`**: SrvDB uses mmap. Ensure you call `persist()` to flush dirty pages to disk, letting the OS manage RAM more effectively.

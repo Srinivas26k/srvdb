@@ -14,16 +14,9 @@ SrvDB comes with a benchmark script that:
 pip install "srvdb[bench]"
 ```
 
-### Step 2: Download/Run the Script
-(If you cloned the repo, this script is in `benchmarks/universal_benchmark.py`).
-
-```python
-# Save this as benchmark.py and run it
-import srvdb
-# ... (or use the one provided in the repository)
-```
-
-**Recommended**: Run the official script from the repository:
+### Step 2: Run the Script
+From a clone of the repository: `python benchmarks/universal_benchmark.py`.
+Without a clone:
 ```bash
 curl -O https://raw.githubusercontent.com/Srinivas26k/srvdb/master/benchmarks/universal_benchmark.py
 python universal_benchmark.py
@@ -31,23 +24,20 @@ python universal_benchmark.py
 
 ## Interpreting Results
 
-You will see output similar to this:
+The script prints, for each mode:
 
-```
-=== System Info ===
-OS: Linux
-CPU Cores: 16
-RAM: 32.0 GB
-SIMD: AVX-512 Detected
+- **Ingestion** (vectors/s): higher is better.
+- **Search P50 / P99** (ms): typical and worst-1% query latency; lower is better.
+- **Recall@10**: share of the exact top 10 (from a flat scan) that the mode
+  returned; 100% means identical to exact search.
+- **Memory**: process memory change; OS caching makes this noisy.
 
-=== Benchmark Results (100,000 vectors) ===
+## Reporting results
 
-| Mode | Ingestion (vec/s) | Search P99 (ms) | Recall@10 | Memory (MB) |
-|------|-------------------|-----------------|-----------|-------------|
-| Flat | 23,000            | 11.2            | 100.0%    | 78          |
-| HNSW | 21,000            | 0.8             | 99.9%     | 120         |
-```
+SrvDB does not publish a number unless it can be reproduced. When you share
+results, include:
 
-- **Ingestion**: Higher is better. >10k is good for Python.
-- **Search P99**: Lower is better. <5ms is ideal for real-time apps.
-- **Recall**: Top-10 recall. >95% is usually required for RAG.
+- hardware (CPU model, cores, RAM) and OS,
+- SrvDB version or commit hash,
+- dataset (size, dimension, how it was generated),
+- the exact command you ran.

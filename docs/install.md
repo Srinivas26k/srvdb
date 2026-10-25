@@ -45,7 +45,7 @@ If you want to contribute to SrvDB or need to compile for a specific architectur
    maturin develop --release
    ```
 
-   *Note: Using `--release` is critical. Debug builds are significantly slower (up to 100x).*
+   *Note: Using `--release` is critical. Debug builds are much slower.*
 
 ## 🖥️ System Requirements
 

@@ -73,4 +73,4 @@ for id, score in results:
 ## Next Steps
 
 - **Scaling Up**: Need to store 100k+ vectors? Switch to [HNSW Mode](concepts/modes.md#hnsw-graph-index).
-- **Memory Constrained?**: Use [Product Quantization](concepts/modes.md#product-quantization-pq) to reduce memory usage by 32x.
+- **Memory Constrained?**: Use [Product Quantization](concepts/modes.md#3-product-quantization-pq) to store vectors up to 32× smaller.
