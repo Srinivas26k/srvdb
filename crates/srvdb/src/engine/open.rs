@@ -88,10 +88,15 @@ impl SrvDB {
         let indexed = index.len() as u64;
         self.hnsw_index = Some(index);
         self.hnsw_config = Some(config);
-        self.index_type = types::IndexType::HNSW;
         self.current_mode = IndexMode::Hnsw;
 
-        let count = self.vector_storage.as_ref().map_or(0, |s| s.count());
+        let count = if let Some(ref qstorage) = self.quantized_storage {
+            self.index_type = types::IndexType::HNSWQuantized;
+            qstorage.count()
+        } else {
+            self.index_type = types::IndexType::HNSW;
+            self.vector_storage.as_ref().map_or(0, |s| s.count())
+        };
         let missing: Vec<u64> = (indexed..count).collect();
         self.index_new_ids(&missing)
     }

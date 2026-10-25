@@ -147,19 +147,20 @@ impl SrvDB {
 
     /// Create new database with HNSW + Product Quantization (hybrid mode)
     ///
-    /// Combines the benefits of both:
-    /// - HNSW: O(log n) search complexity
-    /// - PQ: 32x memory compression (6KB → 192 bytes)
+    /// Vectors are stored only as PQ codes; the HNSW graph is built from
+    /// their decoded approximations, so recall is bounded by PQ accuracy.
+    /// The graph is saved by `persist()` and reloaded (or rebuilt) on open.
     ///
     /// # Arguments
-    /// * `path` - Database directory path
-    /// * `training_vectors` - Vectors for PQ training (recommend 5k-10k samples)
-    /// * `hnsw_config` - HNSW configuration
+    /// * `path` - Database directory path; an existing PQ database is
+    ///   reopened with its own codebooks
+    /// * `training_vectors` - Vectors for PQ training (256 or more recommended) when
+    ///   the database is new; validated but otherwise unused on reopen
+    /// * `hnsw_config` - HNSW configuration for a new graph
     ///
-    /// # Performance
-    /// - Memory: 192 bytes (PQ) + 200 bytes (HNSW) = 392 bytes/vector (16x compression)
-    /// - Search: 200x faster than flat for 1M vectors
-    /// - Recall: ~90-95% (tunable via ef_search)
+    /// # Errors
+    /// Invalid training vectors, `Locked` if the database is already open,
+    /// `Corrupt` for damaged files, or an I/O error.
     pub fn new_with_hnsw_quantized(
         path: &str,
         training_vectors: &[Vector],
@@ -175,8 +176,13 @@ impl SrvDB {
         // First: opening metadata finishes an interrupted compaction
         let lock = storage::lock::acquire(Path::new(path))?;
         let metadata_store = MetadataStore::new(path)?;
-        let quantized_storage =
-            crate::quantized_storage::QuantizedVectorStorage::new_with_training(path, &embedded)?;
+        // An existing database keeps its codebooks: its vectors were
+        // encoded with them, so `training_vectors` are not used again
+        let quantized_storage = if db_path.join(storage::pq::CODEBOOK_FILE).exists() {
+            crate::quantized_storage::QuantizedVectorStorage::load(path)?
+        } else {
+            crate::quantized_storage::QuantizedVectorStorage::new_with_training(path, &embedded)?
+        };
 
         let config = types::QuantizationConfig {
             enabled: true,
@@ -185,7 +191,6 @@ impl SrvDB {
 
         let mut hnsw_cfg = hnsw_config;
         hnsw_cfg.use_quantization = true;
-        let _hnsw_index = hnsw::HNSWIndex::new(hnsw_cfg.clone());
 
         let mut db = Self {
             path: db_path.to_path_buf(),
@@ -195,8 +200,8 @@ impl SrvDB {
             metadata_store,
             config,
             index_type: types::IndexType::HNSWQuantized,
-            hnsw_index: Some(hnsw::HNSWIndex::new(hnsw_cfg.clone())),
-            hnsw_config: Some(hnsw_cfg),
+            hnsw_index: None,
+            hnsw_config: None,
             ivf_index: None,
             ivf_config: None,
             current_mode: IndexMode::Hnsw,
@@ -207,6 +212,8 @@ impl SrvDB {
             dimension: embedded[0].len(),
         };
         db.recover()?;
+        // Loads hnsw.graph if present and indexes any vectors it lacks
+        db.attach_hnsw(hnsw_cfg)?;
         Ok(db)
     }
 }

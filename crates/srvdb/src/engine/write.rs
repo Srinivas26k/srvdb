@@ -28,6 +28,26 @@ impl SrvDB {
             return Ok(());
         }
 
+        // PQ storage has no full-precision vectors: build the graph from
+        // the decoded (centroid) approximations, the same data search sees
+        if self.vector_storage.is_none() {
+            if let (Some(hnsw), Some(qstorage), true) =
+                (&self.hnsw_index, &self.quantized_storage, into_hnsw)
+            {
+                let decoded = |id: u64| qstorage.get(id).and_then(|c| qstorage.quantizer.decode(c));
+                let distance_fn = |a_id: u64, b_id: u64| -> f32 {
+                    match (decoded(a_id), decoded(b_id)) {
+                        (Some(a), Some(b)) => 1.0 - search::cosine_similarity(&a, &b),
+                        _ => f32::MAX,
+                    }
+                };
+                for &id in ids {
+                    hnsw.insert(id, &distance_fn)?;
+                }
+            }
+            return Ok(());
+        }
+
         // Appended vectors are readable immediately (RecordFile)
         let Some(ref vstorage) = self.vector_storage else {
             return Ok(());

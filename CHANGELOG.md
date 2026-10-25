@@ -78,6 +78,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no longer open it).
 
 ### Fixed
+- HNSW with PQ storage (`new_with_hnsw_quantized`) now builds its graph;
+  it indexed nothing before, so every search returned no results. The
+  graph is saved by `persist()`, and calling the constructor on an
+  existing database reopens it with its codebooks instead of failing.
 - Auto mode now only chooses an index: above the size threshold it builds
   an HNSW graph (saved by `persist()` and reloaded on open). It no longer
   converts storage to SQ8 behind the caller's back, and the mode stays
