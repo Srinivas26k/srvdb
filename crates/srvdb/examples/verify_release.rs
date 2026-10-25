@@ -5,7 +5,7 @@ use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("╔═══════════════════════════════════════════════════════╗");
-    println!("║       SrvDB v0.2.0 Release Verification Script        ║");
+    println!("║       SrvDB Release Verification Script              ║");
     println!("╚═══════════════════════════════════════════════════════╝");
 
     let dim = 128; // Use 128 for speed

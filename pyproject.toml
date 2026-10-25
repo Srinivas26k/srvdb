@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "srvdb"
-version = "0.2.0"
+version = "0.3.0"
 description = "Embedded vector database for local and offline AI applications"
 readme = "README.md"
 requires-python = ">=3.9"
