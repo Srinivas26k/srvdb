@@ -86,72 +86,46 @@ impl IVFIndex {
             training_data.len()
         );
 
-        // 1. Initialize Centroids (Random Point Pick)
+        // Spherical k-means: search assigns by cosine, so training clusters
+        // unit-length directions and each centroid is the normalised mean
+        // direction of its members.
+        let units: Vec<Vec<f32>> = training_data.iter().map(|v| unit(&v.data)).collect();
+
         let mut rng = rand::rng();
-        let mut centroids: Vec<Vec<f32>> = Vec::with_capacity(k);
-        for _ in 0..k {
-            let idx = rng.random_range(0..training_data.len());
-            centroids.push(training_data[idx].data.clone());
-        }
+        let mut centroids: Vec<Vec<f32>> = (0..k)
+            .map(|_| units[rng.random_range(0..units.len())].clone())
+            .collect();
 
-        // 2. K-Means Iterations
         for iter in 0..self.config.max_iterations {
-            // Assignment Step: Assign each vector to nearest centroid
-            // We sum vectors per cluster to recompute mean later
-            let assignments: Vec<(usize, Vec<f32>)> = training_data
-                .par_iter()
-                .map(|vec| {
-                    let mut best_dist = f32::MAX;
-                    let mut best_k = 0;
+            let assignment: Vec<usize> = units.par_iter().map(|u| nearest(u, &centroids)).collect();
 
-                    // Simple linear scan for centroid finding (Simd optimized dot product would be better)
-                    // Since K is small (e.g. 100-1000), this is acceptable.
-                    for (i, center) in centroids.iter().enumerate() {
-                        let dist = crate::search::euclidean_distance(&vec.data, center);
-                        if dist < best_dist {
-                            best_dist = dist;
-                            best_k = i;
-                        }
-                    }
-                    (best_k, vec.data.clone())
-                })
-                .collect();
-
-            // Update Step: Recompute centroids
-            let mut new_centroids = vec![vec![0.0; dim]; k];
+            let mut sums = vec![vec![0.0f32; dim]; k];
             let mut counts = vec![0usize; k];
-
-            for (cluster_idx, vec_data) in assignments {
-                counts[cluster_idx] += 1;
-                for i in 0..dim {
-                    new_centroids[cluster_idx][i] += vec_data[i];
+            for (u, &cluster) in units.iter().zip(&assignment) {
+                counts[cluster] += 1;
+                for (s, x) in sums[cluster].iter_mut().zip(u) {
+                    *s += x;
                 }
             }
 
-            let mut diff = 0.0;
-            for i in 0..k {
-                if counts[i] > 0 {
-                    let factor = 1.0 / counts[i] as f32;
-                    for val in new_centroids[i].iter_mut().take(dim) {
-                        *val *= factor;
-                    }
+            let mut shift = 0.0;
+            for (i, sum) in sums.into_iter().enumerate() {
+                let next = if counts[i] > 0 {
+                    unit(&sum)
                 } else {
-                    // Re-init empty cluster with random point to avoid dead clusters
-                    let idx = rng.random_range(0..training_data.len());
-                    new_centroids[i] = training_data[idx].data.clone();
-                }
-
-                diff += crate::search::euclidean_distance(&centroids[i], &new_centroids[i]);
+                    // Re-seed an empty cluster so it is not lost
+                    units[rng.random_range(0..units.len())].clone()
+                };
+                shift += crate::search::euclidean_distance(&centroids[i], &next);
+                centroids[i] = next;
             }
-
-            centroids = new_centroids;
 
             log::trace!(
                 "IVF k-means iteration {}: centroid shift {:.4}",
                 iter + 1,
-                diff
+                shift
             );
-            if diff < self.config.tolerance {
+            if shift < self.config.tolerance {
                 log::debug!("IVF k-means converged");
                 break;
             }
@@ -167,25 +141,11 @@ impl IVFIndex {
         Ok(())
     }
 
-    /// Find the closest partition ID for a vector
+    /// The partition whose centroid is most similar (cosine) to `vector`;
+    /// the same rule training uses.
     pub fn find_partition(&self, vector: &Vector) -> usize {
-        let mut best_dist = f32::MAX;
-        let mut best_k = 0;
-
-        for (i, center) in self.centroids.iter().enumerate() {
-            // We use the same distance metric as HNSW usually, assume Cosine/Euclidean
-            // Ideally should match config.
-            let dist = crate::search::cosine_similarity(&vector.data, &center.data);
-            // Note: cosine_similarity is "higher is better", we need distance "lower is better"
-            // So convert sim to dist: 1.0 - sim
-            let dist = 1.0 - dist;
-
-            if dist < best_dist {
-                best_dist = dist;
-                best_k = i;
-            }
-        }
-        best_k
+        let centroids: Vec<&[f32]> = self.centroids.iter().map(|c| c.data.as_slice()).collect();
+        nearest(&vector.data, &centroids)
     }
 
     /// Add a vector to the index.
@@ -213,5 +173,52 @@ impl IVFIndex {
                                                    // Yes, HNSWIndex is thread-safe with internal locking.
 
         Ok(())
+    }
+}
+
+/// `v` scaled to unit length (zero vectors are left as they are)
+fn unit(v: &[f32]) -> Vec<f32> {
+    let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if norm > 0.0 {
+        v.iter().map(|x| x / norm).collect()
+    } else {
+        v.to_vec()
+    }
+}
+
+/// Index of the centroid with the highest cosine similarity to `v`
+fn nearest<C: AsRef<[f32]>>(v: &[f32], centroids: &[C]) -> usize {
+    centroids
+        .iter()
+        .map(|c| crate::search::cosine_similarity(v, c.as_ref()))
+        .enumerate()
+        .max_by(|a, b| a.1.total_cmp(&b.1))
+        .map_or(0, |(i, _)| i)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Search assigns vectors to partitions by cosine, so a centroid must be
+    /// the average direction of its members, not the average vector (which
+    /// long vectors pull towards themselves)
+    #[test]
+    fn centroids_are_average_directions() {
+        let mut data = Vec::new();
+        for _ in 0..50 {
+            data.push(Vector::new(vec![100.0, 50.0, 0.0, 0.0])); // long, +y
+            data.push(Vector::new(vec![1.0, -0.5, 0.0, 0.0])); // short, -y
+        }
+        let mut ivf = IVFIndex::new(IVFConfig {
+            nlist: 1,
+            ..Default::default()
+        });
+        ivf.train(&data).unwrap();
+        let c = &ivf.centroids[0].data;
+        let norm = c.iter().map(|x| x * x).sum::<f32>().sqrt();
+        // Equal numbers of each direction: the average direction is +x
+        assert!((c[0] / norm - 1.0).abs() < 1e-4, "centroid {c:?}");
+        assert!((c[1] / norm).abs() < 1e-4, "centroid {c:?}");
     }
 }
