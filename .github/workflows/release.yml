@@ -35,8 +35,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, target: x86_64 }
-          - { os: ubuntu-latest, target: aarch64 }
+          # ubuntu-24.04: Ubuntu 26.04 runners have no Python 3.9
+          - { os: ubuntu-24.04, target: x86_64 }
+          - { os: ubuntu-24.04, target: aarch64 }
           - { os: macos-latest, target: aarch64 }
           - { os: macos-13, target: x86_64 }
           - { os: windows-latest, target: x64 }
