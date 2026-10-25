@@ -1,5 +1,10 @@
 # SrvDB Technical Performance and Application Assessment
 
+> **Historical report.** This audit measured SrvDB v0.1.9, before the 0.3
+> correctness fixes (in those versions the HNSW path could fall back to a flat
+> scan, HNSW with PQ indexed nothing, and scores were not true cosine). Its
+> numbers do not describe current releases and are kept for the record only.
+
 ## Abstract
 
 This document presents a comprehensive technical evaluation of SrvDB v0.1.9, a Rust-based embedded vector database designed for offline AI/ML workloads. The assessment focuses on performance characteristics, memory efficiency, accuracy tradeoffs, and real-world applicability across the three indexing modes: Flat (exact search), HNSW (graph-based approximate search), and HNSW+PQ (hybrid with Product Quantization). Benchmarks were conducted on consumer-grade hardware to simulate edge deployment constraints, with particular attention to the feasibility of offline deployment scenarios where network connectivity, memory footprint, and computational resources are limited.

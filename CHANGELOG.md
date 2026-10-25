@@ -103,6 +103,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - IVF searches no longer hide errors from individual partitions.
 - Training on vectors containing NaN no longer panics.
 
+### Packaging
+- Requires Python 3.9 or newer (3.8 is end-of-life); wheels for 3.9-3.14.
+- `numpy`, `psutil` and `scikit-learn` are no longer installed with
+  `srvdb`; the library never used them. The benchmark script needs them:
+  `pip install "srvdb[bench]"`.
+- The benchmark script moved to `benchmarks/universal_benchmark.py`;
+  one-off debug scripts were removed from the repository root.
+
+### Documentation
+- Performance tables from earlier versions were removed: they measured
+  modes that did not work as labelled and cannot be reproduced. Numbers
+  will be published only from a committed, reproducible benchmark.
+- README and the modes guide describe 0.3 as shipped; the migration guide
+  lists every change that needs action when upgrading.
+
 ## [0.2.0] - 2025-12-30
 
 ### 🚀 Major Features

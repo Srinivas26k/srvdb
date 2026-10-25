@@ -10,8 +10,8 @@ SrvDB is a high-performance, embedded vector database designed for **offline AI*
 - **Embedded Architecture**: Runs in-process with your application. Ideal for desktop apps, CLI tools, and edge devices.
 - **Modes for Every Use Case**:
     - **Flat**: 100% recall exact search.
-    - **HNSW Graph**: Sub-millisecond approximate search for large datasets.
-    - **Quantization (PQ/SQ8)**: 32x memory compression for running massive indexes on consumer hardware.
+    - **HNSW Graph**: approximate search that visits a small part of large datasets.
+    - **Quantization (PQ/SQ8)**: smaller storage (SQ8 4×, PQ up to 32×) at some cost in accuracy.
 - **Developer Experience**: "It just works" philosophy. Intelligent defaults with deep configurability when you need it.
 
 ## Navigation
