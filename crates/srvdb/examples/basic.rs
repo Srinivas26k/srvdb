@@ -1,11 +1,11 @@
-//! Basic example demonstrating SrvDB v0.2.0 usage
+//! Basic example: create a database, add, persist and search
 
 use anyhow::Result;
 use srvdb::types::DatabaseConfig;
 use srvdb::{SrvDB, Vector, VectorEngine};
 
 fn main() -> Result<()> {
-    println!("🚀 SrvDB v0.2.0 - Zero-Gravity Vector Engine Demo\n");
+    println!("SrvDB {} basic example\n", env!("CARGO_PKG_VERSION"));
 
     // Initialize database configuration
     // 1536 is common for OpenAI embeddings
