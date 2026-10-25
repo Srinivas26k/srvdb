@@ -12,7 +12,7 @@ ignore = []
 [licenses]
 version = 2
 confidence-threshold = 0.9
-# Permissive licences compatible with both AGPL-3.0 and commercial licensing.
+# Permissive licences compatible with SrvDB's Apache-2.0 licence.
 # Adding a licence here needs a reason in the commit message (see AGENTS.md).
 allow = [
     "MIT",
@@ -24,11 +24,6 @@ allow = [
     "Unicode-3.0",
     "Unlicense",
     "Zlib",
-]
-# SrvDB's own crates
-exceptions = [
-    { allow = ["AGPL-3.0-only"], crate = "srvdb" },
-    { allow = ["AGPL-3.0-only"], crate = "srvdb-py" },
 ]
 
 [bans]

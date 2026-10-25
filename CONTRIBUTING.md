@@ -104,7 +104,7 @@ Do not open a public issue for a vulnerability. Email
 
 ## Licence
 
-SrvDB is licensed under AGPL-3.0. By contributing you agree that your
-contribution is licensed under the same terms. Because the project also
-offers commercial licences, maintainers may ask significant contributors
-to sign a contributor licence agreement before merging.
+SrvDB is licensed under the Apache License 2.0. Under section 5 of that
+licence, a contribution you submit is licensed under the same terms.
+Maintainers may ask significant contributors to sign a contributor
+licence agreement before merging.
