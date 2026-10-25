@@ -1,0 +1,56 @@
+---
+title: SrvDB
+description: Embedded vector database for local and offline AI. Crash-safe, in-process, Rust core with Python bindings.
+template: splash
+hero:
+  title: The sharpest eye for your local AI
+  tagline: SrvDB is an embedded vector database. It runs inside your app, needs no server, and keeps your data safe through crashes.
+  image:
+    file: ../../assets/eagle.svg
+    alt: The SrvDB eagle
+  actions:
+    - text: Get started
+      link: /srvdb/start/quickstart/
+      icon: right-arrow
+    - text: Build a local RAG app
+      link: /srvdb/guides/local-rag/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/Srinivas26k/srvdb
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid, Code } from '@astrojs/starlight/components';
+
+```bash
+pip install srvdb
+```
+
+```python
+import srvdb
+
+db = srvdb.Database("./memory", dimension=384)
+db.add(ids=["a"], embeddings=[embedding], metadatas=['{"text": "hello"}'])
+db.persist()                       # crash-safe from here on
+print(db.search(query, k=5))       # [("a", 0.93), ...]
+```
+
+<CardGrid stagger>
+	<Card title="In-process, offline" icon="laptop">
+		A library, not a service. No server, no network access, no background
+		process. Works on laptops, desktops and air-gapped machines.
+	</Card>
+	<Card title="Crash-safe by design" icon="approve-check">
+		After `persist()` returns, your data survives a crash or power loss, and
+		the database reopens exactly as it was. Every write path has a crash test.
+	</Card>
+	<Card title="Pick your trade-off" icon="setting">
+		Exact flat search, HNSW, IVF, or 4× (SQ8) and up to 32× (PQ) smaller
+		storage. Switch with one argument.
+	</Card>
+	<Card title="Rust core, Python first" icon="seti:rust">
+		A Rust engine with SIMD distance kernels, thread-safe Python bindings that
+		release the GIL, typed errors in both languages.
+	</Card>
+</CardGrid>

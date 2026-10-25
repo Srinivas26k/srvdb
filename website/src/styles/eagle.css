@@ -1,0 +1,73 @@
+/* SrvDB "imperial eagle" theme for Starlight.
+   Palette: navy #1B2A4A, ink #0F1A30, crimson #C8102E, gold #F2B134, cream #F6E7C8 */
+
+/* Dark mode (Starlight's default) */
+:root {
+	--sl-color-accent-low: #3a2a08;
+	--sl-color-accent: #f2b134;
+	--sl-color-accent-high: #ffe2a3;
+	--sl-color-white: #fbf3e3;
+	--sl-color-gray-1: #eadfca;
+	--sl-color-gray-2: #c9c0ae;
+	--sl-color-gray-3: #9a9384;
+	--sl-color-gray-4: #4f5873;
+	--sl-color-gray-5: #2b3756;
+	--sl-color-gray-6: #18243f;
+	--sl-color-black: #0f1a30;
+	--sl-font-heading: 'Cinzel', Georgia, serif;
+	--eagle-crimson: #e0334c;
+	--eagle-gold: #f2b134;
+}
+
+/* Light mode */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #f6e7c8;
+	--sl-color-accent: #9e0b24;
+	--sl-color-accent-high: #1b2a4a;
+	--sl-color-white: #0f1a30;
+	--sl-color-gray-1: #1b2a4a;
+	--sl-color-gray-2: #34425f;
+	--sl-color-gray-3: #5d6680;
+	--sl-color-gray-4: #9aa0b0;
+	--sl-color-gray-5: #d9d2c2;
+	--sl-color-gray-6: #f3ead8;
+	--sl-color-gray-7: #faf5ea;
+	--sl-color-black: #fffdf8;
+	--eagle-crimson: #c8102e;
+	--eagle-gold: #b37a00;
+}
+
+h1, h2, h3,
+.sl-markdown-content :is(h1, h2, h3),
+.hero h1 {
+	font-family: var(--sl-font-heading);
+	letter-spacing: 0.02em;
+}
+
+/* Splash page hero */
+.hero h1 {
+	font-weight: 700;
+	background: linear-gradient(100deg, var(--sl-color-white) 30%, var(--eagle-gold));
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+.hero img {
+	filter: drop-shadow(0 12px 32px rgb(15 26 48 / 0.35));
+}
+
+/* Gold rule under page titles */
+.content-panel h1#_top::after {
+	content: '';
+	display: block;
+	width: 3.5rem;
+	height: 3px;
+	margin-top: 0.6rem;
+	background: linear-gradient(90deg, var(--eagle-crimson), var(--eagle-gold));
+	border-radius: 2px;
+}
+
+/* Cards get an imperial top edge */
+.card {
+	border-top: 3px solid var(--eagle-gold) !important;
+}
