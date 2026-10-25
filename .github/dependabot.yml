@@ -15,6 +15,14 @@ updates:
     schedule:
       interval: weekly
 
+  - package-ecosystem: npm
+    directory: /website
+    schedule:
+      interval: weekly
+    groups:
+      website:
+        patterns: ["*"]
+
   - package-ecosystem: pip
     directory: /
     schedule:
