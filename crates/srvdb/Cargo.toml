@@ -9,6 +9,9 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage = "https://srinivas26k.github.io/srvdb/"
+documentation = "https://docs.rs/srvdb"
+readme = "../../README.md"
 
 [dependencies]
 anyhow.workspace = true
