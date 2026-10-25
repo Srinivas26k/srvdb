@@ -32,7 +32,9 @@ nav:
     - Benchmarking: guides/benchmarking.md
   - Concepts:
     - Indexing Modes: concepts/modes.md
-  - Technical Reports:
+  - Release Notes:
+    - "0.3.0": release_notes/RELEASE-0.3.0.md
+  - Technical Reports (historical):
     - GLM Benchmark: reports/glm_benchmark.md
     - Qwen Benchmark: reports/qwen_benchmark.md
   - API Reference:
