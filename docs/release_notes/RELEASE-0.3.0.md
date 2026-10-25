@@ -7,7 +7,7 @@ new features are added.
 
 **Before upgrading, back up your database directory.** Opening a 0.2
 database upgrades `metadata.db`, after which 0.2 can no longer open it.
-Read the [migration guide](../guides/migration.md) for every change that
+Read the [upgrade guide](https://srinivas26k.github.io/srvdb/guides/upgrading/) for every change that
 needs action.
 
 ## Highlights

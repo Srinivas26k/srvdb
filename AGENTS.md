@@ -28,7 +28,8 @@ crates/srvdb/        Pure Rust core. No PyO3, no Python types.
   tests/ benches/ examples/
 crates/srvdb-py/     PyO3 glue only: argument conversion, error mapping
 python/srvdb/        Python package (src layout); _low_level.pyi stubs
-docs/                MkDocs site; docs/adr/ holds decision records
+docs/                ADRs (docs/adr/), release notes, plans, reports
+website/             Documentation site (Astro Starlight, deployed to GitHub Pages)
 ```
 
 Dependency direction is one way: `srvdb-py -> srvdb`. The core crate must
@@ -147,6 +148,9 @@ dataset, commit hash and the command used.
 - Significant decisions (format changes, new dependencies, new index
   types, public API changes) get an ADR in `docs/adr/` using the template.
 - Update `CHANGELOG.md` under "Unreleased" for user-visible changes.
+- User-facing behaviour changes update the matching page in
+  `website/src/content/docs/` in the same branch. Every code snippet there
+  must run against the current code; `npm run build` in `website/` must pass.
 
 ## 13. Commits and branches
 
