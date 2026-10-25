@@ -1,6 +1,8 @@
-# Builds and publishes a release when a v* tag is pushed, or on demand.
-# Publishing happens only after tests, every wheel, the sdist and the
-# SBOM have succeeded. Actions are pinned to commit SHAs.
+# Builds a release on a v* tag (or on demand, without publishing).
+# On a tag, publishing to PyPI and crates.io (Trusted Publishing, no
+# stored tokens) happens only after tests, every wheel, the sdist and the
+# SBOM have succeeded; the GitHub release follows both.
+# Actions are pinned to commit SHAs.
 name: Release
 
 on:
@@ -94,9 +96,47 @@ jobs:
           name: sbom
           path: sbom
 
-  publish:
-    name: Publish to PyPI and GitHub
+  pypi:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: [wheels, sdist, sbom]
+    runs-on: ubuntu-latest
+    # Trusted Publishing: PyPI trusts this workflow + environment, no token
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
+
+  crates-io:
+    name: Publish to crates.io
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [wheels, sdist, sbom]
+    runs-on: ubuntu-latest
+    # Trusted Publishing: a short-lived token is minted from the OIDC identity
+    environment: crates-io
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
+        id: auth
+      - run: cargo publish -p srvdb --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+  github-release:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [pypi, crates-io]
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the GitHub release
@@ -110,13 +150,7 @@ jobs:
         with:
           name: sbom
           path: sbom
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
-      - name: Create GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: |
             dist/*
