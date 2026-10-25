@@ -38,6 +38,8 @@ svdb/bench_release_db
 /quickstart-db/
 /my-db/
 /rag-db/
+/python_demo_db/
+/python_sq8_db/
 
 # --- Brand kit build font (download, do not commit) ---------------------------
 assets/brand/tools/font/
