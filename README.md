@@ -171,7 +171,8 @@ Bug reports, docs, tests, benchmarks from your hardware and code are all
 welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the engineering rules
 every change follows are in [AGENTS.md](AGENTS.md). Questions and ideas:
 [GitHub Discussions](https://github.com/Srinivas26k/srvdb/discussions).
-Security issues: email srinivasvarma764@gmail.com privately.
+Please follow the [Code of Conduct](CODE_OF_CONDUCT.md); report security
+issues privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 

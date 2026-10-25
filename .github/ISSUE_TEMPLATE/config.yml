@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/Srinivas26k/srvdb/discussions
+    about: Ask how to use SrvDB or discuss ideas
+  - name: Documentation
+    url: https://srinivas26k.github.io/srvdb/
+    about: Guides and API reference
+  - name: Security vulnerability
+    url: https://github.com/Srinivas26k/srvdb/security/advisories/new
+    about: Report privately, never in a public issue

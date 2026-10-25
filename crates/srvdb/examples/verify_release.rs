@@ -101,7 +101,8 @@ fn generate_data(n: usize, dim: usize) -> (Vec<Vector>, Vec<String>) {
     let mut vecs = Vec::with_capacity(n);
     let mut ids = Vec::with_capacity(n);
     for i in 0..n {
-        ids.push(format!("id_{}", i));
+        // Metadata must be a JSON object (validated since 0.3)
+        ids.push(format!(r#"{{"id": "id_{i}"}}"#));
         let mut v: Vec<f32> = (0..dim).map(|_| rand::random::<f32>()).collect();
         let norm: f32 = v.iter().map(|x| x * x).sum::<f32>().sqrt();
         for x in &mut v {
