@@ -122,13 +122,32 @@ impl SrvDB {
         Ok(())
     }
 
-    /// Set ef_search parameter at runtime to tune recall/speed tradeoff
+    /// Set HNSW's search candidate list size (`ef`), trading speed for
+    /// recall: higher values find more of the true nearest neighbours but
+    /// search more slowly. Typical values are 50-300; searches always use at
+    /// least `k`. Applies to the HNSW index and to every IVF partition, and
+    /// is saved with the index by `persist()`.
     ///
-    /// Higher values = better recall but slower search
-    /// Typical values: 50-200
-    pub fn set_ef_search(&mut self, ef_search: usize) {
+    /// # Errors
+    /// `InvalidInput` if `ef_search` is 0.
+    pub fn set_ef_search(&mut self, ef_search: usize) -> Result<()> {
+        if ef_search == 0 {
+            return Err(Error::invalid_input("ef_search must be at least 1"));
+        }
+        if let Some(ref mut hnsw) = self.hnsw_index {
+            hnsw.set_ef_search(ef_search);
+        }
         if let Some(ref mut cfg) = self.hnsw_config {
             cfg.ef_search = ef_search;
         }
+        if let Some(ref ivf) = self.ivf_index {
+            for partition in &ivf.partitions {
+                partition.write().set_ef_search(ef_search);
+            }
+        }
+        if let Some(ref mut cfg) = self.ivf_config {
+            cfg.hnsw_config.ef_search = ef_search;
+        }
+        Ok(())
     }
 }

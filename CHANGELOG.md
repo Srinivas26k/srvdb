@@ -78,6 +78,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no longer open it).
 
 ### Fixed
+- `set_ef_search()` now changes HNSW search quality (it edited a copy that
+  search never read); it applies to IVF partitions too, is saved with the
+  index, rejects 0 and is available from Python.
 - Search scores are true cosine similarities in [-1, 1]. Flat (and HNSW
   and IVF) search used to report (1 + cos) / 2, so an orthogonal vector
   scored 0.5 and scores differed in scale from SQ8 search. Result order is

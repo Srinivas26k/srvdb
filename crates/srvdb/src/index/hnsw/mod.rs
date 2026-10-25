@@ -183,6 +183,17 @@ impl HNSWIndex {
     }
 
     /// Get the number of nodes in the graph
+    /// Size of the candidate list during search (higher: better recall,
+    /// slower). Saved with the graph.
+    pub fn ef_search(&self) -> usize {
+        self.config.ef_search
+    }
+
+    /// Change the search candidate list size; takes effect immediately
+    pub fn set_ef_search(&mut self, ef_search: usize) {
+        self.config.ef_search = ef_search;
+    }
+
     pub fn len(&self) -> usize {
         self.nodes.read().len()
     }

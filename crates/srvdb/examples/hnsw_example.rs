@@ -152,7 +152,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n--- Part 4: Tuning ef_search for Recall/Speed Tradeoff ---");
 
     for ef in [10, 50, 100, 200] {
-        db_hnsw.set_ef_search(ef);
+        db_hnsw.set_ef_search(ef)?;
 
         let start = Instant::now();
         let results_tuned = db_hnsw.search(&query, k)?;

@@ -95,6 +95,12 @@ impl PyDatabase {
         })
     }
 
+    /// Set HNSW's search candidate list size: higher gives better recall,
+    /// lower is faster (typical 50-300). Saved by persist().
+    fn set_ef_search(&self, py: Python<'_>, ef_search: usize) -> PyResult<()> {
+        self.write(py, |s| s.db.set_ef_search(ef_search).map_err(to_py))
+    }
+
     /// Configure IVF parameters
     ///
     /// Args:
