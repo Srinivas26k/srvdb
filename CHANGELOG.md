@@ -117,6 +117,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one-off debug scripts were removed from the repository root.
 
 ### Documentation
+- New documentation website at https://srinivas26k.github.io/srvdb/
+  (Astro Starlight), with guides, a local RAG walkthrough and API
+  reference; it replaces the MkDocs pages.
+- SrvDB has a logo: the cubist eagle (`assets/brand/`).
 - Performance tables from earlier versions were removed: they measured
   modes that did not work as labelled and cannot be reproduced. Numbers
   will be published only from a committed, reproducible benchmark.

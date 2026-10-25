@@ -1,220 +1,193 @@
-# SrvDB: Embedded Vector Database for Offline AI Applications
+<p align="center">
+  <a href="https://srinivas26k.github.io/srvdb/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/brand/png/srvdb-logo-horizontal-dark.png">
+      <img src="assets/brand/png/srvdb-logo-horizontal.png" alt="SrvDB" height="110">
+    </picture>
+  </a>
+</p>
 
-[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Rust](https://img.shields.io/badge/rust-1.99+-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](docs/index.md)
+<h3 align="center">The sharpest eye for your local AI.</h3>
 
-**[📚 Read the Full Documentation](docs/index.md)**
+<p align="center">
+  An embedded vector database that runs inside your app, needs no server,<br>
+  and keeps your data safe through crashes. Rust core, Python first.
+</p>
 
-SrvDB is an embedded vector database written in Rust, with Python bindings.
-It runs inside your process: no server, no network access, no background
-service. It is built for local and offline AI applications such as RAG over
-private documents, desktop tools and air-gapped systems.
+<p align="center">
+  <a href="https://pypi.org/project/srvdb/"><img src="https://img.shields.io/pypi/v/srvdb?color=F2B134&labelColor=1B2A4A" alt="PyPI"></a>
+  <a href="https://pypi.org/project/srvdb/"><img src="https://img.shields.io/pypi/pyversions/srvdb?color=F2B134&labelColor=1B2A4A" alt="Python versions"></a>
+  <a href="https://github.com/Srinivas26k/srvdb/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Srinivas26k/srvdb/ci.yml?branch=master&label=CI&labelColor=1B2A4A" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-C8102E?labelColor=1B2A4A" alt="License: Apache-2.0"></a>
+</p>
 
-Its first duty is to keep committed data safe; speed and features come after
-that.
-
----
-
-## What you get
-
-- **Crash-safe storage.** After `persist()` returns, every earlier write
-  survives a crash or power loss. After a crash the database reopens in
-  exactly the state of the last `persist()`: later writes are absent, never
-  half-present. See [ADR 0003](docs/adr/0003-durability.md).
-- **Delete, upsert and compact.** Deletes take effect in search immediately
-  and become durable at `persist()`; `compact()` reclaims the space.
-- **Several index modes.** Exact flat search, HNSW, IVF, and SQ8 or PQ
-  compression, all searched by cosine similarity. Scores are true cosine
-  similarities in [-1, 1].
-- **Validated input.** Wrong dimensions, NaN or infinite values, `k < 1`,
-  duplicate ids and non-JSON metadata are rejected with clear errors.
-- **Safe to share between threads.** Every Python method releases the GIL;
-  searches run in parallel. A database can be open in only one place at a
-  time; a second open raises `BlockingIOError`.
-- **Indexes are derived data.** HNSW and IVF indexes can always be rebuilt
-  from the stored vectors. A missing or damaged HNSW graph is rebuilt on
-  open; a damaged IVF index is reported as a `Corrupt` error.
+<p align="center">
+  <a href="https://srinivas26k.github.io/srvdb/"><b>Documentation</b></a> ·
+  <a href="https://srinivas26k.github.io/srvdb/start/quickstart/">Quickstart</a> ·
+  <a href="https://srinivas26k.github.io/srvdb/guides/local-rag/">Local RAG guide</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="https://github.com/Srinivas26k/srvdb/discussions">Discussions</a>
+</p>
 
 ---
 
-## Installation
+## Why SrvDB
+
+- 🦅 **In-process, offline.** A library, not a service: no server, no Docker,
+  no network access. `pip install srvdb` and go.
+- 🛡️ **Crash-safe by design.** After `persist()` returns, your data survives a
+  crash or power loss, and the database reopens exactly as it was. Every write
+  path has a crash test.
+- 🎯 **Honest results.** True cosine scores in [-1, 1] in every mode. Bad input
+  (wrong dimension, NaN, duplicate ids, invalid metadata) is rejected before
+  anything is written.
+- ⚖️ **Your trade-off.** Exact search, HNSW, IVF, or 4× / up to 32× smaller
+  storage with SQ8 and PQ: one argument to switch.
+- 🧵 **Thread-safe.** Share one database between threads; every call releases
+  the GIL and searches run in parallel.
+- 🦀 **Rust inside.** SIMD distance kernels, typed errors, no Python runtime
+  dependencies. Usable from Rust too.
+
+## Install
 
 ```bash
 pip install srvdb
 ```
 
-Wheels are built for Python 3.9 to 3.14 on Linux (x86_64, aarch64), macOS
-(x86_64, arm64) and Windows (x64).
+Wheels for Python 3.9–3.14 on Linux, macOS and Windows. Building from source
+needs Rust 1.99+ ([details](https://srinivas26k.github.io/srvdb/start/installation/)).
 
-### Build from Source
-
-Installing the wheel from PyPI needs no Rust toolchain. Building from
-source (an unsupported platform, the sdist, or development) needs
-**Rust 1.99 or newer** (`rustup update stable`) and
-[maturin](https://www.maturin.rs/):
-
-```bash
-git clone https://github.com/Srinivas26k/srvdb
-cd srvdb
-cargo test --workspace        # Rust core
-pip install maturin
-maturin develop --release     # builds and installs the Python package
-```
-
----
-
-## Quick Start
+## 60-second quickstart
 
 ```python
 import json
 import srvdb
 
-db = srvdb.Database("./vectors", dimension=384, mode="flat")
+db = srvdb.Database("./my-db", dimension=384)    # any dimension 128–4096
 
 db.add(
-    ids=["doc1", "doc2"],
-    embeddings=[embedding_1, embedding_2],     # lists of 384 floats
-    metadatas=[json.dumps({"source": "a.txt"}), json.dumps({"source": "b.txt"})],
+    ids=["intro", "pricing"],
+    embeddings=[intro_vector, pricing_vector],   # lists of 384 floats
+    metadatas=[json.dumps({"page": "intro"}), json.dumps({"page": "pricing"})],
 )
-db.persist()                                   # durable from here on
+db.persist()                                     # crash-safe from here on
 
-for doc_id, score in db.search(query_embedding, k=5):
-    print(doc_id, score, db.get(doc_id))
+for doc_id, score in db.search(question_vector, k=5):
+    print(doc_id, round(score, 3), db.get(doc_id))
+
+db.upsert(ids=["pricing"], embeddings=[new_vector], metadatas=['{"page": "pricing", "v": 2}'])
+db.delete(["intro"])
+db.persist()
 ```
 
-Any embedding model works as long as its dimension is between **128 and
-4096**; use the model's own dimension, with no padding.
+## Local RAG in a few lines
 
----
+```python
+import json
+import srvdb
+from sentence_transformers import SentenceTransformer   # pip install sentence-transformers
+
+model = SentenceTransformer("all-MiniLM-L6-v2")          # 384-dim, runs offline
+db = srvdb.Database("./rag-db", dimension=384)
+
+chunks = ["SrvDB stores vectors on local disk.", "persist() makes writes crash-safe."]
+db.upsert(
+    ids=[f"chunk-{i}" for i in range(len(chunks))],
+    embeddings=model.encode(chunks).tolist(),
+    metadatas=[json.dumps({"text": c}) for c in chunks],
+)
+db.persist()
+
+question = model.encode("How do I make writes durable?").tolist()
+context = [json.loads(db.get(i))["text"] for i, _ in db.search(question, k=2)]
+```
+
+Full walkthrough with chunking and a local LLM:
+[Build a local RAG app](https://srinivas26k.github.io/srvdb/guides/local-rag/).
 
 ## Index modes
 
-| Mode | Search | Stored per vector | Notes |
-|------|--------|-------------------|-------|
-| `flat` (default) | Exact scan | 4 bytes × dimension | Exact results. |
-| `hnsw` | Approximate graph | Full vectors + graph | Tune with `set_ef_search()`. |
-| `ivf` | Partitions, then graph | Full vectors + index | Call `train_ivf()` once data is loaded. |
-| `sq8` | Scan of 8-bit codes | 1 byte × dimension | 4× smaller; approximate scores. |
-| `pq` | Scan of PQ codes | dimension ÷ 8 bytes (÷ 4 if not divisible by 8) | Up to 32× smaller; trains on the first batch (at least 256 vectors). |
-| `auto` | Flat, then HNSW | Full vectors | Checks size at each `persist()` and builds an HNSW graph for large databases; never compresses. |
+| Mode | Search | Storage per vector | Use when |
+|------|--------|--------------------|----------|
+| `flat` (default) | Exact | 4 B × dim | You want exact results |
+| `hnsw` | Graph, approximate | vectors + graph | Search must be faster on large data |
+| `ivf` | Partitions + graph | vectors + index | Very large collections |
+| `sq8` | Scan, approximate | 1 B × dim (4×) | Storage matters |
+| `pq` | Scan, approximate | dim ÷ 8 B (up to 32×) | Storage matters most |
+| `auto` | Flat, then HNSW | vectors | You'd rather not choose |
 
-Compressed and approximate modes trade recall for size or speed. **How much
-depends on your data**: product quantization in particular loses accuracy
-on tightly clustered embeddings. Measure recall on a sample of your own
-data against `flat` before choosing one. From Rust, HNSW can also be built
-over PQ storage (`SrvDB::new_with_hnsw_quantized`).
+Approximate modes trade accuracy for speed or size, depending on your data:
+measure recall against `flat` before switching.
+[How to choose](https://srinivas26k.github.io/srvdb/guides/index-modes/).
 
-More detail: [Indexing modes](docs/concepts/modes.md).
+## The durability promise
 
----
+> When `persist()` returns, every earlier `add`, `upsert` and `delete`
+> survives a process crash or power loss. After a crash the database reopens
+> in exactly the state of the last `persist()`: later writes are absent,
+> never half-present.
 
-## API overview
-
-```python
-# Constructors
-db = srvdb.Database(path, dimension=1536, mode="flat")   # see modes above
-db = srvdb.Database.new_hnsw(path, dimension=1536, m=16, ef_construction=200, ef_search=50)
-db = srvdb.Database.new_scalar_quantized(path, dimension, training_vectors)
-db = srvdb.Database.new_product_quantized(path, dimension, training_vectors)
-
-# Writes (visible to search immediately, durable after persist())
-db.add(ids, embeddings, metadatas) -> int      # new ids only
-db.upsert(ids, embeddings, metadatas) -> int   # insert or replace
-db.delete(ids) -> int                          # number actually deleted
-db.persist()                                   # crash-safe commit
-db.compact() -> int                            # reclaim space from deletes
-
-# Reads
-db.search(query, k) -> list[tuple[str, float]]          # best first
-db.search_batch(queries, k) -> list[list[tuple[str, float]]]
-db.get(id) -> str | None                                 # metadata JSON
-db.count() -> int
-db.get_all_ids() -> list[str]
-
-# Tuning
-db.set_mode("hnsw")                    # 'flat', 'hnsw', 'sq8', 'ivf', 'auto'
-db.set_ef_search(100)                  # HNSW: higher is more accurate, slower
-db.configure_ivf(nlist=100, nprobe=10)
-db.train_ivf()
-```
-
-Errors: bad input raises `ValueError`, I/O failures raise `OSError`, a
-database already open elsewhere raises `BlockingIOError`, and internal
-faults raise `RuntimeError`. Full reference: [Python API](docs/api/python.md).
-
----
+How it works: [Durability](https://srinivas26k.github.io/srvdb/guides/durability/) ·
+[ADR 0003](docs/adr/0003-durability.md).
 
 ## Performance
 
-SrvDB 0.3 does not publish performance numbers yet. Earlier README tables
-were measured on versions where some modes did not work as labelled (for
-example, the "HNSW" rows measured a flat scan, and HNSW with PQ returned no
-results), so they have been removed.
-
-New numbers will be published only from a committed, reproducible benchmark,
-with the hardware, OS, dataset, commit and command listed next to every
-figure. Until then, measure on your own hardware:
+SrvDB publishes performance numbers only from a committed, reproducible
+benchmark (hardware, OS, dataset, commit and command listed). That suite is
+coming in 0.4; numbers from earlier versions were withdrawn because they
+measured code with bugs fixed in 0.3. Measure on your own machine:
 
 ```bash
 pip install "srvdb[bench]"
 python benchmarks/universal_benchmark.py
 ```
 
-See [Benchmarking](docs/guides/benchmarking.md).
+## Use it from Rust
 
----
+```rust
+use srvdb::{types::DatabaseConfig, SrvDB, Vector, VectorEngine};
 
-## Known limitations
+let mut db = SrvDB::new_with_config("./rust-db", DatabaseConfig::new(384)?)?;
+db.add(&Vector::new(vec![0.1; 384]), r#"{"title": "first"}"#)?;
+db.persist()?;
+let hits = db.search(&Vector::new(vec![0.1; 384]), 5)?;
+```
 
-- **One open instance per database.** A database directory can be open in
-  one `Database` (or Rust `SrvDB`) at a time, across all processes.
-- **`persist()` is the commit point.** Writes after the last `persist()`
-  are lost on a crash, by design.
-- **Approximate modes need checking.** Recall of `hnsw`, `ivf`, `sq8` and
-  `pq` varies with data and parameters; measure it on your data.
-- **Single node.** No replication or sharding; SrvDB is a library inside
-  your application.
+[Rust guide](https://srinivas26k.github.io/srvdb/guides/rust/)
 
----
+## Roadmap
+
+- **0.3 — Trustworthy storage** ✅ crash safety, delete/upsert/compact,
+  validation, typed errors, thread safety, Apache-2.0
+- **0.4 — Retrieval**: metadata filtering, hybrid search, LangChain and
+  LlamaIndex integrations, reproducible benchmarks, research into
+  training-free quantization
+
+[Full roadmap](https://srinivas26k.github.io/srvdb/project/roadmap/)
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines,
-and [AGENTS.md](AGENTS.md) for the engineering rules every change follows.
-Benchmark results from different hardware are welcome in
+Bug reports, docs, tests, benchmarks from your hardware and code are all
+welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the engineering rules
+every change follows are in [AGENTS.md](AGENTS.md). Questions and ideas:
 [GitHub Discussions](https://github.com/Srinivas26k/srvdb/discussions).
-
----
+Security issues: email srinivasvarma764@gmail.com privately.
 
 ## License
 
-SrvDB is licensed under the [Apache License 2.0](LICENSE): free to use,
-modify and ship in open-source and commercial products, with an explicit
-patent grant. Releases up to and including 0.2.0 were published under
-AGPL-3.0.
+SrvDB is licensed under the [Apache License 2.0](LICENSE): free to use, modify
+and ship in open-source and commercial products, with an explicit patent
+grant. Releases up to and including 0.2.0 were published under AGPL-3.0.
+The SrvDB name and eagle logo are not covered by the licence
+([brand guide](assets/brand/README.md)).
 
 Commercial support and consulting: **srinivasvarma764@gmail.com**
 
----
-
 ## Acknowledgments
 
-SrvDB relies on the following open-source projects:
+Built on [SimSIMD](https://github.com/ashvardanian/simsimd),
+[Rayon](https://github.com/rayon-rs/rayon), [PyO3](https://github.com/PyO3/pyo3),
+[redb](https://github.com/cberner/redb) and
+[parking_lot](https://github.com/Amanieu/parking_lot).
 
-- [SimSIMD](https://github.com/ashvardanian/simsimd) - SIMD distance kernels
-- [Rayon](https://github.com/rayon-rs/rayon) - Data parallelism
-- [PyO3](https://github.com/PyO3/pyo3) - Python-Rust bindings
-- [redb](https://github.com/cberner/redb) - Embedded key-value store
-- [parking_lot](https://github.com/Amanieu/parking_lot) - Fast synchronization primitives
-
----
-
-## Support
-
-- **Issues:** [GitHub Issues](https://github.com/Srinivas26k/srvdb/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/Srinivas26k/srvdb/discussions)
-- **Email:** srinivasvarma764@gmail.com
-
-For bug reports or feature requests, please include system information and minimal reproduction code.
+<p align="center"><img src="assets/brand/srvdb-eagle.svg" alt="" width="48"></p>
