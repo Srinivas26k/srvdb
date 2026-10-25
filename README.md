@@ -351,8 +351,8 @@ db = srvdb.Database.new_hnsw(
 We provide a standardized benchmark script to validate performance on your specific hardware.
 
 ```bash
-pip install srvdb numpy scikit-learn psutil
-python universal_benchmark.py
+pip install "srvdb[bench]"
+python benchmarks/universal_benchmark.py
 ```
 
 The script automatically detects available RAM, adjusts dataset size (10k-1M vectors), and uses an adversarial data mix (70% random / 30% clustered) to stress-test quantization accuracy.

@@ -11,7 +11,8 @@ to stress-test Product Quantization (PQ) accuracy.
 
 Usage:
     pip install srvdb numpy scikit-learn psutil
-    python universal_benchmark.py
+    pip install "srvdb[bench]"
+    python benchmarks/universal_benchmark.py
 
 Output:
     benchmark_result_<os>_<timestamp>.json

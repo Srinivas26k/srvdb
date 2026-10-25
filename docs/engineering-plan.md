@@ -324,7 +324,7 @@ Novelty is not claimed for any of this until a prior-art review is done.
 
 ## 4. Benchmark methodology (applies to everything above)
 
-The current `universal_benchmark.py` measures single-process Python
+The current `benchmarks/universal_benchmark.py` measures single-process Python
 end-to-end latency on synthetic data. Keep it as a smoke benchmark, and add
 a rigorous suite:
 

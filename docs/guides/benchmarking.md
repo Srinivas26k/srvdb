@@ -11,11 +11,11 @@ SrvDB comes with a benchmark script that:
 
 ### Step 1: Install Dependencies
 ```bash
-pip install srvdb numpy scikit-learn psutil
+pip install "srvdb[bench]"
 ```
 
 ### Step 2: Download/Run the Script
-(If you cloned the repo, this script is in `universal_benchmark.py`).
+(If you cloned the repo, this script is in `benchmarks/universal_benchmark.py`).
 
 ```python
 # Save this as benchmark.py and run it
@@ -25,7 +25,7 @@ import srvdb
 
 **Recommended**: Run the official script from the repository:
 ```bash
-curl -O https://raw.githubusercontent.com/Srinivas26k/srvdb/main/universal_benchmark.py
+curl -O https://raw.githubusercontent.com/Srinivas26k/srvdb/master/benchmarks/universal_benchmark.py
 python universal_benchmark.py
 ```
 
