@@ -89,7 +89,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # ubuntu-24.04, not ubuntu-latest: Ubuntu 26.04 runners have no
+        # Python 3.9 (end of life), which SrvDB still supports.
+        os: [ubuntu-24.04, macos-latest, windows-latest]
         python: ["3.9", "3.14"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
