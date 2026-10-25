@@ -8,11 +8,23 @@ impl SrvDB {
     /// Only full-precision storage is indexed; quantized-only databases have
     /// no f32 vectors to compute graph distances from.
     pub(super) fn index_new_ids(&mut self, ids: &[u64]) -> Result<()> {
-        let ivf_trained = self
-            .ivf_index
-            .as_ref()
-            .is_some_and(|ivf| !ivf.centroids.is_empty());
-        if ids.is_empty() || (self.hnsw_index.is_none() && !ivf_trained) {
+        self.index_into(ids, true, true)
+    }
+
+    /// Insert `ids` into the HNSW graph and/or the trained IVF partitions
+    pub(super) fn index_into(
+        &mut self,
+        ids: &[u64],
+        into_hnsw: bool,
+        into_ivf: bool,
+    ) -> Result<()> {
+        let into_hnsw = into_hnsw && self.hnsw_index.is_some();
+        let into_ivf = into_ivf
+            && self
+                .ivf_index
+                .as_ref()
+                .is_some_and(|ivf| !ivf.centroids.is_empty());
+        if ids.is_empty() || !(into_hnsw || into_ivf) {
             return Ok(());
         }
 
@@ -29,13 +41,13 @@ impl SrvDB {
             }
         };
 
-        if let Some(ref hnsw) = self.hnsw_index {
+        if let (Some(ref hnsw), true) = (&self.hnsw_index, into_hnsw) {
             for &id in ids {
                 hnsw.insert(id, &distance_fn)?;
             }
         }
 
-        if let (Some(ref ivf), true) = (&self.ivf_index, ivf_trained) {
+        if let (Some(ref ivf), true) = (&self.ivf_index, into_ivf) {
             use rayon::prelude::*;
             ids.par_iter().try_for_each(|&id| -> Result<()> {
                 if let Some(vec_data) = vstorage.get(id) {

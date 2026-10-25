@@ -78,6 +78,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no longer open it).
 
 ### Fixed
+- A trained IVF index is reloaded when the database is opened; it used to
+  be saved by `persist()` but never read back, so it had to be retrained
+  after every restart.
 - `search_batch()` uses the active index (HNSW, IVF, SQ8, PQ) like
   `search()`; it used to scan every vector exactly, ignoring the index.
 - `set_ef_search()` now changes HNSW search quality (it edited a copy that
