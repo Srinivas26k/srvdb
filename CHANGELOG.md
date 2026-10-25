@@ -78,6 +78,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no longer open it).
 
 ### Fixed
+- Auto mode now only chooses an index: above the size threshold it builds
+  an HNSW graph (saved by `persist()` and reloaded on open). It no longer
+  converts storage to SQ8 behind the caller's back, and the mode stays
+  `Auto` after the decision.
 - A trained IVF index is reloaded when the database is opened; it used to
   be saved by `persist()` but never read back, so it had to be retrained
   after every restart.

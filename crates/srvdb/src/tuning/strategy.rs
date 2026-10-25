@@ -27,8 +27,8 @@ pub enum IndexMode {
     /// Best for massive datasets (>1M vectors).
     Ivf,
 
-    /// The "Magic" mode.
-    /// SrvDB analyzes resources and data size to select the best strategy at runtime.
+    /// Choose the index automatically: flat for small datasets, HNSW for
+    /// large ones. Never compresses vectors (see `tuning::auto_tune`).
     Auto,
 }
 
@@ -39,7 +39,7 @@ pub struct AutoTunerConfig {
     /// Total available system RAM in GB.
     pub available_ram_gb: f64,
 
-    /// Dataset size threshold to switch from Flat to HNSW/SQ8.
+    /// Dataset size from which auto mode builds an HNSW index.
     /// Default: 50,000 vectors.
     pub dataset_size_threshold: usize,
 
@@ -69,41 +69,21 @@ impl AutoTunerConfig {
     }
 }
 
-/// The Decision Engine.
+/// The index auto mode should use.
 ///
-/// Analyzes constraints and returns the optimal IndexMode.
+/// - Fewer vectors than `dataset_size_threshold`: `Flat`, exact search
+///   that is fast enough at this size and has perfect recall.
+/// - Larger, with at least 2 GB of RAM: `Hnsw`, approximate search in
+///   logarithmic time.
+/// - Larger but with less RAM: `Flat`, which reads vectors through the
+///   memory map instead of holding a graph in memory.
 ///
-/// # Logic Flow
-/// 1. **Safety First**: If RAM is critically low (<2GB) and dataset is large, force SQ8.
-/// 2. **Accuracy First**: If dataset is small (<50k), use Flat for 100% recall.
-/// 3. **Speed/Scale**: If dataset is large (>50k):
-///    - If plenty of RAM (>8GB), use HNSW for speed.
-///    - If constrained RAM (<8GB), use SQ8 for efficiency.
+/// Never returns `Sq8` or `Ivf`: compression changes stored data and IVF
+/// needs training, so both are explicit choices.
 pub fn decide_mode(config: &AutoTunerConfig, dataset_size: usize) -> IndexMode {
-    // 1. Accuracy Mode (Small Data)
-    // For small datasets, Flat is fast enough and provides perfect recall.
-    if dataset_size < config.dataset_size_threshold {
-        return IndexMode::Flat;
+    if dataset_size < config.dataset_size_threshold || config.available_ram_gb < 2.0 {
+        IndexMode::Flat
+    } else {
+        IndexMode::Hnsw
     }
-
-    // 2. Safe Mode (Low RAM)
-    // If we have very limited memory, we prioritized compression (SQ8) to avoid OOM.
-    // SQ8 uses ~25-30% of the RAM of Flat/HNSW.
-    if config.available_ram_gb < 4.0 {
-        return IndexMode::Sq8;
-    }
-
-    // 3. Efficiency Mode (Medium RAM)
-    // Between 4GB and 16GB, it's a trade-off.
-    // If the dataset is massive (e.g. >1M), HNSW memory overhead is too high.
-    // For now, let's say if we have < 8GB, we still prefer SQ8 to be safe for other apps.
-    if config.available_ram_gb < 8.0 {
-        return IndexMode::Sq8;
-    }
-
-    // 4. Speed Mode (High RAM)
-    // We have resources. Prioritize sub-millisecond latency.
-    IndexMode::Hnsw
 }
-
-// TODO: Add IVF support for v0.3.0 logic.

@@ -67,7 +67,7 @@ impl SrvDB {
     /// Enable HNSW: load `hnsw.graph` if present (its stored config wins),
     /// otherwise start a new graph. Stored vectors missing from the graph
     /// (e.g. added after the last persist) are indexed.
-    pub(super) fn attach_hnsw(&mut self, config: hnsw::HNSWConfig) -> Result<()> {
+    pub(crate) fn attach_hnsw(&mut self, config: hnsw::HNSWConfig) -> Result<()> {
         let graph_path = self.path.join("hnsw.graph");
         let loaded = if graph_path.exists() {
             match std::fs::read(&graph_path)
