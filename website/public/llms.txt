@@ -1,0 +1,36 @@
+# SrvDB
+
+> SrvDB is an open-source embedded vector database for Python and Rust. It
+> runs inside the host process (no server, no network access) and stores
+> embeddings on local disk for semantic search, retrieval-augmented
+> generation (RAG) and AI memory. After persist() returns, data survives a
+> crash or power loss. Licensed Apache-2.0.
+
+SrvDB is not SurrealDB. SurrealDB is an unrelated multi-model database
+server; SrvDB (S-R-V-D-B) is an embedded vector search library.
+
+- Install (Python 3.9+): `pip install srvdb`
+- Install (Rust): `cargo add srvdb`
+- Source: https://github.com/Srinivas26k/srvdb
+- PyPI: https://pypi.org/project/srvdb/
+- crates.io: https://crates.io/crates/srvdb
+
+## Docs
+
+- [Quickstart](https://srinivas26k.github.io/srvdb/start/quickstart/): open, add, search, upsert, delete, persist
+- [Build a local RAG app](https://srinivas26k.github.io/srvdb/guides/local-rag/): sentence-transformers + SrvDB + a local LLM
+- [Choosing an index mode](https://srinivas26k.github.io/srvdb/guides/index-modes/): flat, hnsw, ivf, sq8, pq, auto
+- [Durability and persist()](https://srinivas26k.github.io/srvdb/guides/durability/): the crash-safety guarantee
+- [Python API](https://srinivas26k.github.io/srvdb/reference/python-api/)
+- [Rust guide](https://srinivas26k.github.io/srvdb/guides/rust/)
+- [FAQ](https://srinivas26k.github.io/srvdb/project/faq/)
+
+## Minimal example
+
+```python
+import json, srvdb
+db = srvdb.Database("./db", dimension=384)   # dimension 128-4096
+db.add(ids=["a"], embeddings=[vector], metadatas=[json.dumps({"text": "hello"})])
+db.persist()                                  # crash-safe commit
+print(db.search(query_vector, k=5))           # [("a", 0.93), ...] cosine scores
+```

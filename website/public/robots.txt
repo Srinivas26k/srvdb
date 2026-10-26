@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://srinivas26k.github.io/srvdb/sitemap-index.xml
