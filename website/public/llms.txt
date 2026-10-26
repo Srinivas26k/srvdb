@@ -15,9 +15,50 @@ server; SrvDB (S-R-V-D-B) is an embedded vector search library.
 - PyPI: https://pypi.org/project/srvdb/
 - crates.io: https://crates.io/crates/srvdb
 
+## Use cases
+
+1. Local RAG over private documents: embed chunks, store text as metadata,
+   retrieve context for a local LLM; data never leaves the machine.
+2. Long-term memory for AI agents: remember (upsert), recall (search) and
+   forget (delete) facts across sessions; one directory per user or agent.
+3. Semantic search inside desktop and CLI apps: ships with the app via
+   pip, no runtime dependencies, wheels for Linux, macOS and Windows.
+4. Offline and air-gapped systems (healthcare, legal, finance, defence):
+   no network access, all data in one local directory.
+5. Edge devices (ARM, small machines): Linux aarch64 wheels; SQ8 storage is
+   4x smaller, PQ up to 32x smaller.
+6. Code search across a local repository with code embeddings.
+7. Image, audio and multimodal search with CLIP-style embeddings
+   (any dimension 128-4096).
+8. Deduplication and near-duplicate detection with a cosine threshold
+   (scores are true cosine similarities in [-1, 1]).
+9. Recommendations ("more like this") from a local catalogue.
+10. Testing and prototyping RAG pipelines in unit tests and CI without a
+    database service.
+11. One database per user or tenant: each database is a directory.
+
+## When not to use SrvDB
+
+- You need a shared database server for many machines or services
+  (SrvDB is an in-process library, single node).
+- Several processes must write to the same database (one open instance
+  per database directory).
+- You need metadata filtering inside the search (planned for 0.4).
+- Billions of vectors on one machine (no published benchmarks at that
+  scale yet).
+
+## Index modes
+
+flat (exact, default), hnsw (graph, approximate), ivf (partitions + graph,
+call train_ivf), sq8 (8-bit, 4x smaller), pq (product quantization, up to
+32x smaller, first batch >= 256 vectors), auto (flat, then HNSW at 50,000+
+vectors). All modes rank by cosine similarity.
+
 ## Docs
 
 - [Quickstart](https://srinivas26k.github.io/srvdb/start/quickstart/): open, add, search, upsert, delete, persist
+- [Use cases](https://srinivas26k.github.io/srvdb/start/use-cases/): eleven use cases with the right mode for each
+- [Live examples and cheat sheets](https://srinivas26k.github.io/srvdb/examples/overview/): coming soon
 - [Build a local RAG app](https://srinivas26k.github.io/srvdb/guides/local-rag/): sentence-transformers + SrvDB + a local LLM
 - [Choosing an index mode](https://srinivas26k.github.io/srvdb/guides/index-modes/): flat, hnsw, ivf, sq8, pq, auto
 - [Durability and persist()](https://srinivas26k.github.io/srvdb/guides/durability/): the crash-safety guarantee

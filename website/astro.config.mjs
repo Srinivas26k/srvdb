@@ -39,6 +39,13 @@ export default defineConfig({
 						{ label: 'Introduction', slug: 'start/introduction' },
 						{ label: 'Installation', slug: 'start/installation' },
 						{ label: 'Quickstart', slug: 'start/quickstart' },
+						{ label: 'Use cases', slug: 'start/use-cases' },
+					],
+				},
+				{
+					label: 'Examples',
+					items: [
+						{ label: 'Live examples & cheat sheets', slug: 'examples/overview', badge: { text: 'Soon', variant: 'caution' } },
 					],
 				},
 				{

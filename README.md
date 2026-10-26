@@ -56,6 +56,20 @@ stores embeddings on local disk, with no server and no cloud.
 - 🦀 **Rust inside.** SIMD distance kernels, typed errors, no Python runtime
   dependencies. Usable from Rust too.
 
+## Use cases
+
+- **Local RAG** over private documents with a local LLM
+- **AI agent memory** that survives restarts: remember, recall, forget
+- **Semantic search** inside desktop, CLI and notes apps
+- **Offline and air-gapped** systems where data must stay on the machine
+- **Edge devices** with 4× (SQ8) to 32× (PQ) smaller storage
+- **Code, image and multimodal search**, deduplication, "more like this"
+- **RAG tests in CI** without starting a database service
+
+Details and when to choose something else:
+[Use cases](https://srinivas26k.github.io/srvdb/start/use-cases/).
+Live examples and cheat sheets are coming soon.
+
 ## Install
 
 ```bash
