@@ -37,54 +37,35 @@ server; SrvDB (S-R-V-D-B) is an embedded vector search library.
     database service.
 11. One database per user or tenant: each database is a directory.
 
-## Industries (example assistants; runnable examples coming soon)
+## Industries: 100 projects (runnable reference implementations coming soon)
 
-Each industry page lists 30 use cases in five levels: 1 Find (semantic
-search), 2 Ask (grounded assistants with citations), 3 Match (similarity,
-deduplication, anomaly detection), 4 Act (agents, memory, multimodal,
-pipelines), 5 Frontier (air-gapped, edge, research-grade; often needs
-specialised embedding models). 20 industries, 600 use cases.
+Each industry has five projects at five levels: 1 Beginner (search and Q&A over
+your documents), 2 Intermediate (assistants and similarity matchers), 3 Advanced
+(analysers over large or specialised data), 4 Expert (agents with memory across
+several databases), 5 Frontier (air-gapped, edge, research-grade). Every project
+has its own page: problem, how SrvDB powers it, before/after, architecture, use
+cases, core code and limits.
 
-- Cybersecurity, SOC Copilot: similar-incident search, phishing similarity,
-  threat-intel RAG on air-gapped SOC networks.
-- Healthcare, Clinical Notes Assistant: on-premises protocol RAG and
-  similar-case search (compliance remains the deployer's responsibility).
-- Legal, Clause & Precedent Finder: clause similarity and precedent
-  retrieval over privileged documents kept local.
-- Finance, Fraud Pattern Matcher: similarity to confirmed fraud cases,
-  policy RAG, record deduplication with cosine thresholds.
-- Government & defence, Air-gapped Knowledge Assistant: fully offline,
-  no Python runtime dependencies, SBOM with every release.
-- Manufacturing & IoT, Factory-floor Maintenance Assistant: manual and
-  fault search on ARM edge devices with SQ8/PQ storage.
-- Customer support, Helpdesk Answer Bot: suggested answers and duplicate
-  tickets.
-- Education & research, Offline Study & Paper Assistant.
-- Retail & e-commerce, In-store Product Finder: semantic and "more like
-  this" product search, offline kiosks.
-- Software engineering, Local Code Navigator: code search without
-  uploading source.
-- Media & journalism, Archive Researcher: archive search and source
-  protection on offline machines.
-- Robotics & automotive, On-device Memory: in-process, crash-safe memory
-  for robots and vehicles; usable from Rust.
-- Mechanical engineering, Design Knowledge Assistant: part, FMEA and test
-  report retrieval; near-duplicate parts.
-- Electrical & electronics, Hardware Design Assistant: datasheet Q&A,
-  substitute candidates, test-log anomalies.
-- Aerospace, Maintenance & Safety Knowledge Assistant: offline manual and
-  finding search (decision support; not for certified or flight-critical
-  systems).
-- Governance, risk & compliance, Control Mapping Assistant: cross-framework
-  control mapping suggestions, questionnaire answer reuse, evidence gaps.
-- Anti-money laundering, AML Investigation Assistant: alert prioritisation
-  by similarity to past dispositions, typology matching (decision support).
-- Fiscal auditing, Audit Working-Paper Assistant: prior findings, duplicate
-  invoice and vendor candidates, unusual journal entries.
-- Quantum computing, Quantum Lab Notebook Assistant: lab notes Q&A, similar
-  runs and calibration drift (SrvDB is classical software).
-- Energy & utilities, Grid Operations Assistant: procedures, similar
-  outages, offline field use.
+- Cybersecurity: L1 SOC Copilot (A knowledge assistant that answers analysts' questions from your own runbooks, incidents and policies); L2 Phishing Hunter (Catches reworded phishing by meaning, not by exact strings); L3 PacketSense (A Wireshark-style traffic explorer where you search network sessions by behaviour); L4 Threat Hunter Agent (An autonomous hunting agent that reasons across network, endpoint and threat-intel memory); L5 Air-gapped OT Sentinel (Offline anomaly detection for industrial control networks, running on edge gateways)
+- Healthcare: L1 Protocol Assistant (Answers clinicians' questions from the hospital's own protocols and formulary, with citations); L2 Similar Case Finder (Finds de-identified past cases that resemble the patient in front of you); L3 Trial Matcher (Shortlists patients for clinical trials by comparing summaries with eligibility criteria); L4 Pharmacovigilance Monitor (Matches new adverse-event reports to known safety signals and groups similar reports); L5 On-prem Clinical AI Stack (A complete hospital AI stack with zero data egress: local embeddings, local LLM, SrvDB)
+- Legal: L1 Clause Finder (Finds the closest clauses your firm has already used, across every contract); L2 Contract Q&A (Ask questions about a contract set and get answers with clause citations); L3 Playbook Deviation Detector (Flags clauses that drift from your negotiation playbook); L4 E-discovery Assistant (Deduplicates, clusters and prioritises review sets by meaning); L5 Air-gapped Investigation Suite (Offline analysis of highly sensitive investigation documents)
+- Finance & banking: L1 Policy Assistant (Answers staff questions from internal policies and product terms); L2 Complaint Analyzer (Clusters and deduplicates customer complaints to find root causes); L3 Fraud Pattern Matcher (Compares new cases with confirmed fraud cases and ranks them for investigators); L4 Investigator Agent (An agent that gathers context across cases, policies and customer history); L5 On-prem Risk AI Platform (A data-resident AI retrieval platform for risk and compliance teams)
+- Government & defence: L1 Doctrine Assistant (Air-gapped question answering over manuals and doctrine); L2 Citizen Service Bot (Answers citizens' questions from official public guidance); L3 Report Linker (Links related reports and requests across departments); L4 Field Intelligence Agent (An offline agent on rugged laptops combining text and imagery); L5 Sovereign AI Stack (A fully reviewed, air-gapped AI stack with a published SBOM)
+- Manufacturing & IoT: L1 Maintenance Assistant (Technicians describe a symptom and get the right manual section and past fixes); L2 Defect Matcher (Matches new defects to past ones, from text and images); L3 Sensor Anomaly Detector (Flags sensor windows far from normal operation); L4 Plant Knowledge Agent (An agent with shift memory across lines, manuals and quality records); L5 Predictive Maintenance at the Edge (Finds machines whose behaviour resembles past pre-failure signatures)
+- Customer support: L1 Knowledge Base Search (Customers and agents find the right article from their own words); L2 Helpdesk Answer Bot (Drafts replies from similar solved tickets and articles); L3 Ticket Deduplicator (Finds duplicate tickets and emerging issue clusters); L4 Customer Memory Agent (Remembers each customer's history across conversations); L5 Offline Support Kiosk (A self-service assistant that works without internet)
+- Education & research: L1 Paper Search (Search a personal or lab library of papers by meaning); L2 Study Assistant (Answers questions only from the student's own course material); L3 Reviewer Matcher (Matches papers or proposals to suitable reviewers); L4 Research Group Brain (A shared, searchable memory for a lab: notes, data descriptions, figures); L5 Scientific Similarity Lab (Similarity search over spectra, molecules and other scientific data)
+- Retail & e-commerce: L1 Semantic Product Search (Shoppers describe what they want and find it); L2 Shopping Assistant (Answers product questions from your catalogue and reviews); L3 Listing Guardian (Detects duplicate and counterfeit-looking listings); L4 Multimodal Kiosk (In-store kiosk that searches by text or photo); L5 Edge Recommender ("More like this" recommendations running on store or app hardware)
+- Software engineering: L1 Code Search (Find code by what it does); L2 Codebase Q&A (Ask how the system works and get answers citing files); L3 Bug Dedup Engine (Links duplicate bug reports and similar stack traces); L4 Coding Agent Memory (Long-term, crash-safe memory for autonomous coding agents); L5 Air-gapped Dev Copilot (A self-hosted developer assistant for isolated environments)
+- Media & journalism: L1 Archive Search (Search decades of articles by meaning); L2 Fact-check Assistant (Matches claims against previously fact-checked claims and sources); L3 Narrative Tracker (Clusters stories and posts into narratives); L4 Investigation Workbench (Isolated, multimodal workspace per investigation); L5 Secure Leak Analysis (Air-gapped analysis of large leaked datasets)
+- Robotics & automotive: L1 In-car Manual Assistant (Answers drivers' questions from the owner's manual, offline); L2 Diagnostic Assistant (Technicians match symptoms and trouble codes to past repairs); L3 Scenario Miner (Finds driving or robot episodes similar to a scenario of interest); L4 Robot Episodic Memory (Robots remember places, objects and outcomes); L5 Autonomous Fleet Memory (Share learned experience across a fleet with database snapshots)
+- Mechanical engineering: L1 Part Finder (Find existing parts by describing what they do); L2 FMEA Assistant (Drafts and reviews FMEAs grounded in past FMEAs and failures); L3 Vibration Signature Matcher (Matches vibration signatures to known fault patterns); L4 Geometric Design Search (Search CAD models by shape using 3D shape embeddings); L5 Simulation Lookup (Find the nearest previously simulated cases before running a new simulation)
+- Electrical & electronics: L1 Datasheet Q&A (Ask questions of your component datasheets and get page citations); L2 Second-source Finder (Suggests substitute components by specification similarity); L3 Test Log Analyzer (Finds similar past test failures and anomalous logs); L4 Hardware Lab Agent (An agent that remembers bench sessions, scope captures and decisions); L5 RF Fingerprint Lab (Similarity search over RF spectrum fingerprints (research))
+- Aerospace: L1 Maintenance Knowledge Assistant (Cited answers from manuals and service bulletins for technicians); L2 Safety Report Analyzer (Clusters safety reports and links similar events); L3 Fleet Finding Matcher (Matches new maintenance findings to similar findings across the fleet); L4 Borescope Image Search (Find similar borescope images and the findings they led to); L5 Mission Knowledge System (Offline mission and ground-segment knowledge for space operations)
+- Governance, risk & compliance: L1 Policy Search (Find the right policy passage from a plain question); L2 Questionnaire Autopilot (Answers security and vendor questionnaires from past approved answers); L3 Control Mapper (Suggests mappings between controls across frameworks); L4 Regulatory Change Agent (Assesses which policies and controls a new regulation affects); L5 Continuous Compliance Platform (On-prem AI retrieval for evidence, controls and audits with an audit trail)
+- Anti-money laundering: L1 Typology Library (Search money-laundering typologies and red flags by description); L2 Alert Prioritizer (Ranks AML alerts by similarity to past true and false positives); L3 Adverse Media Matcher (Deduplicates and matches adverse media to customers); L4 AML Investigation Agent (An investigator agent with memory across cases, typologies and media); L5 Emerging Typology Radar (Detects clusters of cases far from every known typology)
+- Fiscal auditing: L1 Working-paper Search (Search prior working papers and findings by meaning); L2 Finding Drafter (Drafts audit findings and management letters from similar past findings); L3 Duplicate Invoice Detector (Finds duplicate and near-duplicate invoices and vendors); L4 Continuous Audit Agent (An agent monitoring entries and contracts continuously); L5 Public Funds Analytics (Cross-entity pattern discovery for public-sector auditors)
+- Quantum computing: L1 Lab Notebook Search (Search the group's notes, papers and run summaries); L2 Lab Q&A Assistant (Answers questions from the group's own knowledge with citations); L3 Calibration Drift Detector (Compares calibration snapshots stored as vectors to catch drift); L4 Experiment Memory Agent (An agent remembering runs, plots and decisions across experiments); L5 Circuit Similarity Research (Research platform for circuit embeddings and similarity search)
+- Energy & utilities: L1 Procedure Finder (Operators find the right procedure from a description); L2 Outage Analyzer (Finds similar past outages and their causes); L3 Inspection Image Matcher (Matches drone and field inspection images to known defects); L4 Field Operations Agent (An offline agent for crews with procedures, asset history and notes); L5 Grid Analog Forecaster (Finds historical analogues of current weather and load patterns)
 
 Details: https://srinivas26k.github.io/srvdb/industries/overview/
 

@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import industries from './src/industries-sidebar.mjs';
 
 // Deployed to GitHub Pages at https://srinivas26k.github.io/srvdb/
 export default defineConfig({
@@ -42,10 +43,7 @@ export default defineConfig({
 						{ label: 'Use cases', slug: 'start/use-cases' },
 					],
 				},
-				{
-					label: 'Industries',
-					items: [{ autogenerate: { directory: 'industries' } }],
-				},
+				{ label: 'Industries', items: industries },
 				{
 					label: 'Examples',
 					items: [
