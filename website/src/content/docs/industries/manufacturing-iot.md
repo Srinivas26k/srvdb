@@ -23,6 +23,63 @@ A complete, runnable **Factory-floor Maintenance Assistant** example is in progr
 - **Small storage:** SQ8 stores vectors 4× smaller, PQ up to 32× smaller.
 - **Linux aarch64 wheels** for ARM edge hardware; works with no connectivity.
 
+## Use cases by level
+
+### Level 1 · Find
+
+*Semantic search over your own documents. One database, one `search` call.*
+
+- Machine manual search
+- Fault-code lookup
+- SOP search
+- Spare-part lookup by description
+- Quality report search
+- Supplier specification search
+
+### Level 2 · Ask
+
+*Grounded assistants: retrieve passages with SrvDB, answer with a local LLM, always cite sources.*
+
+- Maintenance assistant
+- Operator training tutor
+- Root-cause analysis grounded in past 8D reports
+- Changeover procedure Q&A
+- Health-and-safety Q&A
+- Supplier quality Q&A
+
+### Level 3 · Match
+
+*Similarity, deduplication and anomaly detection using cosine scores and thresholds.*
+
+- Similar-fault retrieval
+- Defect image similarity
+- Duplicate work orders
+- Sensor-window anomaly by distance
+- Supplier non-conformance clustering
+- Production-log anomalies
+
+### Level 4 · Act
+
+*Agents with memory, several databases, multimodal embeddings and continuous `upsert` pipelines.*
+
+- Technician agent with shift memory
+- One database per production line
+- Vision plus text retrieval
+- Edge gateways receiving database snapshots
+- Learning from resolved work orders
+- Knowledge layer for a digital twin
+
+### Level 5 · Frontier
+
+*Air-gapped, edge and research-grade systems. These usually need specialised embedding models and careful evaluation; some are research directions, not finished products.*
+
+- Embedded memory in Rust services next to the machine
+- Predictive maintenance: nearest neighbours of pre-failure signatures
+- Fleet-wide pattern sharing by shipping database snapshots
+- Crash-safe operation through power cuts
+- Compressed indexes on small ARM Linux devices
+- Golden-batch comparison of process-parameter embeddings
+
 ## Example: Factory-floor Maintenance Assistant
 
 A tablet or edge-box assistant where a technician describes a symptom and gets the closest past fault reports and the relevant manual pages.

@@ -67,9 +67,12 @@ stores embeddings on local disk, with no server and no cloud.
 - **RAG tests in CI** without starting a database service
 
 Details and when to choose something else:
-[Use cases](https://srinivas26k.github.io/srvdb/start/use-cases/). By industry,
-from a **SOC Copilot for cybersecurity** to healthcare, legal, finance and
-robotics: [Industries](https://srinivas26k.github.io/srvdb/industries/overview/).
+[Use cases](https://srinivas26k.github.io/srvdb/start/use-cases/).
+
+**600 use cases in 20 industries**, from a SOC Copilot for cybersecurity to
+AML, fiscal auditing, GRC, aerospace, mechanical and electrical engineering,
+quantum computing and energy, each in five levels from simple search to
+frontier systems: [Industries](https://srinivas26k.github.io/srvdb/industries/overview/).
 Live examples and cheat sheets are coming soon.
 
 ## Install

@@ -144,8 +144,10 @@ SrvDB is deliberately small. Look elsewhere if you need:
 
 ## By industry
 
-See how these patterns apply in [twelve industries](/srvdb/industries/overview/),
-from cybersecurity (SOC Copilot) to healthcare, legal, finance and robotics.
+See [600 use cases in 20 industries](/srvdb/industries/overview/), each in five
+levels from simple search to frontier systems: cybersecurity, AML, fiscal
+auditing, GRC, aerospace, mechanical and electrical engineering, quantum
+computing, energy, healthcare, legal, finance and more.
 
 ## Live examples
 

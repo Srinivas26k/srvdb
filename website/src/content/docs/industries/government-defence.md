@@ -23,6 +23,63 @@ A complete, runnable **Air-gapped Knowledge Assistant** example is in progress. 
 - **Small, reviewable footprint:** one library, no Python runtime dependencies, Apache-2.0, a published SBOM with every release.
 - **Crash-safe:** committed data survives power loss on field hardware.
 
+## Use cases by level
+
+### Level 1 · Find
+
+*Semantic search over your own documents. One database, one `search` call.*
+
+- Manual and doctrine search
+- Policy archive search
+- Procurement document search
+- Information-request archive search
+- Translation-memory search
+- Equipment part lookup by description
+
+### Level 2 · Ask
+
+*Grounded assistants: retrieve passages with SrvDB, answer with a local LLM, always cite sources.*
+
+- Air-gapped doctrine Q&A
+- Citizen-service assistant over public guidance
+- Procurement compliance assistant
+- Briefing drafts from retrieved reports
+- Training tutor
+- Legislative history Q&A
+
+### Level 3 · Match
+
+*Similarity, deduplication and anomaly detection using cosine scores and thresholds.*
+
+- Duplicate request detection
+- Report linking by similarity
+- Maintenance-log anomalies
+- Narrative clustering of public disinformation content
+- Bid similarity signals in procurement (for human review)
+- Open-source document deduplication
+
+### Level 4 · Act
+
+*Agents with memory, several databases, multimodal embeddings and continuous `upsert` pipelines.*
+
+- Field assistant on rugged laptops, fully offline
+- Separation by classification: one database per level
+- Image and text retrieval with multimodal embeddings
+- Continuous ingestion with `persist()` checkpoints
+- Translation assistant with memory
+- Mission-planning knowledge agent
+
+### Level 5 · Frontier
+
+*Air-gapped, edge and research-grade systems. These usually need specialised embedding models and careful evaluation; some are research directions, not finished products.*
+
+- Fully air-gapped AI stack with an SBOM-reviewed dependency chain
+- Disconnected edge deployments on vehicles and ships
+- Cross-lingual intelligence linking
+- Crash-safe operation on unreliable power
+- Builds from reviewed source for supply-chain assurance
+- Long-term archival memory with versioned on-disk formats
+
 ## Example: Air-gapped Knowledge Assistant
 
 A question-answering assistant over manuals and reports that runs on a single isolated machine, with every answer linked to its source passages.

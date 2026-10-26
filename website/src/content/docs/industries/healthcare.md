@@ -23,6 +23,63 @@ A complete, runnable **Clinical Notes Assistant** example is in progress. The pa
 - **Similar-case search:** find de-identified past cases that resemble a current one.
 - **On-premises only:** data stays in a local directory on hospital hardware.
 
+## Use cases by level
+
+### Level 1 · Find
+
+*Semantic search over your own documents. One database, one `search` call.*
+
+- Clinical protocol search by question
+- Local formulary and drug-information search
+- De-identified discharge summary search
+- Terminology aid: closest code descriptions for free-text findings (clinician confirms)
+- Laboratory SOP search
+- Handover note search
+
+### Level 2 · Ask
+
+*Grounded assistants: retrieve passages with SrvDB, answer with a local LLM, always cite sources.*
+
+- Protocol Q&A with citations to the exact passage
+- Patient-education assistant limited to approved leaflets
+- Discharge summary drafting from retrieved templates (clinician edits)
+- Clinical trial protocol Q&A for coordinators
+- Clinical coding suggestions from descriptions (coder verifies)
+- Research assistant over the hospital's own publications
+
+### Level 3 · Match
+
+*Similarity, deduplication and anomaly detection using cosine scores and thresholds.*
+
+- Similar-case retrieval over de-identified cases
+- Duplicate patient-record candidates for data-quality teams
+- Adverse-event report clustering
+- Unusual-presentation flag: triage notes far from typical ones
+- Trial pre-screening shortlist: patient summaries vs eligibility criteria (staff decide)
+- Research image similarity on de-identified imaging sets
+
+### Level 4 · Act
+
+*Agents with memory, several databases, multimodal embeddings and continuous `upsert` pipelines.*
+
+- Ward assistant with per-clinician session memory
+- Combined lookup across guideline, formulary and local-policy databases
+- Radiology research tool joining image and report embeddings
+- Guideline updates via `upsert`, retention via `delete` and `compact()`
+- Offline assistant on hospital tablets
+- Pharmacovigilance pipeline matching new reports to known signals
+
+### Level 5 · Frontier
+
+*Air-gapped, edge and research-grade systems. These usually need specialised embedding models and careful evaluation; some are research directions, not finished products.*
+
+- On-premises hospital AI stack with zero data egress
+- Genomics and protein embedding similarity for research (domain models)
+- Offline assistants for ambulances and rural clinics
+- Per-site databases: each hospital keeps its own data; only models or aggregates are shared
+- Retrospective research on ICU waveform embedding similarity
+- Crash-safe audit log of AI suggestions shown to clinicians
+
 ## Example: Clinical Notes Assistant
 
 A ward-side assistant that answers questions from the hospital's own protocols and formularies, citing the passages it used, running entirely on hospital hardware.

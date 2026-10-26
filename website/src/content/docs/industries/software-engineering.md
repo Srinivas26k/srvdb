@@ -23,6 +23,63 @@ A complete, runnable **Local Code Navigator** example is in progress. The patter
 - **Keep the index current** with `upsert` and `delete` as files change.
 - **Everything local**, including in CI.
 
+## Use cases by level
+
+### Level 1 · Find
+
+*Semantic search over your own documents. One database, one `search` call.*
+
+- Code search by meaning
+- Documentation search
+- Architecture-decision search
+- Error-message search
+- Runbook search
+- Commit-history search
+
+### Level 2 · Ask
+
+*Grounded assistants: retrieve passages with SrvDB, answer with a local LLM, always cite sources.*
+
+- Codebase Q&A
+- Developer onboarding
+- Incident runbook assistant
+- API usage assistant
+- PR descriptions from similar PRs
+- Test-writing assistant grounded in existing tests
+
+### Level 3 · Match
+
+*Similarity, deduplication and anomaly detection using cosine scores and thresholds.*
+
+- Duplicate bug reports
+- Similar stack traces
+- Code-clone candidates
+- Flaky-test clustering
+- Log anomalies
+- Snippet provenance checks
+
+### Level 4 · Act
+
+*Agents with memory, several databases, multimodal embeddings and continuous `upsert` pipelines.*
+
+- Coding-agent memory
+- One database per repository
+- Indexing on every commit in CI
+- Offline IDE plugin
+- Incident agent
+- Architecture knowledge agent
+
+### Level 5 · Frontier
+
+*Air-gapped, edge and research-grade systems. These usually need specialised embedding models and careful evaluation; some are research directions, not finished products.*
+
+- Air-gapped development environments
+- Regression detection in logs by distance
+- Monorepo-scale code index (benchmark first)
+- Crash-safe memory for long autonomous agent runs
+- Search for known vulnerable code patterns
+- Self-hosted developer copilot stack
+
 ## Example: Local Code Navigator
 
 An editor or CLI assistant that answers "where is..." and "how does..." questions about a repository using only a local index.
