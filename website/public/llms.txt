@@ -39,6 +39,12 @@ server; SrvDB (S-R-V-D-B) is an embedded vector search library.
 
 ## Industries (example assistants; runnable examples coming soon)
 
+Each industry page lists 30 use cases in five levels: 1 Find (semantic
+search), 2 Ask (grounded assistants with citations), 3 Match (similarity,
+deduplication, anomaly detection), 4 Act (agents, memory, multimodal,
+pipelines), 5 Frontier (air-gapped, edge, research-grade; often needs
+specialised embedding models). 20 industries, 600 use cases.
+
 - Cybersecurity, SOC Copilot: similar-incident search, phishing similarity,
   threat-intel RAG on air-gapped SOC networks.
 - Healthcare, Clinical Notes Assistant: on-premises protocol RAG and
@@ -62,6 +68,23 @@ server; SrvDB (S-R-V-D-B) is an embedded vector search library.
   protection on offline machines.
 - Robotics & automotive, On-device Memory: in-process, crash-safe memory
   for robots and vehicles; usable from Rust.
+- Mechanical engineering, Design Knowledge Assistant: part, FMEA and test
+  report retrieval; near-duplicate parts.
+- Electrical & electronics, Hardware Design Assistant: datasheet Q&A,
+  substitute candidates, test-log anomalies.
+- Aerospace, Maintenance & Safety Knowledge Assistant: offline manual and
+  finding search (decision support; not for certified or flight-critical
+  systems).
+- Governance, risk & compliance, Control Mapping Assistant: cross-framework
+  control mapping suggestions, questionnaire answer reuse, evidence gaps.
+- Anti-money laundering, AML Investigation Assistant: alert prioritisation
+  by similarity to past dispositions, typology matching (decision support).
+- Fiscal auditing, Audit Working-Paper Assistant: prior findings, duplicate
+  invoice and vendor candidates, unusual journal entries.
+- Quantum computing, Quantum Lab Notebook Assistant: lab notes Q&A, similar
+  runs and calibration drift (SrvDB is classical software).
+- Energy & utilities, Grid Operations Assistant: procedures, similar
+  outages, offline field use.
 
 Details: https://srinivas26k.github.io/srvdb/industries/overview/
 

@@ -23,6 +23,63 @@ A complete, runnable **In-store Product Finder** example is in progress. The pat
 - **Recommendations** with one `search` on an item's own vector.
 - **Works offline** on kiosks and in mobile back-ends.
 
+## Use cases by level
+
+### Level 1 · Find
+
+*Semantic search over your own documents. One database, one `search` call.*
+
+- Product search by description
+- Customer FAQ search
+- Return-policy lookup
+- Store inventory description search
+- Catalogue lookup before adding a product
+- Review search
+
+### Level 2 · Ask
+
+*Grounded assistants: retrieve passages with SrvDB, answer with a local LLM, always cite sources.*
+
+- Shopping assistant
+- Grounded product comparisons
+- Store staff training
+- Store operations Q&A
+- Seller onboarding assistant
+- Size and fit advice from reviews
+
+### Level 3 · Match
+
+*Similarity, deduplication and anomaly detection using cosine scores and thresholds.*
+
+- Similar products
+- Duplicate listings
+- Counterfeit listing similarity
+- Review clustering
+- Fake-review signals
+- Visual similarity with image embeddings
+
+### Level 4 · Act
+
+*Agents with memory, several databases, multimodal embeddings and continuous `upsert` pipelines.*
+
+- Multimodal kiosk
+- Per-shopper memory
+- Catalogue sync with `upsert`
+- Per-seller databases for marketplaces
+- Voice shopping
+- Returns triage agent
+
+### Level 5 · Frontier
+
+*Air-gapped, edge and research-grade systems. These usually need specialised embedding models and careful evaluation; some are research directions, not finished products.*
+
+- Offline store kiosks
+- Recommendations on point-of-sale hardware
+- Cold-start recommendations from content embeddings
+- Cross-lingual catalogues
+- Trend detection: new clusters appearing in recent items
+- Crash-safe memory in mobile back-ends
+
 ## Example: In-store Product Finder
 
 A kiosk or app assistant where shoppers describe what they need and get the closest products, with "more like this" for each result.

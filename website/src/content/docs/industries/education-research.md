@@ -23,6 +23,63 @@ A complete, runnable **Offline Study & Paper Assistant** example is in progress.
 - **Study assistant** that answers from course notes with citations.
 - **Runs on a laptop**, offline, installed with pip.
 
+## Use cases by level
+
+### Level 1 · Find
+
+*Semantic search over your own documents. One database, one `search` call.*
+
+- Paper search
+- Lecture-note search
+- Syllabus search
+- Question-bank search
+- Thesis archive search
+- Lab protocol search
+
+### Level 2 · Ask
+
+*Grounded assistants: retrieve passages with SrvDB, answer with a local LLM, always cite sources.*
+
+- Study assistant with citations
+- Grading-rubric assistant
+- Literature review assistant
+- Lab protocol Q&A
+- Course FAQ bot
+- Proposal drafting grounded in the group's papers
+
+### Level 3 · Match
+
+*Similarity, deduplication and anomaly detection using cosine scores and thresholds.*
+
+- Duplicate question detection
+- Text-reuse signals
+- Similar-paper recommendation
+- Concept gaps: student questions far from the course material
+- Reviewer matching by paper similarity
+- Dataset deduplication for ML research
+
+### Level 4 · Act
+
+*Agents with memory, several databases, multimodal embeddings and continuous `upsert` pipelines.*
+
+- Personal tutor with per-student memory
+- Figures and slides with multimodal embeddings
+- Lab-notebook agent
+- One database per course
+- Offline classroom servers in low-connectivity regions
+- Shared research-group knowledge base
+
+### Level 5 · Frontier
+
+*Air-gapped, edge and research-grade systems. These usually need specialised embedding models and careful evaluation; some are research directions, not finished products.*
+
+- On-device learning apps
+- Embedding research: SrvDB as a reproducible test harness
+- Reproducible retrieval benchmarks
+- Cross-lingual education content linking
+- Long-term memory for lifelong-learning agents
+- Scientific data similarity (spectra, molecules) with domain embeddings
+
 ## Example: Offline Study & Paper Assistant
 
 A desktop study assistant that answers questions only from the student's own notes and readings, quoting the passages it used.

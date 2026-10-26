@@ -24,6 +24,63 @@ A complete, runnable **Fraud Pattern Matcher** example is in progress. The patte
 - **Deduplication:** flag near-duplicate customer or case records with a cosine threshold.
 - **Data residency:** everything stays in a local directory you control.
 
+## Use cases by level
+
+### Level 1 · Find
+
+*Semantic search over your own documents. One database, one `search` call.*
+
+- Policy manual search
+- Product terms search
+- Analyst research note search
+- Past credit memo search
+- Customer complaint search
+- Regulatory circular search
+
+### Level 2 · Ask
+
+*Grounded assistants: retrieve passages with SrvDB, answer with a local LLM, always cite sources.*
+
+- Compliance Q&A with citations
+- Credit memo drafting from the closest past memos
+- Customer-service assistant over product terms
+- Q&A over filings and reports you hold
+- Internal-audit finding explainer
+- Earnings-call notes Q&A
+
+### Level 3 · Match
+
+*Similarity, deduplication and anomaly detection using cosine scores and thresholds.*
+
+- Fraud case similarity to confirmed cases
+- Complaint clustering and deduplication
+- KYC record deduplication
+- Unusual transaction narratives far from normal ones
+- Mule-account behaviour similarity
+- Trade-surveillance messages similar to known misconduct examples (for review)
+
+### Level 4 · Act
+
+*Agents with memory, several databases, multimodal embeddings and continuous `upsert` pipelines.*
+
+- Investigator agent with case memory
+- Joint search across case, policy and typology databases
+- Continuously updated fraud patterns via `upsert`
+- Offline assistants in branches
+- Per-client advisor memory
+- Document intake with multimodal embeddings (statements, IDs)
+
+### Level 5 · Frontier
+
+*Air-gapped, edge and research-grade systems. These usually need specialised embedding models and careful evaluation; some are research directions, not finished products.*
+
+- On-premises AI stack meeting data-residency rules
+- In-process pre-screening inside payment flows (benchmark first)
+- Synthetic-identity ring discovery through nearest-neighbour graphs
+- Model-risk documentation retrieval for validators
+- Historical market-narrative analogues for stress scenarios
+- Crash-safe decision logs
+
 ## Example: Fraud Pattern Matcher
 
 An investigator's assistant that compares a new case narrative with confirmed fraud cases and lists the closest matches with their similarity scores, for a human to review.

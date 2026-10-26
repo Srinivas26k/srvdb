@@ -23,6 +23,63 @@ A complete, runnable **Archive Researcher** example is in progress. The pattern 
 - **Source protection:** sensitive document sets are indexed on an offline machine.
 - **Passage-level results** with the article and date as metadata.
 
+## Use cases by level
+
+### Level 1 · Find
+
+*Semantic search over your own documents. One database, one `search` call.*
+
+- Archive search
+- Transcript search
+- Photo caption search
+- Style-guide search
+- Source-note search
+- Wire-copy search
+
+### Level 2 · Ask
+
+*Grounded assistants: retrieve passages with SrvDB, answer with a local LLM, always cite sources.*
+
+- Research assistant
+- Fact-check assistant
+- Background briefings
+- Style Q&A
+- Interview preparation
+- Translation memory
+
+### Level 3 · Match
+
+*Similarity, deduplication and anomaly detection using cosine scores and thresholds.*
+
+- Duplicate wire stories
+- Narrative clustering
+- Quote attribution matching
+- Plagiarism detection
+- Similar-image detection
+- Claim matching against fact-checked claims
+
+### Level 4 · Act
+
+*Agents with memory, several databases, multimodal embeddings and continuous `upsert` pipelines.*
+
+- Newsroom agent
+- Video frames plus transcripts
+- Per-investigation isolated databases
+- Live ingestion
+- Podcast search
+- Audience Q&A bot
+
+### Level 5 · Frontier
+
+*Air-gapped, edge and research-grade systems. These usually need specialised embedding models and careful evaluation; some are research directions, not finished products.*
+
+- Offline secure investigations
+- Air-gapped analysis of leaked document sets
+- Cross-lingual story linking
+- Archive digitisation pipeline
+- Provenance tracking
+- Crash-safe use on field laptops
+
 ## Example: Archive Researcher
 
 A research assistant that finds earlier coverage and the exact passages related to a new story, on the newsroom's own hardware.
