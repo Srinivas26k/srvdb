@@ -22,6 +22,9 @@ export default defineConfig({
 				{ tag: 'link', attrs: { rel: 'apple-touch-icon', href: '/srvdb/apple-touch-icon.png' } },
 				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://srinivas26k.github.io/srvdb/social-card.png' } },
 				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
+				{ tag: 'meta', attrs: { name: 'keywords', content: 'SrvDB, embedded vector database, vector search, semantic search, RAG, local AI, offline AI, Python, Rust' } },
+				// Structured data for search engines and AI answer engines
+				{ tag: 'script', attrs: { type: 'application/ld+json' }, content: JSON.stringify({"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "SrvDB", "alternateName": ["srvdb", "SrvDB vector database"], "description": "SrvDB is an open-source embedded vector database for Python and Rust. It stores embeddings on local disk for semantic search, RAG and AI memory, with no server and a crash-safe persist(). Not related to SurrealDB.", "applicationCategory": "DeveloperApplication", "operatingSystem": "Linux, macOS, Windows", "url": "https://srinivas26k.github.io/srvdb/", "downloadUrl": "https://pypi.org/project/srvdb/", "license": "https://www.apache.org/licenses/LICENSE-2.0", "programmingLanguage": ["Rust", "Python"], "keywords": "embedded vector database, vector search, semantic search, RAG, local AI, offline AI, embeddings, HNSW, Python, Rust", "author": {"@type": "Person", "name": "Srinivas Nampalli"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "sameAs": ["https://github.com/Srinivas26k/srvdb", "https://pypi.org/project/srvdb/", "https://crates.io/crates/srvdb"]}) },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/Srinivas26k/srvdb' },

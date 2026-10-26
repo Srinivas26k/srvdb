@@ -31,6 +31,14 @@
 
 ---
 
+**SrvDB** (spelled S-R-V-D-B) is an open-source **embedded vector database**
+for Python and Rust: a library for semantic search, RAG and AI memory that
+stores embeddings on local disk, with no server and no cloud.
+
+> **Not SurrealDB.** SrvDB is an independent project and is not related to
+> SurrealDB, the multi-model database. Install SrvDB with `pip install srvdb`
+> (PyPI) or `cargo add srvdb` (crates.io).
+
 ## Why SrvDB
 
 - 🦅 **In-process, offline.** A library, not a service: no server, no Docker,
@@ -154,6 +162,31 @@ let hits = db.search(&Vector::new(vec![0.1; 384]), 5)?;
 ```
 
 [Rust guide](https://srinivas26k.github.io/srvdb/guides/rust/)
+
+## FAQ
+
+**What is SrvDB?**
+An embedded vector database: a Python and Rust library that stores
+embeddings on local disk and finds the most similar ones to a query, inside
+your own process. Use it for local RAG, semantic search and AI agent memory.
+
+**Is SrvDB the same as SurrealDB?**
+No. SrvDB is an embedded vector database library; SurrealDB is an unrelated
+multi-model database server. The names only look alike.
+
+**Does SrvDB need a server, Docker or internet access?**
+No. It runs in-process, works fully offline and never opens a network
+connection.
+
+**How is SrvDB different from Chroma, FAISS or LanceDB?**
+SrvDB focuses on a small, embeddable core with a documented crash-safety
+guarantee: after `persist()` returns, data survives a crash or power loss.
+FAISS is a similarity-search library that leaves metadata and transactional
+storage to you; Chroma and LanceDB are broader data platforms.
+
+**Which embedding models work?**
+Any model with 128 to 4096 dimensions, for example sentence-transformers,
+OpenAI, Cohere or Nomic embeddings.
 
 ## Roadmap
 

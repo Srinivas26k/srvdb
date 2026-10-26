@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "srvdb"
 version = "0.3.0"
-description = "Embedded vector database for local and offline AI applications"
+description = "SrvDB: embedded vector database for local and offline AI (RAG, semantic search). Crash-safe, no server, Rust core."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
@@ -13,7 +13,11 @@ authors = [
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
-keywords = ["vector", "database", "embedding", "search", "quantization"]
+keywords = [
+    "vector-database", "vector-search", "embedded-database", "embeddings",
+    "semantic-search", "rag", "local-ai", "offline", "hnsw", "quantization",
+    "llm", "ai-memory", "rust",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

@@ -3,7 +3,8 @@ title: Introduction
 description: What SrvDB is, who it is for, and what it promises.
 ---
 
-SrvDB is an **embedded vector database**: a library you import, which stores
+SrvDB (spelled S-R-V-D-B, not to be confused with SurrealDB) is an
+**embedded vector database**: a library you import, which stores
 embeddings on local disk and finds the most similar ones to a query. It is
 written in Rust and used from Python or Rust.
 
