@@ -43,6 +43,10 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Industries',
+					items: [{ autogenerate: { directory: 'industries' } }],
+				},
+				{
 					label: 'Examples',
 					items: [
 						{ label: 'Live examples & cheat sheets', slug: 'examples/overview', badge: { text: 'Soon', variant: 'caution' } },
