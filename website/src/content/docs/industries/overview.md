@@ -1,49 +1,46 @@
 ---
 title: Industries
-description: SrvDB for cybersecurity, healthcare, legal, finance, government, manufacturing, support, education, retail, software, media and robotics.
-sidebar:
-  label: Overview
-  order: 0
+description: 100 SrvDB projects across 20 industries, from beginner to frontier, each with its own page.
 ---
 
-Every industry page lists **30 use cases in five levels**:
+Wherever data is sensitive, connectivity is limited or a server is overkill,
+an embedded vector database lets AI work **next to the data**. Each industry
+below has **five projects at five levels**, and every project has its own
+page: the problem, how SrvDB powers it, what changes, the architecture, use
+cases, core code and honest limits.
 
-| Level | Name | What it means |
-|-------|------|---------------|
-| 1 | Find | Semantic search over your own documents |
-| 2 | Ask | Assistants that answer from your documents with citations |
-| 3 | Match | Similarity, deduplication and anomaly detection |
-| 4 | Act | Agents with memory, several databases, images and signals |
+| Level | Difficulty | Typical project |
+|-------|------------|-----------------|
+| 1 | Beginner | Search and question-answering over your own documents |
+| 2 | Intermediate | Assistants and matchers that act on similarity |
+| 3 | Advanced | Analysers over large or specialised data (traffic, signals, images) |
+| 4 | Expert | Agents with memory across several databases |
 | 5 | Frontier | Air-gapped, edge and research-grade systems |
 
-Wherever data is sensitive, connectivity is limited or a server is overkill,
-an embedded vector database lets AI work **next to the data**. Each page below
-describes the problem in one industry, how SrvDB helps, an example assistant
-and a code pattern that works today.
-
-| Industry | Example assistant | What it does | Runnable example |
-|----------|-------------------|--------------|------------------|
-| [Cybersecurity](/srvdb/industries/cybersecurity/) | SOC Copilot | An analyst assistant that runs on the SOC's own machines. | Coming soon |
-| [Healthcare](/srvdb/industries/healthcare/) | Clinical Notes Assistant | A ward-side assistant that answers questions from the hospital's own protocols and formularies, citing the passages it used, running entirely on hospital hardware. | Coming soon |
-| [Legal](/srvdb/industries/legal/) | Clause & Precedent Finder | A drafting companion that, for any clause being written, shows the closest clauses the firm has used before, with the contract and date they came from. | Coming soon |
-| [Finance & banking](/srvdb/industries/finance/) | Fraud Pattern Matcher | An investigator's assistant that compares a new case narrative with confirmed fraud cases and lists the closest matches with their similarity scores, for a human to review. | Coming soon |
-| [Government & defence](/srvdb/industries/government-defence/) | Air-gapped Knowledge Assistant | A question-answering assistant over manuals and reports that runs on a single isolated machine, with every answer linked to its source passages. | Coming soon |
-| [Manufacturing & IoT](/srvdb/industries/manufacturing-iot/) | Factory-floor Maintenance Assistant | A tablet or edge-box assistant where a technician describes a symptom and gets the closest past fault reports and the relevant manual pages. | Coming soon |
-| [Customer support](/srvdb/industries/customer-support/) | Helpdesk Answer Bot | An agent-side assistant that, for each new ticket, shows the three most similar solved tickets and the article that resolved them, and drafts a reply. | Coming soon |
-| [Education & research](/srvdb/industries/education-research/) | Offline Study & Paper Assistant | A desktop study assistant that answers questions only from the student's own notes and readings, quoting the passages it used. | Coming soon |
-| [Retail & e-commerce](/srvdb/industries/retail-ecommerce/) | In-store Product Finder | A kiosk or app assistant where shoppers describe what they need and get the closest products, with "more like this" for each result. | Coming soon |
-| [Software engineering](/srvdb/industries/software-engineering/) | Local Code Navigator | An editor or CLI assistant that answers "where is..." and "how does..." questions about a repository using only a local index. | Coming soon |
-| [Media & journalism](/srvdb/industries/media-journalism/) | Archive Researcher | A research assistant that finds earlier coverage and the exact passages related to a new story, on the newsroom's own hardware. | Coming soon |
-| [Robotics & automotive](/srvdb/industries/robotics-automotive/) | On-device Memory | An embedded memory component that stores what a robot or in-vehicle assistant has seen or been told, and recalls the most relevant items in the moment. | Coming soon |
-| [Mechanical engineering](/srvdb/industries/mechanical-engineering/) | Design Knowledge Assistant | An engineering assistant that, for a new design or failure, retrieves the closest existing parts, FMEAs and test reports, and answers questions from them with citations. | Coming soon |
-| [Electrical & electronics](/srvdb/industries/electrical-electronics/) | Hardware Design Assistant | A bench-side assistant that answers datasheet questions with page citations, finds similar past test failures and proposes substitute parts for an engineer to check. | Coming soon |
-| [Aerospace](/srvdb/industries/aerospace/) | Maintenance & Safety Knowledge Assistant | A line-maintenance assistant on an offline tablet that retrieves the relevant manual tasks and similar past findings for a reported defect. | Coming soon |
-| [Governance, risk & compliance](/srvdb/industries/grc/) | Control Mapping Assistant | A compliance assistant that proposes framework-to-framework control mappings, reuses approved questionnaire answers and lists controls lacking evidence. | Coming soon |
-| [Anti-money laundering](/srvdb/industries/aml/) | AML Investigation Assistant | An investigator assistant that shows the closest past cases and their outcomes, the matching typologies, and drafts a narrative for the investigator to review. | Coming soon |
-| [Fiscal auditing](/srvdb/industries/fiscal-auditing/) | Audit Working-Paper Assistant | An auditor assistant that retrieves relevant prior findings and standards passages and lists duplicate and unusual items for follow-up. | Coming soon |
-| [Quantum computing](/srvdb/industries/quantum-computing/) | Quantum Lab Notebook Assistant | A lab assistant that answers questions from the group's notes and finds past runs and calibrations most similar to the current one. | Coming soon |
-| [Energy & utilities](/srvdb/industries/energy-utilities/) | Grid Operations Assistant | A control-room and field assistant that retrieves procedures and the most similar past outages for a new event. | Coming soon |
+| Industry | Projects (level 1 → 5) |
+|----------|------------------------|
+| [Cybersecurity](/srvdb/industries/cybersecurity/) | [SOC Copilot](/srvdb/industries/cybersecurity/soc-copilot/) · [Phishing Hunter](/srvdb/industries/cybersecurity/phishing-hunter/) · [PacketSense](/srvdb/industries/cybersecurity/packetsense/) · [Threat Hunter Agent](/srvdb/industries/cybersecurity/threat-hunter-agent/) · [Air-gapped OT Sentinel](/srvdb/industries/cybersecurity/ot-sentinel/) |
+| [Healthcare](/srvdb/industries/healthcare/) | [Protocol Assistant](/srvdb/industries/healthcare/protocol-assistant/) · [Similar Case Finder](/srvdb/industries/healthcare/similar-case-finder/) · [Trial Matcher](/srvdb/industries/healthcare/trial-matcher/) · [Pharmacovigilance Monitor](/srvdb/industries/healthcare/pharmacovigilance-monitor/) · [On-prem Clinical AI Stack](/srvdb/industries/healthcare/on-prem-clinical-ai/) |
+| [Legal](/srvdb/industries/legal/) | [Clause Finder](/srvdb/industries/legal/clause-finder/) · [Contract Q&A](/srvdb/industries/legal/contract-qa/) · [Playbook Deviation Detector](/srvdb/industries/legal/playbook-deviation-detector/) · [E-discovery Assistant](/srvdb/industries/legal/ediscovery-assistant/) · [Air-gapped Investigation Suite](/srvdb/industries/legal/air-gapped-investigation-suite/) |
+| [Finance & banking](/srvdb/industries/finance/) | [Policy Assistant](/srvdb/industries/finance/policy-assistant/) · [Complaint Analyzer](/srvdb/industries/finance/complaint-analyzer/) · [Fraud Pattern Matcher](/srvdb/industries/finance/fraud-pattern-matcher/) · [Investigator Agent](/srvdb/industries/finance/investigator-agent/) · [On-prem Risk AI Platform](/srvdb/industries/finance/on-prem-risk-ai/) |
+| [Government & defence](/srvdb/industries/government-defence/) | [Doctrine Assistant](/srvdb/industries/government-defence/doctrine-assistant/) · [Citizen Service Bot](/srvdb/industries/government-defence/citizen-service-bot/) · [Report Linker](/srvdb/industries/government-defence/report-linker/) · [Field Intelligence Agent](/srvdb/industries/government-defence/field-intelligence-agent/) · [Sovereign AI Stack](/srvdb/industries/government-defence/sovereign-ai-stack/) |
+| [Manufacturing & IoT](/srvdb/industries/manufacturing-iot/) | [Maintenance Assistant](/srvdb/industries/manufacturing-iot/maintenance-assistant/) · [Defect Matcher](/srvdb/industries/manufacturing-iot/defect-matcher/) · [Sensor Anomaly Detector](/srvdb/industries/manufacturing-iot/sensor-anomaly-detector/) · [Plant Knowledge Agent](/srvdb/industries/manufacturing-iot/plant-knowledge-agent/) · [Predictive Maintenance at the Edge](/srvdb/industries/manufacturing-iot/predictive-maintenance-edge/) |
+| [Customer support](/srvdb/industries/customer-support/) | [Knowledge Base Search](/srvdb/industries/customer-support/kb-search/) · [Helpdesk Answer Bot](/srvdb/industries/customer-support/helpdesk-answer-bot/) · [Ticket Deduplicator](/srvdb/industries/customer-support/ticket-deduplicator/) · [Customer Memory Agent](/srvdb/industries/customer-support/customer-memory-agent/) · [Offline Support Kiosk](/srvdb/industries/customer-support/offline-support-kiosk/) |
+| [Education & research](/srvdb/industries/education-research/) | [Paper Search](/srvdb/industries/education-research/paper-search/) · [Study Assistant](/srvdb/industries/education-research/study-assistant/) · [Reviewer Matcher](/srvdb/industries/education-research/reviewer-matcher/) · [Research Group Brain](/srvdb/industries/education-research/research-group-brain/) · [Scientific Similarity Lab](/srvdb/industries/education-research/scientific-similarity-lab/) |
+| [Retail & e-commerce](/srvdb/industries/retail-ecommerce/) | [Semantic Product Search](/srvdb/industries/retail-ecommerce/semantic-product-search/) · [Shopping Assistant](/srvdb/industries/retail-ecommerce/shopping-assistant/) · [Listing Guardian](/srvdb/industries/retail-ecommerce/listing-guardian/) · [Multimodal Kiosk](/srvdb/industries/retail-ecommerce/multimodal-kiosk/) · [Edge Recommender](/srvdb/industries/retail-ecommerce/edge-recommender/) |
+| [Software engineering](/srvdb/industries/software-engineering/) | [Code Search](/srvdb/industries/software-engineering/code-search/) · [Codebase Q&A](/srvdb/industries/software-engineering/codebase-qa/) · [Bug Dedup Engine](/srvdb/industries/software-engineering/bug-dedup-engine/) · [Coding Agent Memory](/srvdb/industries/software-engineering/coding-agent-memory/) · [Air-gapped Dev Copilot](/srvdb/industries/software-engineering/air-gapped-dev-copilot/) |
+| [Media & journalism](/srvdb/industries/media-journalism/) | [Archive Search](/srvdb/industries/media-journalism/archive-search/) · [Fact-check Assistant](/srvdb/industries/media-journalism/fact-check-assistant/) · [Narrative Tracker](/srvdb/industries/media-journalism/narrative-tracker/) · [Investigation Workbench](/srvdb/industries/media-journalism/investigation-workbench/) · [Secure Leak Analysis](/srvdb/industries/media-journalism/secure-leak-analysis/) |
+| [Robotics & automotive](/srvdb/industries/robotics-automotive/) | [In-car Manual Assistant](/srvdb/industries/robotics-automotive/in-car-manual-assistant/) · [Diagnostic Assistant](/srvdb/industries/robotics-automotive/diagnostic-assistant/) · [Scenario Miner](/srvdb/industries/robotics-automotive/scenario-miner/) · [Robot Episodic Memory](/srvdb/industries/robotics-automotive/robot-episodic-memory/) · [Autonomous Fleet Memory](/srvdb/industries/robotics-automotive/autonomous-fleet-memory/) |
+| [Mechanical engineering](/srvdb/industries/mechanical-engineering/) | [Part Finder](/srvdb/industries/mechanical-engineering/part-finder/) · [FMEA Assistant](/srvdb/industries/mechanical-engineering/fmea-assistant/) · [Vibration Signature Matcher](/srvdb/industries/mechanical-engineering/vibration-signature-matcher/) · [Geometric Design Search](/srvdb/industries/mechanical-engineering/geometric-design-search/) · [Simulation Lookup](/srvdb/industries/mechanical-engineering/simulation-lookup/) |
+| [Electrical & electronics](/srvdb/industries/electrical-electronics/) | [Datasheet Q&A](/srvdb/industries/electrical-electronics/datasheet-qa/) · [Second-source Finder](/srvdb/industries/electrical-electronics/second-source-finder/) · [Test Log Analyzer](/srvdb/industries/electrical-electronics/test-log-analyzer/) · [Hardware Lab Agent](/srvdb/industries/electrical-electronics/hardware-lab-agent/) · [RF Fingerprint Lab](/srvdb/industries/electrical-electronics/rf-fingerprint-lab/) |
+| [Aerospace](/srvdb/industries/aerospace/) | [Maintenance Knowledge Assistant](/srvdb/industries/aerospace/maintenance-knowledge-assistant/) · [Safety Report Analyzer](/srvdb/industries/aerospace/safety-report-analyzer/) · [Fleet Finding Matcher](/srvdb/industries/aerospace/fleet-finding-matcher/) · [Borescope Image Search](/srvdb/industries/aerospace/borescope-image-search/) · [Mission Knowledge System](/srvdb/industries/aerospace/mission-knowledge-system/) |
+| [Governance, risk & compliance](/srvdb/industries/grc/) | [Policy Search](/srvdb/industries/grc/policy-search/) · [Questionnaire Autopilot](/srvdb/industries/grc/questionnaire-autopilot/) · [Control Mapper](/srvdb/industries/grc/control-mapper/) · [Regulatory Change Agent](/srvdb/industries/grc/regulatory-change-agent/) · [Continuous Compliance Platform](/srvdb/industries/grc/continuous-compliance-platform/) |
+| [Anti-money laundering](/srvdb/industries/aml/) | [Typology Library](/srvdb/industries/aml/typology-library/) · [Alert Prioritizer](/srvdb/industries/aml/alert-prioritizer/) · [Adverse Media Matcher](/srvdb/industries/aml/adverse-media-matcher/) · [AML Investigation Agent](/srvdb/industries/aml/aml-investigation-agent/) · [Emerging Typology Radar](/srvdb/industries/aml/emerging-typology-radar/) |
+| [Fiscal auditing](/srvdb/industries/fiscal-auditing/) | [Working-paper Search](/srvdb/industries/fiscal-auditing/working-paper-search/) · [Finding Drafter](/srvdb/industries/fiscal-auditing/finding-drafter/) · [Duplicate Invoice Detector](/srvdb/industries/fiscal-auditing/duplicate-invoice-detector/) · [Continuous Audit Agent](/srvdb/industries/fiscal-auditing/continuous-audit-agent/) · [Public Funds Analytics](/srvdb/industries/fiscal-auditing/public-funds-analytics/) |
+| [Quantum computing](/srvdb/industries/quantum-computing/) | [Lab Notebook Search](/srvdb/industries/quantum-computing/lab-notebook-search/) · [Lab Q&A Assistant](/srvdb/industries/quantum-computing/lab-qa-assistant/) · [Calibration Drift Detector](/srvdb/industries/quantum-computing/calibration-drift-detector/) · [Experiment Memory Agent](/srvdb/industries/quantum-computing/experiment-memory-agent/) · [Circuit Similarity Research](/srvdb/industries/quantum-computing/circuit-similarity-research/) |
+| [Energy & utilities](/srvdb/industries/energy-utilities/) | [Procedure Finder](/srvdb/industries/energy-utilities/procedure-finder/) · [Outage Analyzer](/srvdb/industries/energy-utilities/outage-analyzer/) · [Inspection Image Matcher](/srvdb/industries/energy-utilities/inspection-image-matcher/) · [Field Operations Agent](/srvdb/industries/energy-utilities/field-operations-agent/) · [Grid Analog Forecaster](/srvdb/industries/energy-utilities/grid-analog-forecaster/) |
 
 SrvDB keeps data on your machines; it does not by itself make a system
-compliant with any regulation. Want an example for your industry first?
-Ask in [GitHub Discussions](https://github.com/Srinivas26k/srvdb/discussions).
+compliant with any regulation. Runnable reference implementations are
+coming soon. Want one for your industry first? Ask in
+[GitHub Discussions](https://github.com/Srinivas26k/srvdb/discussions).

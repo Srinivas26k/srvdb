@@ -144,8 +144,8 @@ SrvDB is deliberately small. Look elsewhere if you need:
 
 ## By industry
 
-See [600 use cases in 20 industries](/srvdb/industries/overview/), each in five
-levels from simple search to frontier systems: cybersecurity, AML, fiscal
+See [100 projects in 20 industries](/srvdb/industries/overview/), five levels
+each from beginner to frontier, every one with its own page: cybersecurity, AML, fiscal
 auditing, GRC, aerospace, mechanical and electrical engineering, quantum
 computing, energy, healthcare, legal, finance and more.
 
