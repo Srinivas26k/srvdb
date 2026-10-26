@@ -35,7 +35,7 @@ dependencies = []
 [project.optional-dependencies]
 # Only the benchmark scripts (benchmarks/) use these; the library does not
 bench = [
-    "numpy>=1.24.4",
+    "numpy>=2.2.6",
     "psutil>=7.2.0",
     "scikit-learn>=1.3.2",
 ]
