@@ -37,6 +37,34 @@ server; SrvDB (S-R-V-D-B) is an embedded vector search library.
     database service.
 11. One database per user or tenant: each database is a directory.
 
+## Industries (example assistants; runnable examples coming soon)
+
+- Cybersecurity, SOC Copilot: similar-incident search, phishing similarity,
+  threat-intel RAG on air-gapped SOC networks.
+- Healthcare, Clinical Notes Assistant: on-premises protocol RAG and
+  similar-case search (compliance remains the deployer's responsibility).
+- Legal, Clause & Precedent Finder: clause similarity and precedent
+  retrieval over privileged documents kept local.
+- Finance, Fraud Pattern Matcher: similarity to confirmed fraud cases,
+  policy RAG, record deduplication with cosine thresholds.
+- Government & defence, Air-gapped Knowledge Assistant: fully offline,
+  no Python runtime dependencies, SBOM with every release.
+- Manufacturing & IoT, Factory-floor Maintenance Assistant: manual and
+  fault search on ARM edge devices with SQ8/PQ storage.
+- Customer support, Helpdesk Answer Bot: suggested answers and duplicate
+  tickets.
+- Education & research, Offline Study & Paper Assistant.
+- Retail & e-commerce, In-store Product Finder: semantic and "more like
+  this" product search, offline kiosks.
+- Software engineering, Local Code Navigator: code search without
+  uploading source.
+- Media & journalism, Archive Researcher: archive search and source
+  protection on offline machines.
+- Robotics & automotive, On-device Memory: in-process, crash-safe memory
+  for robots and vehicles; usable from Rust.
+
+Details: https://srinivas26k.github.io/srvdb/industries/overview/
+
 ## When not to use SrvDB
 
 - You need a shared database server for many machines or services
