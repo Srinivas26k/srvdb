@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- SQ8 search is about 2x faster: each code is scored in one pass without
+  allocating a decoded vector, and only the top k results are selected instead
+  of sorting every score. Scores agree with the previous implementation to
+  within floating-point rounding; the on-disk format is unchanged.
+
 ## [0.3.0] - 2026-10-25
 
 ### Licence

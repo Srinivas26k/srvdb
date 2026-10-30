@@ -116,15 +116,19 @@ impl ScalarQuantizedStorage {
         let Some(codes) = self.file.range(0, count as usize) else {
             return Ok(Vec::new());
         };
-        let mut results: Vec<(u64, f32)> = codes
+        let query_norm: f32 = query.iter().map(|x| x * x).sum::<f32>().sqrt();
+        let scored: Vec<(u64, f32)> = codes
             .chunks_exact(self.dimension)
             .enumerate()
             .filter(|(i, _)| !deleted.contains(&(*i as u64)))
-            .map(|(i, code)| (i as u64, self.quantizer.asymmetric_distance(query, code)))
+            .map(|(i, code)| {
+                (
+                    i as u64,
+                    self.quantizer.cosine_to_codes(query, query_norm, code),
+                )
+            })
             .collect();
-        results.sort_by(|a, b| b.1.total_cmp(&a.1));
-        results.truncate(k);
-        Ok(results)
+        Ok(crate::distance::select_top_k(scored, k))
     }
 
     pub fn count(&self) -> u64 {
