@@ -13,6 +13,8 @@ mod filtered;
 mod graph;
 mod links;
 #[cfg(test)]
+mod recall_tests;
+#[cfg(test)]
 mod tests;
 
 use anyhow::Result;

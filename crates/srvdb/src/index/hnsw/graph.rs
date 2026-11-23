@@ -82,7 +82,7 @@ impl HNSWIndex {
                 if candidates.is_empty() {
                     continue;
                 }
-                let neighbors = self.select_neighbors_simple(&candidates, m);
+                let neighbors = self.select_neighbors_heuristic(&candidates, m, distance_fn);
 
                 // Link both ways, merging with links added concurrently
                 for &neighbor_id in &neighbors {
