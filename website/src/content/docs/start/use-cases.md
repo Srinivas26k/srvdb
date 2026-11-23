@@ -142,6 +142,13 @@ SrvDB is deliberately small. Look elsewhere if you need:
 - **Billions of vectors** on one machine: SrvDB has no published
   benchmarks at that scale yet.
 
+## By industry
+
+See [100 projects in 20 industries](/srvdb/industries/overview/), five levels
+each from beginner to frontier, every one with its own page: cybersecurity, AML, fiscal
+auditing, GRC, aerospace, mechanical and electrical engineering, quantum
+computing, energy, healthcare, legal, finance and more.
+
 ## Live examples
 
 Runnable, end-to-end examples and cheat sheets for these use cases are

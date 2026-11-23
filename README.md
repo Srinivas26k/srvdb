@@ -68,6 +68,12 @@ stores embeddings on local disk, with no server and no cloud.
 
 Details and when to choose something else:
 [Use cases](https://srinivas26k.github.io/srvdb/start/use-cases/).
+
+**100 projects in 20 industries**, five levels each, from beginner to
+frontier. Cybersecurity alone goes from a SOC Copilot to Phishing Hunter,
+the Wireshark-style PacketSense, a Threat Hunter Agent and an air-gapped OT
+Sentinel. Also AML, fiscal auditing, GRC, aerospace, mechanical and
+electrical engineering, quantum computing, energy and more: [Industries](https://srinivas26k.github.io/srvdb/industries/overview/).
 Live examples and cheat sheets are coming soon.
 
 ## Install
