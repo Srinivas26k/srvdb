@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- CRC32C checksums over vector files (one per 1 MiB block, in a
+  `<file>.crc` sidecar) and over index and quantizer files. Every vector file
+  is verified when the database opens; damage (bit rot, a torn write, a bad
+  copy) now fails with the new `Error::ChecksumMismatch` (Python
+  `RuntimeError`) instead of returning wrong results. A damaged `hnsw.graph`
+  is rebuilt from the verified vectors (ADR 0007).
+
 ### Changed
+- On-disk format: vector file header version 5 and file envelope version 2.
+  Databases from 0.3 open unchanged and are upgraded on open; after that,
+  0.3 can no longer open them. Back up `*.crc` files with the rest of the
+  database directory. Opening reads every vector file once, so open time
+  grows with data size.
 - SQ8 search is about 2x faster: each code is scored in one pass without
   allocating a decoded vector, and only the top k results are selected instead
   of sorting every score. Scores agree with the previous implementation to
