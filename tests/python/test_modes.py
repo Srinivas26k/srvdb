@@ -88,11 +88,9 @@ def test_pq_mode_requires_large_first_batch(tmp_path, vectors):
         fill(db, vectors[:10])
 
 
-def test_old_class_name_still_works_with_warning(tmp_path):
-    with pytest.warns(DeprecationWarning, match="srvdb.Database"):
-        cls = srvdb.SrvDBPython
-    assert cls is srvdb.Database
-    assert cls(str(tmp_path), dimension=DIM).count() == 0
+def test_old_class_name_is_removed():
+    with pytest.raises(AttributeError, match="SrvDBPython"):
+        srvdb.SrvDBPython  # noqa: B018
 
 
 def test_set_ef_search(tmp_path):

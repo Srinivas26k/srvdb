@@ -12,7 +12,7 @@ which 0.2 can no longer open it. Copy the database directory before upgrading.
 |--------|------------|
 | Python 3.9+ required | Upgrade Python 3.8 environments. |
 | numpy, psutil, scikit-learn no longer installed | Add them to your own dependencies if you import them. |
-| Class renamed to `srvdb.Database` | `srvdb.SrvDBPython` still works with a warning until 0.4. |
+| Class renamed to `srvdb.Database` | Replace `srvdb.SrvDBPython` with `srvdb.Database` (the old name was removed in 0.4). |
 | Scores are true cosine in [-1, 1] (were `(1 + cos) / 2` for flat, HNSW, IVF) | Convert thresholds: new = 2 × old − 1. Order is unchanged. |
 | Metadata must be a JSON object | Wrap plain strings: `{"text": "..."}`. |
 | Specific exceptions | Catch `ValueError` / `OSError` / `BlockingIOError` instead of only `RuntimeError`. |
