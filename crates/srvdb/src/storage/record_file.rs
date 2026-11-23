@@ -114,7 +114,7 @@ impl RecordFile {
             this.sums = sums;
         } else {
             let count = header.count.min(present);
-            this.sums = BlockSums::compute(record_size, count, this.data());
+            this.sums = BlockSums::compute(record_size, count, this.data())?;
             this.upgrade()?;
         }
         this.count = this.sums.count();
@@ -195,7 +195,7 @@ impl RecordFile {
         }
         self.file.seek(SeekFrom::Start(self.offset(first)))?;
         self.file.write_all(bytes)?;
-        self.sums.append(bytes);
+        self.sums.append(bytes)?;
         self.count += added;
         Ok(first)
     }
@@ -243,7 +243,7 @@ impl RecordFile {
                 Error::Internal(format!("record {id} vanished during compaction"))
             })?;
             out.write_all(record)?;
-            sums.append(record);
+            sums.append(record)?;
         }
         out.into_inner()
             .map_err(|e| e.into_error())?

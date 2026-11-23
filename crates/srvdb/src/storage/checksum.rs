@@ -53,10 +53,10 @@ impl BlockSums {
     }
 
     /// Checksum `count` records held in `data` (the record area)
-    pub(crate) fn compute(record_size: usize, count: u64, data: &[u8]) -> Self {
+    pub(crate) fn compute(record_size: usize, count: u64, data: &[u8]) -> Result<Self> {
         let mut sums = Self::new(record_size);
-        sums.append(&data[..(count * record_size as u64) as usize]);
-        sums
+        sums.append(&data[..(count * record_size as u64) as usize])?;
+        Ok(sums)
     }
 
     pub(crate) fn count(&self) -> u64 {
@@ -67,10 +67,19 @@ impl BlockSums {
         self.count * self.record_size
     }
 
-    /// Extend the table with whole records appended after `count`
-    pub(crate) fn append(&mut self, mut bytes: &[u8]) {
+    /// Extend the table with whole records appended after `count`.
+    /// A partial record is an internal error and leaves the table as is.
+    pub(crate) fn append(&mut self, mut bytes: &[u8]) -> Result<()> {
+        if !(bytes.len() as u64).is_multiple_of(self.record_size) {
+            return Err(Error::Internal(format!(
+                "checksum append of {} bytes is not a multiple of the {}-byte record size",
+                bytes.len(),
+                self.record_size
+            ))
+            .into());
+        }
+        let mut offset = self.data_len();
         self.count += bytes.len() as u64 / self.record_size;
-        let mut offset = self.data_len() - bytes.len() as u64;
         while !bytes.is_empty() {
             let within = offset % self.block_bytes;
             let take = ((self.block_bytes - within) as usize).min(bytes.len());
@@ -83,6 +92,7 @@ impl BlockSums {
             offset += take as u64;
             bytes = rest;
         }
+        Ok(())
     }
 
     /// Shrink to `count` records; `data` is the record area, already
