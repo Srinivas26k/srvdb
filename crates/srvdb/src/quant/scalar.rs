@@ -76,32 +76,60 @@ impl ScalarQuantizer {
 
     /// Asymmetric distance: compare quantized vector to full-precision query
     pub fn asymmetric_distance(&self, query: &[f32], codes: &[u8]) -> f32 {
-        let query_norm: f32 = query.iter().map(|x| x * x).sum::<f32>().sqrt();
-        self.cosine_to_codes(query, query_norm, codes)
+        self.scorer(query).score(codes)
     }
 
-    /// Cosine similarity between a full-precision query and one code vector.
+    /// Prepare to score one query against many code vectors.
+    ///
+    /// Computes the query norm and the per-dimension decode step once, so a
+    /// scan does not redo that work for every code.
+    pub(crate) fn scorer<'a>(&'a self, query: &'a [f32]) -> CodeScorer<'a> {
+        const INV_255: f32 = 1.0 / 255.0;
+        let step = self
+            .min_vals
+            .iter()
+            .zip(&self.max_vals)
+            .map(|(&lo, &hi)| (hi - lo) * INV_255)
+            .collect();
+        CodeScorer {
+            query,
+            query_norm: query.iter().map(|x| x * x).sum::<f32>().sqrt(),
+            min_vals: &self.min_vals,
+            step,
+        }
+    }
+}
+
+/// Cosine scorer for one full-precision query against SQ8 codes.
+pub(crate) struct CodeScorer<'a> {
+    query: &'a [f32],
+    query_norm: f32,
+    min_vals: &'a [f32],
+    /// Decoded value per code unit: `(max - min) / 255` for each dimension
+    step: Vec<f32>,
+}
+
+impl CodeScorer<'_> {
+    /// Cosine similarity between the query and one code vector.
     ///
     /// One pass, no allocation: each code is decoded on the fly while the dot
     /// product and the decoded norm accumulate in independent lanes, which
-    /// lets the compiler use SIMD. `query_norm` is passed in so a scan over
-    /// many codes computes it once. Results agree with decoding first and
-    /// then calling cosine to within floating-point rounding (about 1e-6).
+    /// lets the compiler use SIMD. Results agree with decoding first and then
+    /// calling cosine to within floating-point rounding (about 1e-6).
     #[inline]
-    pub(crate) fn cosine_to_codes(&self, query: &[f32], query_norm: f32, codes: &[u8]) -> f32 {
-        const LANES: usize = 8;
-        const INV_255: f32 = 1.0 / 255.0;
+    pub(crate) fn score(&self, codes: &[u8]) -> f32 {
+        const LANES: usize = 16;
         let mut dot = [0.0f32; LANES];
         let mut sq = [0.0f32; LANES];
 
-        let (q_chunks, q_rem) = query.as_chunks::<LANES>();
+        let (q_chunks, q_rem) = self.query.as_chunks::<LANES>();
         let (c_chunks, c_rem) = codes.as_chunks::<LANES>();
         let (lo_chunks, lo_rem) = self.min_vals.as_chunks::<LANES>();
-        let (hi_chunks, hi_rem) = self.max_vals.as_chunks::<LANES>();
+        let (s_chunks, s_rem) = self.step.as_chunks::<LANES>();
 
-        for (((q, c), lo), hi) in q_chunks.iter().zip(c_chunks).zip(lo_chunks).zip(hi_chunks) {
+        for (((q, c), lo), s) in q_chunks.iter().zip(c_chunks).zip(lo_chunks).zip(s_chunks) {
             for l in 0..LANES {
-                let decoded = lo[l] + c[l] as f32 * ((hi[l] - lo[l]) * INV_255);
+                let decoded = lo[l] + c[l] as f32 * s[l];
                 dot[l] += q[l] * decoded;
                 sq[l] += decoded * decoded;
             }
@@ -109,18 +137,18 @@ impl ScalarQuantizer {
 
         let mut dot_sum: f32 = dot.iter().sum();
         let mut sq_sum: f32 = sq.iter().sum();
-        for (((&q, &c), &lo), &hi) in q_rem.iter().zip(c_rem).zip(lo_rem).zip(hi_rem) {
-            let decoded = lo + c as f32 * ((hi - lo) * INV_255);
+        for (((&q, &c), &lo), &s) in q_rem.iter().zip(c_rem).zip(lo_rem).zip(s_rem) {
+            let decoded = lo + c as f32 * s;
             dot_sum += q * decoded;
             sq_sum += decoded * decoded;
         }
 
         let decoded_norm = sq_sum.sqrt();
-        if query_norm < 1e-10 || decoded_norm < 1e-10 {
+        if self.query_norm < 1e-10 || decoded_norm < 1e-10 {
             return 0.0;
         }
 
-        dot_sum / (query_norm * decoded_norm)
+        dot_sum / (self.query_norm * decoded_norm)
     }
 }
 
@@ -207,7 +235,6 @@ mod tests {
         let sq = ScalarQuantizer::train(&data).unwrap();
         let codes: Vec<Vec<u8>> = data.iter().map(|v| sq.encode(v)).collect();
         let query = &data[1];
-        let qn: f32 = query.iter().map(|x| x * x).sum::<f32>().sqrt();
         let rounds = 20;
 
         let t = Instant::now();
@@ -221,9 +248,10 @@ mod tests {
 
         let t = Instant::now();
         let mut b = 0.0f32;
+        let scorer = sq.scorer(query);
         for _ in 0..rounds {
             for c in &codes {
-                b += sq.cosine_to_codes(query, qn, c);
+                b += scorer.score(c);
             }
         }
         let fused = t.elapsed();

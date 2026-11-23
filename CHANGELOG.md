@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   allocating a decoded vector, and only the top k results are selected instead
   of sorting every score. Scores agree with the previous implementation to
   within floating-point rounding; the on-disk format is unchanged.
+- SQ8 flat search now scans codes in parallel, as flat f32 search does, and
+  scores each code with a wider, precomputed decode step. On 5000 vectors it
+  went from about a quarter of flat search throughput to faster than flat
+  (see `docs/benchmarks.md` to reproduce). Scores agree with the previous
+  implementation to within 1e-5; the on-disk format is unchanged (#29).
 
 ### Fixed
 - HNSW recall on clustered data (#28). The graph kept only the M nearest
