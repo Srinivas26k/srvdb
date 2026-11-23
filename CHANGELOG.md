@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Benchmark harness (`cargo run --release -p srvdb --example bench`) that
+  measures recall@10 against exact search, QPS, p50/p99 latency, build time
+  and peak memory for the flat, SQ8, PQ, HNSW and IVF modes. It uses a seeded
+  synthetic dataset by default (works offline) or user-supplied `.fvecs`
+  files, and records CPU, OS, commit and command with every result. See
+  `docs/benchmarks.md`.
+
 ### Changed
 - SQ8 search is about 2x faster: each code is scored in one pass without
   allocating a decoded vector, and only the top k results are selected instead
