@@ -58,3 +58,6 @@ Thumbs.db
 # --- Secrets ------------------------------------------------------------------
 .env
 .env.*
+
+# Benchmark harness output (crates/srvdb/examples/bench)
+bench-results.json
