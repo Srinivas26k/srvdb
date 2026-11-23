@@ -75,20 +75,5 @@ message names the file.
   whole database directory from a backup.
 - **Missing or damaged `.crc` file** next to an intact vector file (for
   example, a backup that skipped `*.crc` files): restore the directory from a
-  complete backup. If you have none and accept that the existing vectors can
-  no longer be verified, you can make SrvDB rebuild the checksums from the
-  data as found. Back up the directory, then mark the vector file as format
-  version 4 (the 0.3 format, which has no `.crc` file). The next open then
-  computes and saves new checksums:
-
-  ```python
-  from pathlib import Path
-
-  path = Path("my_db/vectors.bin")  # or sq8_vectors.bin / quantized_vectors.bin
-  with path.open("r+b") as f:
-      f.seek(4)                      # header bytes 4-5: format version
-      f.write((4).to_bytes(2, "little"))
-  ```
-
-  Any damage already in the vector file is then accepted as valid data, so
-  use this only when restoring from a backup is not possible.
+  complete backup. A supported way to rebuild checksums is tracked in
+  [issue #33](https://github.com/Srinivas26k/srvdb/issues/33).
