@@ -7,9 +7,15 @@
 //! - `truncate_to` drops records beyond the committed count on open
 //! - `sync` writes the header and fsyncs before the commit is recorded
 //!
+//! Checksums (ADR 0007): the records are covered by CRC32C block sums in
+//! a sidecar (`storage::checksum`), verified once on open. `sync` writes
+//! the sidecar after the fsync, so it never covers bytes that are not on
+//! disk; on open the sidecar's count is the file's count.
+//!
 //! The file grows in chunks and stays mapped, so a record is readable as
 //! soon as `append` returns.
 
+use super::checksum::BlockSums;
 use super::header::VectorHeader;
 use crate::error::Error;
 use anyhow::{Context, Result};
@@ -26,6 +32,8 @@ pub(crate) struct RecordFile {
     file: File,
     mmap: Option<Mmap>,
     header: VectorHeader,
+    /// Checksums of the first `count` records
+    sums: BlockSums,
     record_size: usize,
     count: u64,
     /// Count as of the last sync (what the header on disk says)
@@ -38,8 +46,13 @@ impl RecordFile {
     /// Open `path`, creating it with a fresh header if it does not exist.
     ///
     /// An existing file must have the expected dimension and quantization
-    /// mode. `count` starts at the header count clamped to the records
-    /// actually present; callers then `truncate_to` the committed count.
+    /// mode. `count` starts at the count its checksums cover (for a file
+    /// from SrvDB 0.3, the header count clamped to the records present);
+    /// callers then `truncate_to` the committed count.
+    ///
+    /// Every record is checked against its checksum here; damage is
+    /// `Error::ChecksumMismatch`. A version 4 file is upgraded: its
+    /// checksums are computed and saved, then the header says version 5.
     pub(crate) fn open(
         path: &Path,
         dimension: usize,
@@ -49,7 +62,7 @@ impl RecordFile {
         // A zero-length file is what a crash right after creation leaves
         let exists = path.exists() && std::fs::metadata(path)?.len() > 0;
         if !exists {
-            Self::create(path, dimension, mode)?;
+            Self::create(path, dimension, mode, record_size)?;
         }
         let mut file = OpenOptions::new()
             .read(true)
@@ -83,19 +96,69 @@ impl RecordFile {
             file,
             mmap: None,
             header,
+            sums: BlockSums::new(record_size),
             record_size,
-            count: header.count.min(present),
-            synced: header.count.min(present),
+            count: 0,
+            synced: 0,
             capacity,
         };
         this.remap()?;
+        if header.version >= VectorHeader::VERSION_CHECKSUMS {
+            let sums = BlockSums::load(path, record_size)?.ok_or_else(|| {
+                Error::Corrupt(format!(
+                    "{} has no checksum file (.crc); restore the database from a backup",
+                    path.display()
+                ))
+            })?;
+            sums.verify(path, this.data())?;
+            this.sums = sums;
+        } else {
+            let count = header.count.min(present);
+            this.sums = BlockSums::compute(record_size, count, this.data());
+            this.upgrade()?;
+        }
+        this.count = this.sums.count();
+        this.synced = this.count;
         Ok(this)
     }
 
+    /// Bytes after the header (records, then unused capacity)
+    fn data(&self) -> &[u8] {
+        self.mmap
+            .as_ref()
+            .and_then(|m| m.get(VectorHeader::SIZE..))
+            .unwrap_or(&[])
+    }
+
+    /// Version 4 -> 5: save the checksums first, then mark the header, so
+    /// a crash in between leaves a version 4 file that upgrades again.
+    fn upgrade(&mut self) -> Result<()> {
+        log::info!(
+            "adding checksums to {} ({} records)",
+            self.path.display(),
+            self.sums.count()
+        );
+        self.sums.save(&self.path)?;
+        self.header.version = VectorHeader::VERSION;
+        self.header.count = self.sums.count();
+        self.write_header()
+    }
+
+    /// Write the header and fsync the file
+    fn write_header(&mut self) -> Result<()> {
+        self.file.seek(SeekFrom::Start(0))?;
+        self.file.write_all(&self.header.to_bytes())?;
+        self.file
+            .sync_all()
+            .with_context(|| format!("failed to fsync {}", self.path.display()))
+    }
+
     /// Write a new file holding only the header, atomically, so a crash
-    /// during creation never leaves a partial header at `path`.
-    fn create(path: &Path, dimension: usize, mode: u8) -> Result<()> {
+    /// during creation never leaves a partial header at `path`. The empty
+    /// checksum table is saved first, so a version 5 header always has one.
+    fn create(path: &Path, dimension: usize, mode: u8, record_size: usize) -> Result<()> {
         let header = VectorHeader::new_quantized(dimension, mode)?;
+        BlockSums::new(record_size).save(path)?;
         super::atomic::write_atomic(path, &header.to_bytes())
     }
 
@@ -132,6 +195,7 @@ impl RecordFile {
         }
         self.file.seek(SeekFrom::Start(self.offset(first)))?;
         self.file.write_all(bytes)?;
+        self.sums.append(bytes);
         self.count += added;
         Ok(first)
     }
@@ -151,27 +215,25 @@ impl RecordFile {
         self.mmap.as_ref()?.get(from..to)
     }
 
-    /// Write the header count and fsync the file: everything appended so
-    /// far is on disk when this returns.
+    /// Write the header count, fsync the file, then save the checksums:
+    /// everything appended so far is on disk when this returns.
     pub(crate) fn sync(&mut self) -> Result<()> {
         if self.count == self.synced {
             return Ok(());
         }
         self.header.count = self.count;
-        self.file.seek(SeekFrom::Start(0))?;
-        self.file.write_all(&self.header.to_bytes())?;
-        self.file
-            .sync_all()
-            .with_context(|| format!("failed to fsync {}", self.path.display()))?;
+        self.write_header()?;
+        self.sums.save(&self.path)?;
         self.synced = self.count;
         Ok(())
     }
 
     /// Write a new file at `dest` holding only the records in `keep`, in
-    /// that order, and fsync it (compaction, ADR 0004).
+    /// that order, fsync it and save its checksums (compaction, ADR 0004).
     pub(crate) fn write_compacted(&self, dest: &Path, keep: &[u64]) -> Result<()> {
         let mut header = self.header;
         header.count = keep.len() as u64;
+        let mut sums = BlockSums::new(self.record_size);
         let mut out = std::io::BufWriter::new(
             File::create(dest).with_context(|| format!("failed to create {}", dest.display()))?,
         );
@@ -181,11 +243,13 @@ impl RecordFile {
                 Error::Internal(format!("record {id} vanished during compaction"))
             })?;
             out.write_all(record)?;
+            sums.append(record);
         }
         out.into_inner()
             .map_err(|e| e.into_error())?
             .sync_all()
-            .with_context(|| format!("failed to fsync {}", dest.display()))
+            .with_context(|| format!("failed to fsync {}", dest.display()))?;
+        sums.save(dest)
     }
 
     /// Drop every record from `count` on, shrinking the file. Used on open
@@ -203,11 +267,18 @@ impl RecordFile {
         if count == self.count && len == self.capacity {
             return Ok(());
         }
+        // Checksums first: a crash before set_len reopens at `count`
+        let mut sums = self.sums.clone();
+        sums.truncate(count, self.data());
+        sums.save(&self.path)?;
+        self.sums = sums;
         self.mmap = None;
         self.file.set_len(len)?;
         self.capacity = len;
         self.count = count;
-        self.sync()?;
+        self.header.count = count;
+        self.write_header()?;
+        self.synced = count;
         self.remap()
     }
 

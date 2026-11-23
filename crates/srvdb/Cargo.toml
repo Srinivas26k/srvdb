@@ -30,6 +30,7 @@ redb2 = { package = "redb", version = "2.6" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json.workspace = true
 simsimd = "6.2"
+crc32c = "0.6"
 
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }

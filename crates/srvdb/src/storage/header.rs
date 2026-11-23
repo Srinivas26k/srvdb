@@ -16,6 +16,10 @@
 //! Since v0.3 the authoritative committed count lives in `redb`
 //! (ADR 0003); the header count is kept up to date for tools and for
 //! opening v0.2 databases.
+//!
+//! Version 5 (SrvDB 0.4, ADR 0007) means the record area is covered by a
+//! block-checksum sidecar (`storage::checksum`). Version 4 files have none;
+//! they are read as before and upgraded to version 5 on open.
 
 use crate::error::Error;
 
@@ -33,7 +37,9 @@ pub struct VectorHeader {
 
 impl VectorHeader {
     pub const MAGIC: u32 = 0x5376_4442; // "SvDB" in little-endian order
-    pub const VERSION: u16 = 4;
+    pub const VERSION: u16 = 5;
+    /// First version whose records are covered by checksums
+    pub const VERSION_CHECKSUMS: u16 = 5;
     pub const SIZE: usize = 24;
 
     pub fn new(dimension: usize) -> anyhow::Result<Self> {
