@@ -40,6 +40,14 @@ pub enum Error {
     #[error("corrupt or incompatible database file: {0}")]
     Corrupt(String),
 
+    /// Stored data does not match its CRC32C checksum: a vector file block
+    /// or an index/quantizer file was damaged after it was written (bit rot,
+    /// a torn write, a bad copy). The message names the file and byte range.
+    /// Restore the database from a backup; a damaged `hnsw.graph` or
+    /// `ivf.index` can instead be deleted and is rebuilt on open.
+    #[error("checksum mismatch: {0}")]
+    ChecksumMismatch(String),
+
     /// The operating system reported an I/O failure.
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),

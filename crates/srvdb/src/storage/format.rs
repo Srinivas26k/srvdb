@@ -9,11 +9,15 @@
 //! | 8      | 2    | format version of the payload          |
 //! | 10     | 2    | reserved (zero)                        |
 //! | 12     | 8    | payload length                         |
-//! | 20     | 4    | CRC32 of the payload                   |
+//! | 20     | 4    | checksum of the payload                |
 //! | 24     | ...  | payload (postcard)                     |
 //!
-//! Anything that does not match (wrong magic or kind, newer version,
-//! truncation, checksum mismatch, undecodable payload) is `Error::Corrupt`.
+//! The checksum is CRC32C since envelope version 2 (ADR 0007); version 1
+//! files (SrvDB 0.3) used CRC32 (IEEE) and are still read.
+//!
+//! A checksum mismatch is `Error::ChecksumMismatch`; anything else that
+//! does not match (wrong magic or kind, newer version, truncation,
+//! undecodable payload) is `Error::Corrupt`.
 
 use crate::error::Error;
 use anyhow::Result;
@@ -26,9 +30,21 @@ pub(crate) const HNSW_GRAPH: [u8; 4] = *b"HNSW";
 pub(crate) const IVF_INDEX: [u8; 4] = *b"IVFX";
 pub(crate) const SQ8_QUANTIZER: [u8; 4] = *b"SQ8Q";
 pub(crate) const PQ_CODEBOOKS: [u8; 4] = *b"PQCB";
+pub(crate) const CHECKSUMS: [u8; 4] = *b"CRCS";
 
-/// Current payload version for every kind
-pub(crate) const VERSION: u16 = 1;
+/// Current envelope version for every kind: 2 = CRC32C checksum
+pub(crate) const VERSION: u16 = 2;
+/// Envelope version written by SrvDB 0.3: CRC32 (IEEE) checksum
+const VERSION_CRC32: u16 = 1;
+
+/// Checksum of `payload` as envelope `version` defines it
+fn checksum(version: u16, payload: &[u8]) -> u32 {
+    if version == VERSION_CRC32 {
+        crc32fast::hash(payload)
+    } else {
+        crc32c::crc32c(payload)
+    }
+}
 
 /// Serialize `value` and wrap it in the envelope
 pub(crate) fn encode<T: Serialize>(kind: [u8; 4], value: &T) -> Result<Vec<u8>> {
@@ -40,7 +56,7 @@ pub(crate) fn encode<T: Serialize>(kind: [u8; 4], value: &T) -> Result<Vec<u8>> 
     out.extend_from_slice(&VERSION.to_le_bytes());
     out.extend_from_slice(&[0, 0]);
     out.extend_from_slice(&(payload.len() as u64).to_le_bytes());
-    out.extend_from_slice(&crc32fast::hash(&payload).to_le_bytes());
+    out.extend_from_slice(&checksum(VERSION, &payload).to_le_bytes());
     out.extend_from_slice(&payload);
     Ok(out)
 }
@@ -55,7 +71,7 @@ pub(crate) fn decode<T: DeserializeOwned>(kind: [u8; 4], bytes: &[u8]) -> Result
         return Err(corrupt(format!("holds {}", name(bytes[4..8].try_into()?))).into());
     }
     let version = u16::from_le_bytes([bytes[8], bytes[9]]);
-    if version > VERSION {
+    if version == 0 || version > VERSION {
         return Err(corrupt(format!(
             "format version {version} is newer than this SrvDB supports ({VERSION})"
         ))
@@ -71,8 +87,13 @@ pub(crate) fn decode<T: DeserializeOwned>(kind: [u8; 4], bytes: &[u8]) -> Result
         ))
         .into());
     }
-    if crc32fast::hash(payload) != crc {
-        return Err(corrupt("checksum mismatch".into()).into());
+    if checksum(version, payload) != crc {
+        return Err(Error::ChecksumMismatch(format!(
+            "{} file: payload does not match its checksum; delete it if it is an \
+             index (it is rebuilt) or restore the database from a backup",
+            name(kind)
+        ))
+        .into());
     }
     postcard::from_bytes(payload).map_err(|e| corrupt(e.to_string()).into())
 }
@@ -108,7 +129,8 @@ mod tests {
 
         let mut flipped = bytes.clone();
         *flipped.last_mut().unwrap() ^= 0xFF;
-        assert!(corrupt(decode(SQ8_QUANTIZER, &flipped)));
+        let err = Error::from(decode::<Vec<f32>>(SQ8_QUANTIZER, &flipped).unwrap_err());
+        assert!(matches!(err, Error::ChecksumMismatch(_)), "{err:?}");
 
         assert!(corrupt(decode(SQ8_QUANTIZER, &bytes[..bytes.len() - 1])));
         assert!(corrupt(decode(PQ_CODEBOOKS, &bytes)));
@@ -117,5 +139,34 @@ mod tests {
         let mut newer = bytes;
         newer[8] = 99;
         assert!(corrupt(decode(SQ8_QUANTIZER, &newer)));
+    }
+
+    #[test]
+    fn writes_crc32c() {
+        let bytes = encode(SQ8_QUANTIZER, &vec![1.0f32]).unwrap();
+        assert_eq!(u16::from_le_bytes([bytes[8], bytes[9]]), 2);
+        let crc = u32::from_le_bytes(bytes[20..24].try_into().unwrap());
+        assert_eq!(crc, crc32c::crc32c(&bytes[HEADER..]));
+    }
+
+    /// Envelope v1 files from SrvDB 0.3 (CRC32 IEEE) still decode
+    #[test]
+    fn reads_v1_envelopes_from_0_3() {
+        let sq: crate::quant::scalar::ScalarQuantizer = decode(
+            SQ8_QUANTIZER,
+            include_bytes!("../../tests/data/v0.3/sq8/scalar_quantizer.bin"),
+        )
+        .unwrap();
+        assert_eq!(sq.dimension, 128);
+        let graph = include_bytes!("../../tests/data/v0.3/hnsw/hnsw.graph");
+        assert_eq!(u16::from_le_bytes([graph[8], graph[9]]), 1);
+        let index = crate::hnsw::HNSWIndex::from_bytes(graph).unwrap();
+        assert_eq!(index.len(), 40);
+
+        // A damaged v1 file is still caught by its CRC32
+        let mut damaged = graph.to_vec();
+        *damaged.last_mut().unwrap() ^= 0x01;
+        let err = Error::from(crate::hnsw::HNSWIndex::from_bytes(&damaged).err().unwrap());
+        assert!(matches!(err, Error::ChecksumMismatch(_)), "{err:?}");
     }
 }
