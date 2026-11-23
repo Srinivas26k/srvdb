@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of sorting every score. Scores agree with the previous implementation to
   within floating-point rounding; the on-disk format is unchanged.
 
+### Fixed
+- HNSW recall on clustered data (#28). The graph kept only the M nearest
+  neighbours per node, which dropped every link between clusters, so a search
+  could only reach the entry point's cluster (recall@10 about 0.70 on 5000
+  clustered vectors). Neighbour selection and pruning now use the paper's
+  diversity heuristic, and recall@10 is 1.0 on the same benchmark. Search
+  visits more of the graph, so HNSW queries and builds are slower than the
+  broken version. The `hnsw.graph` format is unchanged. A graph saved by an
+  older version still loads but keeps its poor links: delete `hnsw.graph`
+  to rebuild it from the stored vectors.
+
 ## [0.3.0] - 2026-10-25
 
 ### Licence
