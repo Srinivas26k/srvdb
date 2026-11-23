@@ -105,27 +105,36 @@ impl ScalarQuantizedStorage {
     }
 
     /// Exhaustive search comparing the full-precision query to every
-    /// code, skipping `deleted` ids
+    /// code, skipping `deleted` ids. Batches of codes are scored in
+    /// parallel on the rayon pool, as the flat f32 scan is.
     pub fn search(
         &self,
         query: &[f32],
         k: usize,
         deleted: &HashSet<u64>,
     ) -> Result<Vec<(u64, f32)>> {
+        use crate::distance::BATCH_SIZE;
+        use rayon::prelude::*;
         let count = self.file.count();
         let Some(codes) = self.file.range(0, count as usize) else {
             return Ok(Vec::new());
         };
-        let query_norm: f32 = query.iter().map(|x| x * x).sum::<f32>().sqrt();
+        if self.dimension == 0 {
+            return Ok(Vec::new());
+        }
+        let scorer = self.quantizer.scorer(query);
+        let batch_bytes = BATCH_SIZE * self.dimension;
         let scored: Vec<(u64, f32)> = codes
-            .chunks_exact(self.dimension)
+            .par_chunks(batch_bytes)
             .enumerate()
-            .filter(|(i, _)| !deleted.contains(&(*i as u64)))
-            .map(|(i, code)| {
-                (
-                    i as u64,
-                    self.quantizer.cosine_to_codes(query, query_norm, code),
-                )
+            .flat_map_iter(|(batch, block)| {
+                let first = (batch * BATCH_SIZE) as u64;
+                let scorer = &scorer;
+                block
+                    .chunks_exact(self.dimension)
+                    .zip(first..)
+                    .filter(|(_, id)| !deleted.contains(id))
+                    .map(move |(code, id)| (id, scorer.score(code)))
             })
             .collect();
         Ok(crate::distance::select_top_k(scored, k))
@@ -150,3 +159,7 @@ impl ScalarQuantizedStorage {
         self.file.truncate_to(count)
     }
 }
+
+#[cfg(test)]
+#[path = "sq_tests.rs"]
+mod tests;
