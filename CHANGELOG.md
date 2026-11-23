@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   copy) now fails with the new `Error::ChecksumMismatch` (Python
   `RuntimeError`) instead of returning wrong results. A damaged `hnsw.graph`
   is rebuilt from the verified vectors (ADR 0007).
+- Benchmark harness (`cargo run --release -p srvdb --example bench`) that
+  measures recall@10 against exact search, QPS, p50/p99 latency, build time
+  and peak memory for the flat, SQ8, PQ, HNSW and IVF modes. It uses a seeded
+  synthetic dataset by default (works offline) or user-supplied `.fvecs`
+  files, and records CPU, OS, commit and command with every result. See
+  `docs/benchmarks.md`.
 
 ### Changed
 - On-disk format: vector file header version 5 and file envelope version 2.
@@ -25,6 +31,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   allocating a decoded vector, and only the top k results are selected instead
   of sorting every score. Scores agree with the previous implementation to
   within floating-point rounding; the on-disk format is unchanged.
+- SQ8 flat search now scans codes in parallel, as flat f32 search does, and
+  scores each code with a wider, precomputed decode step. On 5000 vectors it
+  went from about a quarter of flat search throughput to faster than flat
+  (see `docs/benchmarks.md` to reproduce). Scores agree with the previous
+  implementation to within 1e-5; the on-disk format is unchanged (#29).
+
+### Removed
+- The deprecated `srvdb.SrvDBPython` alias (deprecated in 0.3). Migrate by
+  replacing `srvdb.SrvDBPython(...)` with `srvdb.Database(...)`; arguments are
+  unchanged (#26).
+
+### Fixed
+- HNSW recall on clustered data (#28). The graph kept only the M nearest
+  neighbours per node, which dropped every link between clusters, so a search
+  could only reach the entry point's cluster (recall@10 about 0.70 on 5000
+  clustered vectors). Neighbour selection and pruning now use the paper's
+  diversity heuristic, and recall@10 is 1.0 on the same benchmark. Search
+  visits more of the graph, so HNSW queries and builds are slower than the
+  broken version. The `hnsw.graph` format is unchanged. A graph saved by an
+  older version still loads but keeps its poor links: delete `hnsw.graph`
+  to rebuild it from the stored vectors.
 
 ## [0.3.0] - 2026-10-25
 

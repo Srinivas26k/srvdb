@@ -4,13 +4,35 @@ use super::*;
 use std::cmp::Ordering;
 
 impl HNSWIndex {
-    /// Simple heuristic for neighbor selection (Algorithm 3 - SELECT-NEIGHBORS-SIMPLE)
-    /// Just returns the M nearest neighbors
-    pub(super) fn select_neighbors_simple(&self, candidates: &[(u64, f32)], m: usize) -> Vec<u64> {
-        candidates.iter().take(m).map(|(id, _)| *id).collect()
+    /// Diversity heuristic (Algorithm 4 - SELECT-NEIGHBORS-HEURISTIC)
+    ///
+    /// `candidates` must be sorted nearest first. A candidate is kept only
+    /// if it is closer to the base node than to every neighbour already
+    /// kept. Keeping just the M nearest instead fills every list with
+    /// same-cluster nodes and drops the long links between clusters, which
+    /// leaves clustered data as disconnected islands (issue #28).
+    pub(super) fn select_neighbors_heuristic<F>(
+        &self,
+        candidates: &[(u64, f32)],
+        m: usize,
+        distance_fn: &F,
+    ) -> Vec<u64>
+    where
+        F: Fn(u64, u64) -> f32,
+    {
+        let mut kept: Vec<u64> = Vec::with_capacity(m);
+        for &(cand, dist_to_base) in candidates {
+            if kept.len() >= m {
+                break;
+            }
+            if kept.iter().all(|&r| dist_to_base < distance_fn(cand, r)) {
+                kept.push(cand);
+            }
+        }
+        kept
     }
 
-    /// Add a bidirectional link and prune if necessary (Algorithm 4)
+    /// Add a directed link and prune with the heuristic if the list is full
     pub(super) fn add_bidirectional_link<F>(
         &self,
         from_id: u64,
@@ -28,11 +50,9 @@ impl HNSWIndex {
             .get_mut(&from_id)
             .filter(|node| layer < node.neighbors.len())
         {
-            // Add link if not already present
             if !from_node.neighbors[layer].contains(&to_id) {
                 from_node.neighbors[layer].push(to_id);
 
-                // Prune if exceeds max connections
                 let m_max = if layer == 0 {
                     self.config.m_max0
                 } else {
@@ -40,22 +60,13 @@ impl HNSWIndex {
                 };
 
                 if from_node.neighbors[layer].len() > m_max {
-                    // Calculate distances to all neighbors
                     let mut neighbor_dists: Vec<_> = from_node.neighbors[layer]
                         .iter()
-                        .map(|&nid| {
-                            let dist = distance_fn(from_id, nid);
-                            (nid, dist)
-                        })
+                        .map(|&nid| (nid, distance_fn(from_id, nid)))
                         .collect();
-
-                    // Sort by distance and keep only M nearest
                     neighbor_dists.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal));
-                    from_node.neighbors[layer] = neighbor_dists
-                        .into_iter()
-                        .take(m_max)
-                        .map(|(nid, _)| nid)
-                        .collect();
+                    from_node.neighbors[layer] =
+                        self.select_neighbors_heuristic(&neighbor_dists, m_max, distance_fn);
                 }
             }
         }
