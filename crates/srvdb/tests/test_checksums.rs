@@ -112,6 +112,16 @@ fn missing_or_damaged_checksum_file_fails_open() {
     std::fs::remove_file(&side).unwrap();
     let err = open(dir.path(), "flat").err().unwrap();
     assert!(matches!(err, Error::Corrupt(_)), "{err:?}");
+
+    // Documented recovery (website durability guide): mark the vector file
+    // as version 4 and the next open rebuilds the checksums
+    let vectors = dir.path().join("vectors.bin");
+    let mut bytes = std::fs::read(&vectors).unwrap();
+    bytes[4..6].copy_from_slice(&4u16.to_le_bytes());
+    std::fs::write(&vectors, bytes).unwrap();
+    assert_eq!(open(dir.path(), "flat").unwrap().count(), 300);
+    assert!(side.exists());
+    assert_eq!(open(dir.path(), "flat").unwrap().count(), 300);
 }
 
 #[test]
