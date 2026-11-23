@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (see `docs/benchmarks.md` to reproduce). Scores agree with the previous
   implementation to within 1e-5; the on-disk format is unchanged (#29).
 
+### Removed
+- The deprecated `srvdb.SrvDBPython` alias (deprecated in 0.3). Migrate by
+  replacing `srvdb.SrvDBPython(...)` with `srvdb.Database(...)`; arguments are
+  unchanged (#26).
+
 ### Fixed
 - HNSW recall on clustered data (#28). The graph kept only the M nearest
   neighbours per node, which dropped every link between clusters, so a search
