@@ -36,6 +36,7 @@ export default defineConfig({
 				'@fontsource/inter/600.css',
 				'@fontsource/jetbrains-mono/400.css',
 				'./src/styles/tokens.css',
+				'./src/styles/layout.css',
 			],
 			lastUpdated: true,
 			sidebar: [
