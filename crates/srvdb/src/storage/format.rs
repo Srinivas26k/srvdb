@@ -5,7 +5,7 @@
 //! | offset | size | field                                  |
 //! |--------|------|----------------------------------------|
 //! | 0      | 4    | magic `SRVD`                           |
-//! | 4      | 4    | kind (`HNSW`, `IVFX`, `SQ8Q`, `PQCB`, `RBQP`) |
+//! | 4      | 4    | kind (`HNSW`, `IVFX`, `SQ8Q`, `PQCB`, `RBQP`, `IDXS`, ...) |
 //! | 8      | 2    | format version of the payload          |
 //! | 10     | 2    | reserved (zero)                        |
 //! | 12     | 8    | payload length                         |
@@ -32,6 +32,7 @@ pub(crate) const SQ8_QUANTIZER: [u8; 4] = *b"SQ8Q";
 pub(crate) const PQ_CODEBOOKS: [u8; 4] = *b"PQCB";
 pub(crate) const CHECKSUMS: [u8; 4] = *b"CRCS";
 pub(crate) const RABITQ_PARAMS: [u8; 4] = *b"RBQP";
+pub(crate) const INDEX_SETTINGS: [u8; 4] = *b"IDXS";
 
 /// Current envelope version for every kind: 2 = CRC32C checksum
 pub(crate) const VERSION: u16 = 2;
