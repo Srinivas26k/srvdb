@@ -137,8 +137,9 @@ SrvDB is deliberately small. Look elsewhere if you need:
 - **Several processes writing to the same database:** only one can open it
   at a time.
 - **Filtering by metadata inside the search** (for example
-  `where year > 2020`): planned for 0.4; today, filter the results after
-  searching or keep one database per category.
+  `where year > 2020`): available from Rust (`search_filtered`); from
+  Python, filter the results after searching or keep one database per
+  category.
 - **Billions of vectors** on one machine: SrvDB has no published
   benchmarks at that scale yet.
 
