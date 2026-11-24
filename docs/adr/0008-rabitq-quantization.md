@@ -70,6 +70,16 @@ not centred: no training pass, no centroid. The query stays in f32 (RaBitQ
 also quantizes it; that is an M4 speed optimisation, not a correctness
 need).
 
+### Dimension limit
+
+`new_rabitq` refuses dimensions above 4096 (`Error::InvalidInput`), the
+same maximum as `DatabaseConfig` and `srvdb.open` (128 to 4096). The
+rotation is a dense `dim x dim` matrix, built in f64 and kept in f32, and
+regenerated with O(dim^3) work on every open: about 200 MB and seconds at
+4096, but some 51 GB at the 65535 the vector-file header could express,
+which would abort or hang the host. A structured (Hadamard) rotation that
+lifts this limit is milestone M4 work.
+
 ### Rerank
 
 The scan keeps `k * r` candidates by estimated similarity, then rescores
@@ -89,9 +99,12 @@ reranking. `r` is a search-time setting (`set_rabitq_rerank`), not stored.
   at fixed offsets, `.crc` sidecar of 1 MiB CRC32C blocks, ADR 0007). The
   header mode byte is `0x10 | bits`, so a file of another width is refused.
 
-On open, any mismatch (other bit width, seed, dimension or fingerprint),
-damage (`Corrupt`, `ChecksumMismatch`) or missing file causes the codes to
-be deleted and rebuilt from `vectors.bin`, with a log record. Codes are
+On open, a mismatch (other bit width, seed, dimension or fingerprint, or a
+code-file header of another width), damage (`Corrupt`,
+`ChecksumMismatch`) or a missing file causes the codes to be deleted and
+rebuilt from `vectors.bin`, with a log record; the rebuilt codes are
+fsynced at once, so a read-only session does not re-encode on every open.
+Any other error (I/O) is returned: it does not prove the codes are bad. Codes are
 fsynced after the commit point (step 3 of ADR 0003, with the other derived
 indexes); on open they are truncated or extended to the committed vector
 count. Compaction deletes them and they are rebuilt for the new ids.
@@ -114,6 +127,20 @@ introduce a block-interleaved record file as `rabitq_codes.bin` version 2
 with the normal rebuild path, without touching `vectors.bin`. We chose
 per-vector records now because they reuse `RecordFile` (append, truncate,
 checksums, crash rules) unchanged.
+
+### Build-time measurement
+
+Encoding runs on the rayon pool (commit a9d7991). Before that change,
+building at dim 768, n 50 000 took 44 s (1 bit) and 57 s (4 bits); after
+it, 14 s and 20 s; flat took 1.4 s. Environment: AMD Ryzen 5 3550H (8
+logical cores), Ubuntu 26.04.1 LTS, kernel 7.0.0-43-generic, release
+build; dataset synthetic-gauss (dim 768, n 50 000, 500 clusters, seed 42,
+200 queries); "before" at commit 3d2f17f and "after" at a9d7991, both
+with the bench-mode changes not yet committed (later 2a42541);
+command `cargo run --release -p srvdb --example bench -- --dim 768
+--n 50000 --modes flat,sq8,rabitq1,rabitq2,rabitq4` (the after run used
+`--modes rabitq1,rabitq4`). A later full run at merge commit e3c6971 gave
+13.1 s, 20.1 s and 17.7 s for 1, 2 and 4 bits.
 
 ## Alternatives considered
 
