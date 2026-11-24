@@ -38,10 +38,15 @@ export default defineConfig({
 				'./src/styles/tokens.css',
 				'./src/styles/layout.css',
 			],
+			components: {
+				Header: './src/components/overrides/Header.astro',
+				Sidebar: './src/components/overrides/Sidebar.astro',
+				PageTitle: './src/components/overrides/PageTitle.astro',
+			},
 			lastUpdated: true,
 			sidebar: [
 				{
-					label: 'Start here',
+					label: 'Get started',
 					items: [
 						{ label: 'Introduction', slug: 'start/introduction' },
 						{ label: 'Installation', slug: 'start/installation' },

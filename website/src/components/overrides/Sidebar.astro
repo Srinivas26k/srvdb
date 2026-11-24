@@ -1,0 +1,31 @@
+---
+// Left sidebar: search box on top, Starlight's navigation tree, theme
+// switcher pinned to the bottom on desktop (mobile keeps Starlight's menu
+// footer, which already contains it).
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+import Search from 'virtual:starlight/components/Search';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+---
+
+<div class="srv-sidebar-search print:hidden"><Search /></div>
+<Default />
+<div class="srv-sidebar-footer sl-hidden md:sl-flex print:hidden">
+	<ThemeSelect />
+</div>
+
+<style>
+	.srv-sidebar-search {
+		display: flex;
+	}
+	.srv-sidebar-search :global(site-search) {
+		width: 100%;
+	}
+	.srv-sidebar-footer {
+		margin-top: auto;
+		position: sticky;
+		bottom: 0;
+		padding-block: 0.75rem;
+		border-top: 1px solid var(--sl-color-gray-5);
+		background: var(--sl-color-bg-sidebar);
+	}
+</style>
