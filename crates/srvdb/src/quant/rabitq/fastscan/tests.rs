@@ -119,3 +119,20 @@ fn impossible_reservation_is_an_error_not_an_abort() {
     }
     assert_eq!(codes.len(), 0);
 }
+
+/// Appending one vector at a time must not leave the copy holding much
+/// more memory than it uses: the memory budget allows 25 % (ADR 0018)
+#[test]
+fn growth_slack_stays_within_a_quarter() {
+    let q = RabitqQuantizer::new(64, 2, 3);
+    let (records, _) = encoded(&q, &vectors(3000, 64, 11));
+    let mut codes = FastScanCodes::with_widths(q.dim(), q.bits());
+    for (i, record) in records.chunks_exact(q.record_size()).enumerate() {
+        codes.extend(record, q.record_size()).unwrap();
+        let n = i + 1;
+        let used = n.div_ceil(BLOCK) * codes.block_bytes();
+        assert!(codes.blocks.capacity() <= used + used / 4 + codes.block_bytes());
+        assert!(codes.factors.capacity() <= n + n / 4 + 1);
+        assert!(codes.widths.capacity() <= n + n / 4 + 1);
+    }
+}
