@@ -93,6 +93,14 @@ fn main() {
         "queries": ds.queries.len(), "k": a.k, "seed": a.seed,
         "ef_search": a.ef_search, "nprobe": a.nprobe, "nlist": a.nlist,
     });
+    if let Some(dir) = &a.export_fvecs {
+        if let Err(e) = dataset::export(&ds, dir) {
+            eprintln!("error: {e}");
+            std::process::exit(1);
+        }
+        println!("{dataset}");
+        return;
+    }
     drop(ds);
 
     let command = format!(

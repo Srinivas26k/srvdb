@@ -20,6 +20,8 @@ usage: cargo run --release -p srvdb --example bench -- [options]
   --query-fvecs PATH load query vectors from an .fvecs file (with --base-fvecs)
   --out PATH         write JSON results here (default bench-results.json)
   --work-dir PATH    directory for temporary databases (default system temp)
+  --export-fvecs DIR write base.fvecs and query.fvecs to DIR and exit
+                     (used by benchmarks/compare to share the dataset)
 ";
 
 #[derive(Clone, Debug)]
@@ -37,6 +39,8 @@ pub struct Args {
     pub query_fvecs: Option<PathBuf>,
     pub out: PathBuf,
     pub work_dir: Option<PathBuf>,
+    /// Write the dataset as .fvecs files to this directory and exit.
+    pub export_fvecs: Option<PathBuf>,
     /// Internal: run a single mode and print one JSON line (child process).
     pub child: Option<String>,
 }
@@ -62,6 +66,7 @@ pub fn parse(raw: &[String]) -> Result<Args, String> {
         query_fvecs: None,
         out: PathBuf::from("bench-results.json"),
         work_dir: None,
+        export_fvecs: None,
         child: None,
     };
     let mut it = raw.iter().cloned();
@@ -83,6 +88,7 @@ pub fn parse(raw: &[String]) -> Result<Args, String> {
             "--query-fvecs" => a.query_fvecs = it.next().map(PathBuf::from),
             "--out" => a.out = it.next().map(PathBuf::from).ok_or("--out needs a value")?,
             "--work-dir" => a.work_dir = it.next().map(PathBuf::from),
+            "--export-fvecs" => a.export_fvecs = it.next().map(PathBuf::from),
             "--child" => a.child = it.next(),
             "-h" | "--help" => return Err(String::new()),
             other => return Err(format!("unknown option {other}")),

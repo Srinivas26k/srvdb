@@ -131,3 +131,23 @@ pub fn from_fvecs(base: &Path, query: &Path, n: usize, nq: usize) -> Result<Data
         queries,
     })
 }
+
+/// Write vectors as .fvecs (little-endian i32 dim, then dim f32 values).
+pub fn write_fvecs(path: &Path, vecs: &[Vec<f32>]) -> Result<(), String> {
+    let mut bytes = Vec::with_capacity(vecs.iter().map(|v| 4 + v.len() * 4).sum());
+    for v in vecs {
+        let d = i32::try_from(v.len()).map_err(|_| "dimension too large".to_string())?;
+        bytes.extend_from_slice(&d.to_le_bytes());
+        for x in v {
+            bytes.extend_from_slice(&x.to_le_bytes());
+        }
+    }
+    std::fs::write(path, bytes).map_err(|e| format!("cannot write {}: {e}", path.display()))
+}
+
+/// Export base and query vectors to `dir` as base.fvecs and query.fvecs.
+pub fn export(ds: &Dataset, dir: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
+    write_fvecs(&dir.join("base.fvecs"), &ds.base)?;
+    write_fvecs(&dir.join("query.fvecs"), &ds.queries)
+}

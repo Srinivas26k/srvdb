@@ -111,7 +111,7 @@ export default defineConfig({
 						{ label: 'Architecture', slug: 'project/architecture' },
 						{ label: 'Design decisions', slug: 'project/decisions' },
 						{ label: 'Roadmap', slug: 'project/roadmap' },
-						{ label: 'Benchmarks', slug: 'project/benchmarks', badge: { text: 'Soon', variant: 'caution' } },
+						{ label: 'Benchmarks', slug: 'benchmarks' },
 						{ label: 'Integrations', slug: 'project/integrations', badge: { text: 'Soon', variant: 'caution' } },
 						{ label: 'Contributing', slug: 'project/contributing' },
 						{ label: 'FAQ', slug: 'project/faq' },
