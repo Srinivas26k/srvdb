@@ -56,6 +56,24 @@ Fewer bits make the codes smaller and the scan faster but the estimates
 rougher, so more candidates must be reranked for the same recall. Other bit
 widths raise `ValueError` (Rust: `Error::InvalidInput`).
 
+## How the scan works
+
+When a database opens, SrvDB copies the codes into memory in blocks of 32
+vectors. A query becomes small 8-bit lookup tables, and the CPU's
+shuffle instructions look up 32 codes at a time (AVX2 on x86_64, NEON
+on ARM, chosen at runtime, with a portable fallback on other CPUs). The
+8-bit tables add a small, bounded error to the candidate estimates. Rerank
+removes that error from the returned scores. With `rerank=0` you get the
+estimates directly.
+
+Memory: resident memory can hold the codes twice. One copy is the scan
+copy (`n × dimension × bits / 8` bytes, always resident). The other is
+the pages of the code file that the operating system keeps cached after
+reading it. If there is not enough memory for the scan copy, opening or
+adding raises `OSError` (Rust: `Error::Io`, kind `OutOfMemory`). The
+process does not abort. See
+[ADR 0012](https://github.com/Srinivas26k/srvdb/blob/master/docs/adr/0012-rabitq-fast-scan.md).
+
 ## When to use it
 
 - **Flat search is too slow, and you want near-exact results** without

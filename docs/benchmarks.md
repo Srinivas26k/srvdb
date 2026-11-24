@@ -118,6 +118,41 @@ that means an exact scan below about 18% matching at 100k vectors, 5.7%
 at 1M and 1.8% at 10M. A fixed percentage would be too low for small
 databases and too high for large ones.
 
+## RaBitQ fast-scan (ADR 0012): preliminary
+
+**Preliminary: measured under heavy load, not for publication.** An
+idle-machine rerun from a clean commit is tracked in #54. Until then, do
+not quote these numbers or draw conclusions about mode ranking from them.
+
+QPS before (commit 3e4ab82, 256-entry f32 tables) and after (commit
+b1dd50e, u8 nibble tables with the AVX2 kernel and the vectorized
+rotation). The "after" JSON reports `b1dd50e-dirty` because the
+documentation changes were not committed yet; no code was changed. All
+rows use default rerank (20 for 2 bits, 10 for 4 bits), and every
+RaBitQ row has recall@10 1.0000 before and after. sq8 recall is 0.97 to
+0.98.
+
+Environment: AMD Ryzen 5 3550H (8 logical cores, AVX2), Ubuntu 26.04.1
+LTS, kernel 7.0.0-43-generic, release build, synthetic-gauss dataset
+(seed 42, 200 queries, k 10). Command, for each D in 384, 768 and N in
+5000, 50000:
+`cargo run --release -p srvdb --example bench -- --dim D --n N --modes flat,sq8,rabitq2,rabitq4`.
+The one-minute load average was 9.8 to 11.4 during the "before" runs and
+17.9 to 20.0 during the "after" runs, on 8 cores. Other jobs shared the
+machine, so these numbers are not reliable as absolute values or as a
+ranking of modes.
+
+| dim | n | flat | sq8 | rabitq2 before | rabitq2 after | rabitq4 before | rabitq4 after |
+|--:|--:|--:|--:|--:|--:|--:|--:|
+| 384 | 5 000 | 1232 / 1262 | 3741 / 3071 | 1263 | 4290 | 761 | 3685 |
+| 384 | 50 000 | 139 / 120 | 348 / 303 | 349 | 1100 | 197 | 679 |
+| 768 | 5 000 | 698 / 878 | 1991 / 935 | 628 | 1491 | 529 | 1442 |
+| 768 | 50 000 | 67 / 101 | 218 / 183 | 95 | 331 | 96 | 423 |
+
+Flat and sq8 cells give the before / after runs. Those modes did not
+change, so the gap between the two runs shows the measurement noise.
+rabitq1 was not measured; the rerun in #54 will include it.
+
 ## Real datasets (SIFT1M, GloVe)
 
 The library never downloads anything and datasets are never committed. To
