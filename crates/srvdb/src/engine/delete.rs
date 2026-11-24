@@ -45,8 +45,13 @@ impl SrvDB {
         }
         validate::vector(&vector.data, self.dimension)?;
         validate::metadata(meta)?;
+        // Checked before anything is written, so an error leaves no
+        // orphaned new record; the new id has no links yet
+        self.graph.check_move(id, self.count())?;
         let new_id = self.insert_one(vector, meta)?;
-        self.graph.move_record(id, new_id)?; // links follow the record (ADR 0016)
+        // Cannot exceed a limit: check_move passed for this empty target
+        // and the total never grows (links follow the record, ADR 0016)
+        self.graph.move_record(id, new_id);
         self.delete(id)?;
         Ok(new_id)
     }

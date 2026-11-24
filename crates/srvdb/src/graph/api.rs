@@ -2,9 +2,11 @@
 //! commit, recovery and compaction (ADR 0016)
 
 use super::expand::{expand, ExpandedResult, Expansion};
-use super::{store, validate_type, LinkGraph};
+use super::{store, validate_type, Limits, LinkGraph};
 use crate::error::{Error, Result};
+use crate::storage::metadata::MetadataStore;
 use crate::{SrvDB, Vector, VectorEngine};
+use std::path::Path;
 
 impl SrvDB {
     /// Check that `id` is an existing, not deleted record
@@ -27,8 +29,9 @@ impl SrvDB {
     /// # Errors
     /// `InvalidInput` if either id does not exist or was deleted, if
     /// `source == target`, if `link_type` does not match
-    /// `[a-z][a-z0-9_]{0,63}`, or if `source` already has 1,024 outgoing
-    /// links or the database 10,000,000 links.
+    /// `[a-z][a-z0-9_]{0,63}`, or if a limit would be exceeded: 1,024
+    /// outgoing links for `source`, 100,000 incoming links for `target`,
+    /// 1,000,000 links or 1,024 link type names per database.
     pub fn link(&mut self, source: u64, link_type: &str, target: u64) -> Result<bool> {
         validate_type(link_type)?;
         self.live_record(source, "source")?;
@@ -77,14 +80,41 @@ impl SrvDB {
     ///
     /// # Errors
     /// `InvalidInput` if either id does not exist or was deleted, or `to`
-    /// would get more than 1,024 outgoing links.
+    /// could get more than 1,024 outgoing or 100,000 incoming links
+    /// (nothing changes then).
     pub fn move_links(&mut self, from: u64, to: u64) -> Result<()> {
         self.live_record(from, "source")?;
         self.live_record(to, "target")?;
         if from != to {
-            self.graph.move_record(from, to)?;
+            self.graph.check_move(from, to)?;
+            self.graph.move_record(from, to);
         }
         Ok(())
+    }
+
+    /// Delete every link of the closed database at `path`, durably.
+    ///
+    /// The recovery step when opening fails with `Corrupt` because an
+    /// older SrvDB (0.3 or earlier, which ignores links) added, deleted or
+    /// compacted records after links were saved, so they may point at the
+    /// wrong records (ADR 0016). Vectors and metadata are not changed.
+    /// Returns the number of links removed. Never runs implicitly.
+    ///
+    /// # Errors
+    /// `NotFound` if `path` holds no database, `Locked` if it is open, `Io`
+    /// or `Corrupt` if `metadata.db` cannot be read.
+    pub fn drop_links(path: &str) -> Result<u64> {
+        let dir = Path::new(path);
+        if !dir.join("metadata.db").is_file() {
+            return Err(Error::NotFound(
+                "no SrvDB database at the given path; create it with SrvDB::create".into(),
+            ));
+        }
+        let _lock = crate::storage::lock::acquire(dir)?;
+        let store = MetadataStore::new(path)?;
+        let removed = store::clear(store.database())?;
+        log::info!("dropped {removed} links");
+        Ok(removed)
     }
 
     /// Search for the `k` nearest records, then follow outgoing links of
@@ -123,7 +153,12 @@ impl SrvDB {
 
     /// Recovery hook: load and validate the stored links
     pub(crate) fn load_links(&mut self) -> Result<()> {
-        self.graph = store::load(self.metadata_store.database(), self.count(), &self.deleted)?;
+        self.graph = store::load(
+            self.metadata_store.database(),
+            self.count(),
+            &self.deleted,
+            Limits::DEFAULT,
+        )?;
         Ok(())
     }
 

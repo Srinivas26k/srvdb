@@ -33,13 +33,27 @@ Constraints:
 - Both ends must be existing, not deleted records. Self-links are
   rejected. Linking twice is a no-op; `link` returns whether the link is
   new and `unlink` whether it existed.
-- Limits, checked before anything changes (`InvalidInput` otherwise):
+- Limits, checked before anything changes (`InvalidInput` otherwise)
+  and again while loading (`Corrupt` as soon as one is exceeded):
   - at most **1,024 outgoing links per record** (fan-out), all types
     together;
-  - at most **10,000,000 links per database** (the graph is held in
-    memory, about 100 bytes per link);
-  - incoming links are not limited per record: a popular record may be
-    cited by many others.
+  - at most **100,000 incoming links per record**, so deleting or
+    replacing a hub stays bounded while a popular record can still be
+    cited widely;
+  - at most **1,000,000 links per database**;
+  - at most **1,024 distinct link type names per database**.
+
+### Memory
+
+The whole graph is held in memory: an outgoing and an incoming adjacency
+map of `BTreeSet<(u16, u64)>`, with link type names interned once (a
+`u16` id per type plus a name table). Measured by
+`tests/test_links_memory.rs` (100,000 links over 10,000 records, counting
+allocator): **about 97 bytes per link**, an upper bound because it also
+counts what redb keeps allocated after the commit. At the 1,000,000-link
+cap that is about 100 MB. A higher cap would need an on-disk adjacency
+and its own ADR. Deleting a record takes its own adjacency sets out of
+the maps; it never copies the graph.
 
 ### Storage
 
@@ -55,6 +69,14 @@ next `persist()` **inside the same durable transaction** that records the
 committed vector count and tombstones. One transaction means links and
 records are atomic: a link can never refer to a record that was not
 committed with it.
+
+Every commit and compaction transaction also records a **stamp** of the
+state it commits, `links_stamp` in the `state` table: a 64-bit hash of
+the committed record count and the tombstone set (count of tombstones
+plus an order-independent sum of mixed ids). It is written even when
+there are no link changes. A SrvDB without links (0.3 and earlier) never
+updates it, so any add, delete or compaction made by such a version is
+visible as a stamp that no longer matches the committed state.
 
 The full graph is loaded into memory on open (an outgoing and an incoming
 adjacency map), so `neighbors` and expansion never touch disk.
@@ -90,12 +112,21 @@ adjacency map), so `neighbors` and expansion never touch disk.
 
 ### Validation on open
 
-Every stored link is checked: both ids below the committed count, a valid
-type name, no self-link. A violation is `Corrupt` naming the problem; a
-`links_format` other than 1 is `Corrupt` saying the database was written
-by a newer SrvDB. A link that touches a tombstoned record (possible only
-if an older SrvDB, which ignores the table, deleted the record) is dropped
-with a warning and the drop is written by the next `persist()`.
+Nothing is dropped or repaired silently. Each of these is `Corrupt`:
+
+- a `links_format` other than 1 (written by a newer SrvDB);
+- a non-empty `links` table whose stamp is missing or does not match the
+  committed count and tombstones. The message says the links were written
+  before an older SrvDB modified the database and may point at the wrong
+  records, and names the recovery call;
+- a link with an id at or beyond the committed count, a self-link, an
+  end that is tombstoned, or an invalid type name;
+- more links than a limit allows, detected while iterating.
+
+Recovery is explicit: `SrvDB::drop_links(path)` (Python
+`srvdb.drop_links(path)`) takes the database lock, deletes every link
+and writes a fresh stamp in one durable transaction. Vectors and
+metadata are not touched. It never runs on its own.
 
 ### Search expansion
 
@@ -115,13 +146,17 @@ for up to `hops` steps:
 ### Format and compatibility
 
 The existing files and tables are unchanged, so no version bump is
-needed for them. A database without a `links` table (SrvDB 0.4 and
-earlier) gets an empty one on first open; the migration test opens the
-committed SrvDB 0.3 fixture. Downgrade caveat: an older SrvDB opens a
-database with links but ignores them; deleting or compacting there leaves
-stale links, which this version drops (tombstoned ids) or rejects as
-`Corrupt` (ids beyond the count after compaction). Do not compact with an
-older version after using links.
+needed for them. A database from before links (SrvDB 0.3 and earlier)
+has no `links` table; it opens with no links and gets the table and the
+stamp with its first commit. The migration test opens the committed
+SrvDB 0.3 fixture.
+
+Downgrade: SrvDB 0.3 opens a database with links but ignores them. If it
+adds, deletes or compacts records, the stamp no longer matches and this
+version refuses to open the database until `drop_links` is called (the
+compatibility tests simulate 0.3 by calling `MetadataStore::compact` and
+`MetadataStore::commit` directly). Opening it read-only with 0.3 and
+writing nothing keeps the links valid.
 
 ## Alternatives considered
 
@@ -142,7 +177,10 @@ older version after using links.
 
 - Links are as safe as records and need no new recovery code beyond
   validation on open.
-- The whole graph is in memory; the 10M-link limit bounds that.
+- The whole graph is in memory; the 1M-link limit bounds it at about
+  100 MB (measured upper bound, see Memory).
+- A database touched by SrvDB 0.3 after links were saved needs an
+  explicit `drop_links` before it opens; links are never silently lost.
 - `persist()` writes pending link operations; a bulk of link calls costs
   one transaction, not one per link.
 - Every engine path that changes ids (delete, replace, compact) must keep
