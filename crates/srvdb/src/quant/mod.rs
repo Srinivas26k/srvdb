@@ -2,4 +2,5 @@
 
 pub mod codebook;
 pub mod product;
+pub mod rabitq;
 pub mod scalar;
