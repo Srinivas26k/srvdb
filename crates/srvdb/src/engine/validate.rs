@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 
 /// Reject a vector whose length differs from the database dimension or
 /// that contains NaN or infinity (which would break similarity ordering).
-pub(super) fn vector(values: &[f32], dimension: usize) -> Result<()> {
+pub(crate) fn vector(values: &[f32], dimension: usize) -> Result<()> {
     if values.len() != dimension {
         return Err(Error::DimensionMismatch {
             expected: dimension,
@@ -23,7 +23,7 @@ pub(super) fn vector(values: &[f32], dimension: usize) -> Result<()> {
 }
 
 /// `k` must ask for at least one result.
-pub(super) fn k(k: usize) -> Result<()> {
+pub(crate) fn k(k: usize) -> Result<()> {
     if k == 0 {
         return Err(Error::invalid_input("k must be at least 1"));
     }

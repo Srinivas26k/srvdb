@@ -36,6 +36,7 @@ impl SrvDB {
         if let Some(ref hnsw) = self.hnsw_index {
             storage::atomic::write_atomic(&self.path.join("hnsw.graph"), &hnsw.to_bytes()?)?;
         }
+        self.persist_keyword_index()?;
 
         // 4. Index settings (ADR 0011), replaced atomically if they changed
         // (set_mode, configure_ivf, set_ef_search, ...). Only updated, never
