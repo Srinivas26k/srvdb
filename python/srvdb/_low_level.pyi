@@ -135,8 +135,16 @@ class Database:
         k: int,
         *,
         where: Mapping[str, Any] | None = None,
-    ) -> list[tuple[str, float]]:
+        expand: tuple[str, int] | tuple[str, int, int] | None = None,
+    ) -> list[tuple[str, float]] | list[tuple[str, float, int]]:
         """Up to ``k`` ``(id, cosine score)`` pairs, best first.
+
+        ``expand=(link_type, hops[, max_results])`` follows outgoing links
+        of ``link_type`` from the hits for 1 to 3 hops (at most
+        ``max_results`` added, default 100, at most 1000) and returns
+        ``(id, score, hop)`` tuples instead; hits have hop 0. Linked
+        records inherit the score of the record they were reached from.
+        Cannot be combined with ``where``.
 
         ``where`` keeps only vectors whose metadata matches, e.g.
         ``{"genre": "jazz", "year": {"$gte": 1950}}``. Operators: ``$eq``,
@@ -153,6 +161,15 @@ class Database:
     ) -> list[list[tuple[str, float]]]:
         """One search() result list per query, in query order; ``where``
         is evaluated once for the batch."""
+    def link(self, source: str, link_type: str, target: str) -> bool:
+        """Add the link ``source -link_type-> target`` (durable after
+        save()). False if it existed. ``link_type`` matches
+        ``[a-z][a-z0-9_]{0,63}``; at most 1024 outgoing links per record."""
+    def unlink(self, source: str, link_type: str, target: str) -> bool:
+        """Remove a link; False if it did not exist."""
+    def neighbors(self, id: str, type: str | None = None) -> list[tuple[str, str]]:
+        """Outgoing ``(link_type, target id)`` links of ``id``, sorted.
+        Deleting a record removes its links; upsert keeps them."""
     def get(self, id: str) -> str | None:
         """Stored metadata JSON (with ``"__id__"``), or None for an unknown id."""
     def count(self) -> int:

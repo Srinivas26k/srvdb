@@ -146,6 +146,8 @@ impl Batch {
         for (id, internal_id) in self.ids.iter().zip(internal_ids) {
             if let Some(old) = s.id_map.insert(id.clone(), internal_id) {
                 s.reverse_id_map.remove(&old);
+                // The new version keeps the record's links (ADR 0016)
+                s.db.move_links(old, internal_id).map_err(to_py)?;
                 s.db.delete(old).map_err(to_py)?;
             }
             s.reverse_id_map.insert(internal_id, id.clone());

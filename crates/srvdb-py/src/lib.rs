@@ -6,6 +6,7 @@
 mod constructors;
 mod database;
 mod errors;
+mod graph;
 mod lifecycle;
 mod operations;
 mod rabitq;

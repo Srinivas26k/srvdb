@@ -5,6 +5,7 @@
 
 use crate::database::{PyDatabase, State};
 use crate::errors::{non_negative, to_py};
+use crate::graph::{search_expanded, to_expansion};
 use crate::where_arg::to_filter;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -36,38 +37,60 @@ impl PyDatabase {
     ///         field. Only matching vectors are returned, and k of them
     ///         whenever at least k match.
     ///
+    ///     expand: optional (link_type, hops) or (link_type, hops,
+    ///         max_results): after the k hits, follow outgoing links of
+    ///         link_type breadth-first for 1 to 3 hops, adding at most
+    ///         max_results records (default 100, at most 1000). Cannot be
+    ///         combined with `where`.
+    ///
     /// Returns:
     ///     Up to k (id, score) tuples, best first. Scores are cosine
-    ///     similarities (approximate in "pq" mode).
+    ///     similarities (approximate in "pq" mode). With `expand`,
+    ///     (id, score, hop) tuples instead: the hits with hop 0, then
+    ///     linked records ordered by hop, each scored with the score of
+    ///     the record it was reached from.
     ///
     /// Raises:
     ///     ValueError: k is 0 or negative, the query has the wrong
-    ///         dimension or a NaN or infinite value, or `where` is not a
-    ///         valid filter (unknown operator, wrong operand type, empty).
+    ///         dimension or a NaN or infinite value, `where` is not a
+    ///         valid filter (unknown operator, wrong operand type, empty),
+    ///         or `expand` is malformed or out of bounds.
     ///     RuntimeError: an internal fault occurred.
     ///
     /// A filter reads every metadata record once per call (O(n)); use
     /// search_batch() to share that cost across queries. Releases the GIL;
     /// searches from several threads run in parallel.
-    #[pyo3(signature = (query, k, *, r#where=None))]
+    #[pyo3(signature = (query, k, *, r#where=None, expand=None))]
     fn search(
         &self,
         py: Python<'_>,
         query: Vec<f32>,
         k: i64,
         r#where: Option<Bound<'_, PyAny>>,
-    ) -> PyResult<Vec<(String, f32)>> {
+        expand: Option<Bound<'_, PyAny>>,
+    ) -> PyResult<Py<PyAny>> {
         let k = non_negative("k", k)?;
-        let filter = r#where.map(|w| to_filter(py, &w)).transpose()?;
         let query = srvdb::Vector::new(query);
-        self.read(py, |s| {
+        if let Some(expand) = expand {
+            if r#where.is_some() {
+                return Err(PyValueError::new_err(
+                    "search() cannot combine `where` and `expand`",
+                ));
+            }
+            let expansion = to_expansion(&expand)?;
+            let hits = self.read(py, |s| search_expanded(s, &query, k, &expansion))?;
+            return Ok(hits.into_pyobject(py)?.into_any().unbind());
+        }
+        let filter = r#where.map(|w| to_filter(py, &w)).transpose()?;
+        let hits = self.read(py, |s| {
             let results = match &filter {
                 Some(f) => s.db.search_where(&query, k, f),
                 None => VectorEngine::search(&s.db, &query, k),
             }
             .map_err(to_py)?;
             Ok(named(s, results))
-        })
+        })?;
+        Ok(hits.into_pyobject(py)?.into_any().unbind())
     }
 
     /// Search for several queries at once.
