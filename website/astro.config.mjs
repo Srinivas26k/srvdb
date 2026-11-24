@@ -38,6 +38,7 @@ export default defineConfig({
 				'@fontsource/jetbrains-mono/400.css',
 				'./src/styles/tokens.css',
 				'./src/styles/layout.css',
+				'./src/styles/diagrams.css',
 			],
 			components: {
 				Header: './src/components/overrides/Header.astro',
@@ -54,6 +55,18 @@ export default defineConfig({
 						{ label: 'Installation', slug: 'start/installation' },
 						{ label: 'Quickstart', slug: 'start/quickstart' },
 						{ label: 'Use cases', slug: 'start/use-cases' },
+					],
+				},
+				{
+					label: 'Concepts',
+					items: [
+						{ label: 'Compare index modes', slug: 'concepts/comparison' },
+						{ label: 'Flat (exact) search', slug: 'concepts/flat' },
+						{ label: 'HNSW graph search', slug: 'concepts/hnsw' },
+						{ label: 'IVF partitions', slug: 'concepts/ivf' },
+						{ label: 'SQ8 scalar quantization', slug: 'concepts/sq8' },
+						{ label: 'PQ product quantization', slug: 'concepts/pq' },
+						{ label: 'RaBitQ, fast-scan, rerank', slug: 'concepts/rabitq' },
 					],
 				},
 				{
