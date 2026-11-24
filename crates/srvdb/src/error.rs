@@ -48,6 +48,14 @@ pub enum Error {
     #[error("checksum mismatch: {0}")]
     ChecksumMismatch(String),
 
+    /// The caller asked to open a database with index settings that
+    /// conflict with the ones recorded in `index_settings.bin` (another
+    /// mode, or other structural parameters such as HNSW `m`). Nothing was
+    /// changed on disk. Open it with [`crate::SrvDB::open_existing`] or with
+    /// the recorded mode.
+    #[error("index settings mismatch: {0}")]
+    SettingsMismatch(String),
+
     /// The operating system reported an I/O failure.
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),

@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unchanged. Resident memory grows by one copy of the codes (#24).
 
 ### Added
+- Persisted index settings (#50, ADR 0011): the index mode and its
+  parameters (HNSW `m` / `ef_construction` / `ef_search`, IVF `nlist` /
+  `nprobe`, RaBitQ bits / rerank / seed, SQ8, PQ, auto) are stored in a
+  checksummed `index_settings.bin`, written atomically when a database is
+  created and updated by `persist()`. `SrvDB::open_existing(path)` reopens a
+  database in its recorded mode with only the path. Opening with a
+  conflicting mode, dimension or graph shape fails with the new
+  `Error::SettingsMismatch` (Python `ValueError`) and changes nothing.
+  Databases from 0.3 and earlier 0.4 builds open as before and record their
+  settings on the first open with an explicit mode.
 - RaBitQ mode (`SrvDB::new_rabitq`, `RabitqConfig`; Python
   `Database.new_rabitq()` and modes `"rabitq1"`, `"rabitq2"`, `"rabitq4"`):
   training-free 1, 2 or 4-bit codes after a seeded random rotation, with a

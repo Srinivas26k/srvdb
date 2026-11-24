@@ -44,27 +44,48 @@ impl Default for IVFConfig {
 /// Manages centroids and the partitioned HNSW graphs
 pub struct IVFIndex {
     pub config: IVFConfig,
-    /// Centroids (cluster centers) - size of `nlist`
+    /// Centroids (cluster centers): at most `nlist`, empty until trained
     pub centroids: Vec<Vector>,
-    /// The partitions themselves. Each is an independent HNSW graph.
+    /// One HNSW graph per centroid (empty until trained).
     /// We use RwLock to allow concurrent searching/updating of different partitions.
     pub partitions: Vec<Arc<RwLock<HNSWIndex>>>,
 }
 
-impl IVFIndex {
-    /// Create a new empty IVF index
-    pub fn new(config: IVFConfig) -> Self {
-        let mut partitions = Vec::with_capacity(config.nlist);
-        for _ in 0..config.nlist {
-            partitions.push(Arc::new(RwLock::new(HNSWIndex::new(
-                config.hnsw_config.clone(),
-            ))));
+impl IVFConfig {
+    /// Check the parameters against [`crate::index::limits`].
+    ///
+    /// # Errors
+    /// `InvalidInput` if `nlist` is outside 1..=65536, `nprobe` outside
+    /// 1..=65536 (probing more than `nlist` partitions probes them all), `max_iterations` outside 1..=1000, `tolerance` is
+    /// negative or not finite, or the partition HNSW settings are invalid.
+    pub fn validate(&self) -> crate::Result<()> {
+        use crate::index::limits::{check, MAX_IVF_ITERATIONS, MAX_IVF_NLIST};
+        check("IVF nlist", self.nlist, 1, MAX_IVF_NLIST)?;
+        check("IVF nprobe", self.nprobe, 1, MAX_IVF_NLIST)?;
+        check(
+            "IVF max_iterations",
+            self.max_iterations,
+            1,
+            MAX_IVF_ITERATIONS,
+        )?;
+        if !self.tolerance.is_finite() || self.tolerance < 0.0 {
+            return Err(crate::Error::invalid_input(
+                "IVF tolerance must be a finite value of at least 0",
+            ));
         }
+        self.hnsw_config.validate()
+    }
+}
 
+impl IVFIndex {
+    /// Create a new, untrained IVF index. Allocates no partitions: they are
+    /// created by [`Self::train`], one per centroid, so their number is
+    /// bounded by the training set as well as by `nlist`.
+    pub fn new(config: IVFConfig) -> Self {
         Self {
             config,
             centroids: Vec::new(),
-            partitions,
+            partitions: Vec::new(),
         }
     }
 
@@ -77,7 +98,9 @@ impl IVFIndex {
             return Ok(());
         }
 
-        let k = self.config.nlist;
+        // More centroids than training vectors would only duplicate them;
+        // the bound also caps the k * dim floats k-means allocates
+        let k = self.config.nlist.min(training_data.len());
         let dim = training_data[0].dim();
 
         log::debug!(
@@ -199,6 +222,23 @@ fn nearest<C: AsRef<[f32]>>(v: &[f32], centroids: &[C]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Partitions are allocated by training, at most one per training
+    /// vector, not up front for every `nlist`
+    #[test]
+    fn partitions_are_lazy_and_bounded_by_the_training_set() {
+        let mut ivf = IVFIndex::new(IVFConfig {
+            nlist: 65_536,
+            ..Default::default()
+        });
+        assert!(ivf.partitions.is_empty());
+        let data: Vec<Vector> = (0..10)
+            .map(|i| Vector::new(vec![i as f32 + 1.0, 1.0, 0.5]))
+            .collect();
+        ivf.train(&data).unwrap();
+        assert_eq!(ivf.centroids.len(), 10);
+        assert_eq!(ivf.partitions.len(), 10);
+    }
 
     /// Search assigns vectors to partitions by cosine, so a centroid must be
     /// the average direction of its members, not the average vector (which

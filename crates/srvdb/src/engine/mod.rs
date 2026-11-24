@@ -7,9 +7,11 @@ mod delete;
 mod filter;
 mod modes;
 mod open;
+mod open_existing;
 mod rabitq;
 mod read;
 mod recover;
+mod settings;
 mod validate;
 mod write;
 
@@ -73,6 +75,9 @@ pub struct SrvDB {
     /// RaBitQ codes derived from `vector_storage` (ADR 0008)
     pub(crate) rabitq: Option<storage::rabitq::RabitqStorage>,
     pub(crate) rabitq_config: Option<quant::rabitq::RabitqConfig>,
+    /// Contents of `index_settings.bin` as last read or written (ADR 0011);
+    /// `None` for a database that has none yet (SrvDB 0.3 / early 0.4)
+    pub(crate) stored_settings: Option<storage::settings::IndexSettings>,
     pub current_mode: IndexMode,
     /// Vector dimension every insert and query must match
     pub(crate) dimension: usize,
@@ -92,6 +97,8 @@ impl VectorEngine for SrvDB {
         // Default to 1536 dimensions for backward compatibility
         // First: opening metadata finishes an interrupted compaction
         let lock = storage::lock::acquire(Path::new(path))?;
+        let fresh = settings::is_fresh(Path::new(path));
+        let stored = settings::check(Path::new(path), 1536, &settings::Requested::Unspecified)?;
         let metadata_store = MetadataStore::new(path)?;
         let vector_storage = VectorStorage::new(path, 1536)?;
 
@@ -109,6 +116,7 @@ impl VectorEngine for SrvDB {
             ivf_config: None,
             rabitq: None,
             rabitq_config: None,
+            stored_settings: None,
             current_mode: IndexMode::Flat,
             deleted: Default::default(),
             pending_deletes: Default::default(),
@@ -116,6 +124,7 @@ impl VectorEngine for SrvDB {
             dimension: 1536,
         };
         db.recover()?;
+        db.finish_settings(stored, fresh)?;
         Ok(db)
     }
 

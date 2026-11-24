@@ -106,7 +106,7 @@ impl PyDatabase {
     }
 
     /// Switch the index mode: 'flat', 'hnsw', 'sq8' (or 'scalar'), 'ivf' or
-    /// 'auto' (case-insensitive). Not stored; pass the mode again on open.
+    /// 'auto' (case-insensitive). Recorded by the next persist().
     ///
     /// Raises:
     ///     ValueError: unknown mode (including 'pq', which needs

@@ -62,11 +62,14 @@ fn higher_ef_search_gives_higher_recall() {
     );
     assert!(high > 0.9, "recall ef=300: {high:.3}");
 
-    // The setting is saved with the graph
+    // The setting is saved with the graph and the index settings
     hnsw.persist().unwrap();
     drop(hnsw);
-    let reopened =
-        SrvDB::new_with_hnsw(hdir.path().to_str().unwrap(), DIM, HNSWConfig::default()).unwrap();
+    // Another graph shape (m = 16, not 8) is a conflict, not silently ignored
+    let path = hdir.path().to_str().unwrap();
+    let conflict = SrvDB::new_with_hnsw(path, DIM, HNSWConfig::default());
+    assert!(matches!(conflict, Err(srvdb::Error::SettingsMismatch(_))));
+    let reopened = SrvDB::open_existing(path).unwrap();
     assert!((recall(&reopened, &exact) - high).abs() < 1e-6);
 }
 

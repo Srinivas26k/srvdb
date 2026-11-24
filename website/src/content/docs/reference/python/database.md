@@ -18,7 +18,7 @@ class srvdb.Database(path: str, dimension: int = 1536, mode: str = "flat")
   Vector dimension, 128 to 4096. Must match the stored dimension when the database exists.
 
 - **mode** : *str*, default `"flat"`
-  Index mode, case-insensitive: `"flat"`, `"hnsw"`, `"sq8"` (alias `"scalar"`), `"pq"` (alias `"product"`), `"ivf"` or `"auto"`. Not stored; pass it on every open.
+  Index mode, case-insensitive: `"flat"`, `"hnsw"`, `"sq8"` (alias `"scalar"`), `"pq"` (alias `"product"`), `"ivf"` or `"auto"`. Recorded on disk: the default `"flat"` reopens in the recorded mode, another mode raises `ValueError`.
 
 ## Raises
 

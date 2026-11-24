@@ -48,7 +48,8 @@ class Database:
         """Open the database at ``path``, creating it if needed.
 
         ``dimension`` is 128 to 4096 and must match a stored database.
-        ``mode`` is not stored; pass it on every open.
+        ``mode`` is recorded on disk: the default "flat" reopens in the
+        recorded mode, another mode raises ``ValueError``.
 
         Raises:
             ValueError: bad dimension, unknown mode or dimension mismatch.
@@ -122,7 +123,7 @@ class Database:
     def compact(self) -> int:
         """Remove deleted vectors from disk; string ids are unchanged."""
     def set_mode(self, mode: SwitchableMode) -> None:
-        """Switch the index mode (not stored across opens)."""
+        """Switch the index mode; recorded by the next ``persist()``."""
     def set_ef_search(self, ef_search: int) -> None:
         """Set HNSW's search candidate list size (at least 1)."""
     def configure_ivf(self, nlist: int = 100, nprobe: int = 10) -> None:

@@ -58,15 +58,26 @@ impl IVFStorage {
         }
         let bytes = std::fs::read(&path).with_context(|| format!("failed to read {FILE_NAME}"))?;
         let saved: SavedIvf = format::decode(format::IVF_INDEX, &bytes)?;
-        let partitions = saved
+        // Bounds first, so a crafted file cannot make us allocate
+        saved.config.validate().map_err(|e| {
+            Error::Corrupt(format!("{FILE_NAME}: {e}; delete it and call train_ivf()"))
+        })?;
+        let mut partitions = saved
             .partitions
             .iter()
             .map(|bytes| Ok(Arc::new(RwLock::new(HNSWIndex::from_bytes(bytes)?))))
             .collect::<Result<Vec<_>>>()?;
-        if partitions.len() != saved.config.nlist {
+        // Untrained indexes written before partitions became lazy hold
+        // nlist empty graphs and no centroids: drop them
+        if saved.centroids.is_empty() && partitions.iter().all(|p| p.read().is_empty()) {
+            partitions.clear();
+        }
+        if partitions.len() != saved.centroids.len() || partitions.len() > saved.config.nlist {
             return Err(Error::Corrupt(format!(
-                "{FILE_NAME} has {} partitions but nlist is {}",
+                "{FILE_NAME} has {} partitions and {} centroids but nlist is {}; \
+                 delete it and call train_ivf()",
                 partitions.len(),
+                saved.centroids.len(),
                 saved.config.nlist
             ))
             .into());

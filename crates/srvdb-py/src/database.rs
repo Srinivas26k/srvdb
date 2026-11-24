@@ -108,11 +108,13 @@ impl PyDatabase {
     ///     mode: Index mode, case-insensitive: "flat" (default), "hnsw",
     ///         "sq8" (alias "scalar"), "pq" (alias "product"), "ivf" or
     ///         "auto", or "rabitq1" / "rabitq2" / "rabitq4" (RaBitQ codes with
-    ///         rerank, see new_rabitq). The mode is not stored; pass it on
-    ///         every open.
+    ///         rerank, see new_rabitq). The mode is recorded on disk; reopening
+    ///         with the default "flat" uses the recorded mode, another mode
+    ///         raises ValueError.
     ///
     /// Raises:
-    ///     ValueError: dimension outside 128-4096, unknown mode, or a
+    ///     ValueError: dimension outside 128-4096, unknown mode, a mode
+    ///         that conflicts with the recorded one, or a
     ///         dimension that does not match the stored database.
     ///     BlockingIOError: the database is already open in this or
     ///         another process.

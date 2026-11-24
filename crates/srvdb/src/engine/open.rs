@@ -7,12 +7,59 @@ impl SrvDB {
     ///
     /// Quantized modes reopen existing quantizer files; for a new database
     /// the quantizer is trained on the first batch of vectors added.
+    ///
+    /// Index settings (ADR 0011): a default configuration (flat, no
+    /// quantization) opens an existing database in the mode recorded in
+    /// `index_settings.bin`, like [`SrvDB::open_existing`]. A configuration
+    /// naming a mode (an index type or quantization) must match the
+    /// recorded mode. A new database, or one without recorded settings that
+    /// is opened with a mode, has its settings recorded before this returns.
+    ///
+    /// # Errors
+    /// `SettingsMismatch` if the requested mode differs from the recorded
+    /// one, `DimensionMismatch` for another dimension, `Locked`, `Corrupt` /
+    /// `ChecksumMismatch` for damaged files, or I/O.
     pub fn new_with_config(path: &str, config: types::DatabaseConfig) -> Result<Self> {
+        let requested = requested_by(&config);
+        if matches!(requested, settings::Requested::Unspecified) {
+            // Read under the lock, so a database open elsewhere reports
+            // Locked; the lock is released for the constructor chosen, which
+            // takes it again and checks the settings again
+            let dir = Path::new(path);
+            let stored = if dir.is_dir() {
+                let _lock = storage::lock::acquire(dir)?;
+                storage::settings::load(dir)?
+            } else {
+                None
+            };
+            if let Some(stored) = stored {
+                if stored.kind != storage::settings::IndexKind::Flat {
+                    if stored.dimension != config.dimension {
+                        return Err(Error::DimensionMismatch {
+                            expected: stored.dimension,
+                            actual: config.dimension,
+                        });
+                    }
+                    return Self::open_existing(path);
+                }
+            }
+        }
+        Self::open_config(path, config, requested)
+    }
+
+    /// `new_with_config` without the redirect to the stored mode
+    pub(super) fn open_config(
+        path: &str,
+        config: types::DatabaseConfig,
+        requested: settings::Requested,
+    ) -> Result<Self> {
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
         let dimension = config.dimension;
         let lock = storage::lock::acquire(Path::new(path))?;
+        let fresh = settings::is_fresh(db_path);
+        let stored = settings::check(db_path, dimension, &requested)?;
         let metadata_store = MetadataStore::new(path)?;
 
         let quant = &config.quantization;
@@ -48,6 +95,7 @@ impl SrvDB {
             ivf_config: None,
             rabitq: None,
             rabitq_config: None,
+            stored_settings: None,
             current_mode,
             dimension,
             deleted: Default::default(),
@@ -56,13 +104,43 @@ impl SrvDB {
         };
         db.recover()?;
 
-        if config.index_type == types::IndexType::HNSW || db_path.join("hnsw.graph").exists() {
-            db.attach_hnsw(hnsw::HNSWConfig::default())?;
+        use storage::settings::IndexKind;
+        let stored_kind = stored.map(|s| s.kind);
+        let stored_graph = match stored_kind {
+            Some(IndexKind::Hnsw(p)) | Some(IndexKind::HnswPq(p)) => Some(p),
+            _ => None,
+        };
+        if config.index_type == types::IndexType::HNSW
+            || stored_graph.is_some()
+            || db_path.join("hnsw.graph").exists()
+        {
+            let mut graph =
+                stored_graph.map_or_else(Default::default, |p| settings::hnsw_config(&p));
+            graph.use_quantization = db.quantized_storage.is_some()
+                || (db.config.enabled && db.config.mode == types::QuantizationMode::Product);
+            db.attach_hnsw(graph)?;
         }
         if let Some(ivf) = storage::ivf::IVFStorage::load(db_path)? {
             db.attach_ivf(ivf)?;
+        } else if let Some(IndexKind::Ivf {
+            nlist,
+            nprobe,
+            hnsw,
+        }) = stored_kind
+        {
+            db.ivf_config = Some(ivf::IVFConfig {
+                nlist,
+                nprobe,
+                hnsw_config: settings::hnsw_config(&hnsw),
+                ..Default::default()
+            });
+            db.set_mode(IndexMode::Ivf);
+        } else if config.index_type == types::IndexType::IVF && db.ivf_index.is_none() {
+            db.set_mode(IndexMode::Ivf);
         }
 
+        let explicit = !matches!(requested, settings::Requested::Unspecified);
+        db.finish_settings(stored, fresh || explicit)?;
         Ok(db)
     }
 
@@ -159,4 +237,34 @@ impl SrvDB {
         }
         Ok(())
     }
+}
+
+/// The mode a `DatabaseConfig` names, if any
+fn requested_by(config: &types::DatabaseConfig) -> settings::Requested {
+    use storage::settings::{HnswParams, IndexKind};
+    use types::{IndexType, QuantizationMode};
+    let q = &config.quantization;
+    let kind = if q.enabled && q.mode == QuantizationMode::Scalar {
+        IndexKind::Sq8
+    } else if q.enabled && q.mode == QuantizationMode::Product {
+        IndexKind::Pq
+    } else {
+        // Parameters are not part of DatabaseConfig: placeholders, only
+        // the kind is compared
+        let p = HnswParams {
+            m: 0,
+            ef_construction: 0,
+            ef_search: 0,
+        };
+        match config.index_type {
+            IndexType::HNSW => IndexKind::Hnsw(p),
+            IndexType::IVF => IndexKind::Ivf {
+                nlist: 0,
+                nprobe: 0,
+                hnsw: p,
+            },
+            _ => return settings::Requested::Unspecified,
+        }
+    };
+    settings::Requested::KindOnly(kind)
 }

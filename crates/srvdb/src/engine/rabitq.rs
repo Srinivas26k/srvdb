@@ -42,6 +42,11 @@ impl SrvDB {
         std::fs::create_dir_all(db_path)?;
         // First: opening metadata finishes an interrupted compaction
         let lock = storage::lock::acquire(db_path)?;
+        let stored = settings::check(
+            Path::new(path),
+            dimension,
+            &settings::Requested::Exact(storage::settings::IndexKind::Rabitq(config)),
+        )?;
         let metadata_store = MetadataStore::new(path)?;
         let vector_storage = VectorStorage::new(path, dimension)?;
 
@@ -59,6 +64,7 @@ impl SrvDB {
             ivf_config: None,
             rabitq: None,
             rabitq_config: None,
+            stored_settings: None,
             current_mode: IndexMode::Flat,
             deleted: Default::default(),
             pending_deletes: Default::default(),
@@ -67,6 +73,7 @@ impl SrvDB {
         };
         db.recover()?;
         db.attach_rabitq(config)?;
+        db.finish_settings(stored, true)?;
         Ok(db)
     }
 
@@ -76,7 +83,8 @@ impl SrvDB {
     }
 
     /// Change the rerank factor of a RaBitQ database (`0` = no rerank).
-    /// Applies to the next search; not saved (pass it on open).
+    /// Applies to the next search and is recorded by the next `persist()`
+    /// (ADR 0011).
     ///
     /// # Errors
     /// `InvalidState` if the database is not in RaBitQ mode,
