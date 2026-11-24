@@ -58,7 +58,11 @@ fn poisoned() -> PyErr {
 impl PyDatabase {
     /// Wrap a database, rebuilding the string-id maps from the `__id__`
     /// field persisted in each metadata entry.
-    fn from_db(db: srvdb::SrvDB, dimension: usize, index_type: String) -> PyResult<Self> {
+    pub(crate) fn from_db(
+        db: srvdb::SrvDB,
+        dimension: usize,
+        index_type: String,
+    ) -> PyResult<Self> {
         let mut state = State {
             db,
             id_map: FxHashMap::default(),
@@ -93,16 +97,30 @@ impl PyDatabase {
 
 #[pymethods]
 impl PyDatabase {
-    /// Create new database with specified dimension (128-4096)
+    /// Open the database at `path`, creating it if it does not exist.
+    ///
+    /// `srvdb.open(path, dimension, mode)` is the same call.
     ///
     /// Args:
-    ///     path: Database directory
-    ///     dimension: Vector dimension (default: 1536)
-    ///     mode: Index mode - 'flat', 'hnsw', 'sq8', 'pq' (default: 'flat')
+    ///     path: Directory holding the database files; used as given.
+    ///     dimension: Vector dimension, 128 to 4096 (default 1536). Must
+    ///         match the stored dimension when the database exists.
+    ///     mode: Index mode, case-insensitive: "flat" (default), "hnsw",
+    ///         "sq8" (alias "scalar"), "pq" (alias "product"), "ivf" or
+    ///         "auto". The mode is not stored; pass it on every open.
+    ///
+    /// Raises:
+    ///     ValueError: dimension outside 128-4096, unknown mode, or a
+    ///         dimension that does not match the stored database.
+    ///     BlockingIOError: the database is already open in this or
+    ///         another process.
+    ///     OSError: the files cannot be created or read.
+    ///     RuntimeError: stored data is damaged (checksum mismatch) or an
+    ///         internal fault occurred.
     ///
     /// Examples:
-    ///     >>> db = srvdb.Database("./db", dimension=384)  # MiniLM
-    ///     >>> db = srvdb.Database("./db", dimension=768, mode='sq8')  # Cohere
+    ///     >>> db = srvdb.Database("./db", dimension=384)
+    ///     >>> db = srvdb.Database("./db2", dimension=768, mode="sq8")
     #[new]
     #[pyo3(signature = (path, dimension=1536, mode="flat"))]
     fn new(path: String, dimension: usize, mode: &str) -> PyResult<Self> {
@@ -148,7 +166,8 @@ impl PyDatabase {
             }
             _ => {
                 return Err(PyValueError::new_err(format!(
-                    "Invalid mode '{}'. Choose: 'flat', 'hnsw', 'sq8', 'pq', or 'auto'",
+                    "Invalid mode '{}'. Choose: 'flat', 'hnsw', 'sq8' (or 'scalar'), \
+                    'pq' (or 'product'), 'ivf' or 'auto'",
                     mode
                 )));
             }
@@ -169,120 +188,5 @@ impl PyDatabase {
         }
 
         Self::from_db(db, dimension, mode.to_string())
-    }
-
-    /// Create database with HNSW indexing
-    ///
-    /// Args:
-    ///     path: Database directory
-    ///     dimension: Vector dimension
-    ///     m: Graph connectivity (default: 16)
-    ///     ef_construction: Build quality (default: 200)
-    ///     ef_search: Search quality (default: 50)
-    #[staticmethod]
-    #[pyo3(signature = (path, dimension=1536, m=16, ef_construction=200, ef_search=50))]
-    fn new_hnsw(
-        path: String,
-        dimension: usize,
-        m: usize,
-        ef_construction: usize,
-        ef_search: usize,
-    ) -> PyResult<Self> {
-        let _config = srvdb::types::DatabaseConfig::new(dimension)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
-
-        // config.index_type = srvdb::types::IndexType::HNSW;
-
-        let hnsw_config = srvdb::hnsw::HNSWConfig::new(m, ef_construction, ef_search);
-        let db = srvdb::SrvDB::new_with_hnsw(&path, dimension, hnsw_config).map_err(to_py)?;
-
-        Self::from_db(db, dimension, "hnsw".to_string())
-    }
-
-    /// Create database with Scalar Quantization (4x compression)
-    ///
-    /// Args:
-    ///     path: Database directory
-    ///     dimension: Vector dimension
-    ///     training_vectors: Sample vectors for training (1000+ recommended)
-    ///
-    /// Notes:
-    ///     - 4x compression (float32 -> uint8)
-    ///     - 95%+ recall typical
-    ///     - Much faster than PQ
-    #[staticmethod]
-    fn new_scalar_quantized(
-        path: String,
-        dimension: usize,
-        training_vectors: Vec<Vec<f32>>,
-    ) -> PyResult<Self> {
-        if training_vectors.is_empty() {
-            return Err(PyValueError::new_err(
-                "Training vectors required. Provide 1000+ sample vectors for best results.",
-            ));
-        }
-
-        // Validate dimensions
-        for (i, vec) in training_vectors.iter().enumerate() {
-            if vec.len() != dimension {
-                return Err(PyValueError::new_err(format!(
-                    "Training vector {} has dimension {}, expected {}",
-                    i,
-                    vec.len(),
-                    dimension
-                )));
-            }
-        }
-
-        let db = srvdb::SrvDB::new_scalar_quantized(&path, dimension, &training_vectors)
-            .map_err(to_py)?;
-
-        Self::from_db(db, dimension, "sq8".to_string())
-    }
-
-    /// Create database with Product Quantization (32x compression)
-    ///
-    /// Args:
-    ///     path: Database directory
-    ///     dimension: Vector dimension
-    ///     training_vectors: Sample vectors for training (1000+ recommended)
-    ///
-    /// Notes:
-    ///     - 32x compression (6KB -> 192 bytes)
-    ///     - Good recall with re-ranking
-    ///     - Supports any dimension divisible by M
-    #[staticmethod]
-    fn new_product_quantized(
-        path: String,
-        dimension: usize,
-        training_vectors: Vec<Vec<f32>>,
-    ) -> PyResult<Self> {
-        if training_vectors.is_empty() {
-            return Err(PyValueError::new_err(
-                "Training vectors required. Provide 1000+ sample vectors for best results.",
-            ));
-        }
-
-        // Validate dimensions
-        for (i, vec) in training_vectors.iter().enumerate() {
-            if vec.len() != dimension {
-                return Err(PyValueError::new_err(format!(
-                    "Training vector {} has dimension {}, expected {}",
-                    i,
-                    vec.len(),
-                    dimension
-                )));
-            }
-        }
-
-        // Convert to internal Vector type
-        let internal_vectors: Vec<srvdb::Vector> = training_vectors
-            .into_iter()
-            .map(srvdb::Vector::new)
-            .collect();
-
-        let db = srvdb::SrvDB::new_quantized(&path, &internal_vectors).map_err(to_py)?;
-
-        Self::from_db(db, dimension, "pq".to_string())
     }
 }
