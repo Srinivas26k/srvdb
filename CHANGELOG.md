@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The Python API is a few verbs (#57, ADR 0013):
+  `srvdb.create(path, dimension, index="hnsw", *, exist_ok=False, **options)`
+  makes a new database (`FileExistsError` if one exists; `exist_ok=True`
+  opens it when its recorded settings match, `ValueError` otherwise), with
+  the index chosen by name (`flat`, `hnsw`, `ivf`, `sq8`, `pq`, `rabitq`,
+  `auto`) and options checked against that index (`m`, `ef_construction`,
+  `ef_search`, `nlist`, `nprobe`, `training`, `bits`, `rerank`, `seed`);
+  `srvdb.open(path)` reopens it with only the path (`FileNotFoundError` if
+  there is none; its unreleased `dimension`/`mode` arguments are removed);
+  `db.save()` commits (`persist()` stays as an alias); `db.close()` releases
+  the lock without saving; a database is a context manager that saves and
+  closes on a clean exit and closes without saving on an exception;
+  `srvdb.delete(path)` removes a closed database directory, refusing one
+  that holds other files or no SrvDB file. `Database(...)` and the `new_*`
+  constructors keep working but are no longer documented. The Python
+  reference is retitled around these verbs (`srvdb.create`, `db.add`,
+  `db.save`, ...); the per-constructor pages are removed. The LangChain
+  adapter's `from_texts` takes `index=` and index options instead of
+  `mode=`.
+- Rust: `SrvDB::create(path, dimension, &CreateOptions)` with `IndexChoice`,
+  `SrvDB::delete_database(path)`, `SrvDB::index_name()` and
+  `SrvDB::dimension()`; new `Error::NotFound` and `Error::AlreadyExists`.
+  `SrvDB::open_existing` on a path without a database returns `NotFound`
+  (was `InvalidInput`).
 - RaBitQ search uses a fast-scan kernel (ADR 0012). Query tables are
   quantized to u8 and looked up in registers (AVX2 `vpshufb`, NEON `tbl`,
   chosen at runtime, with a scalar fallback) over a block-interleaved
