@@ -15,6 +15,7 @@ pub mod distance;
 mod engine;
 mod error;
 mod filter;
+mod graph;
 pub mod index;
 mod keyword;
 pub mod quant;
@@ -26,6 +27,7 @@ pub use config::{DatabaseConfig, IndexType, QuantizationConfig, QuantizationMode
 pub use engine::{CreateOptions, IndexChoice, SrvDB, VectorEngine};
 pub use error::{Error, Result};
 pub use filter::Filter;
+pub use graph::{ExpandedResult, Expansion};
 pub use index::hnsw::{HNSWConfig, HNSWIndex};
 pub use index::ivf::{IVFConfig, IVFIndex};
 pub use quant::product::{ProductQuantizer, QuantizedVector};

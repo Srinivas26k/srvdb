@@ -100,6 +100,7 @@ impl SrvDB {
             dimension,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            graph: Default::default(),
             keyword: Default::default(),
             _lock: lock,
         };

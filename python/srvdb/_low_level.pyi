@@ -56,6 +56,10 @@ def delete(path: str) -> None:
     Raises ValueError for a directory with other files, BlockingIOError
     while the database is open."""
 
+def drop_links(path: str) -> int:
+    """Delete every link of a closed database (see ``srvdb.drop_links``).
+    Returns the number removed."""
+
 def rebuild_checksums(path: str) -> list[str]:
     """Recompute missing or damaged checksum files of a closed database
     (see ``srvdb.rebuild_checksums``). Returns the rewritten file names.
@@ -178,6 +182,15 @@ class Database:
     @overload
     def search(
         self,
+        query: Sequence[float] | None,
+        k: int,
+        *,
+        text: str | None = None,
+        expand: tuple[str, int] | tuple[str, int, int],
+    ) -> list[tuple[str, float, int]]: ...
+    @overload
+    def search(
+        self,
         query: Sequence[float],
         k: int,
         *,
@@ -191,9 +204,10 @@ class Database:
         *,
         text: str | None = None,
         where: Mapping[str, Any] | None = None,
+        expand: tuple[str, int] | tuple[str, int, int] | None = None,
         certify: bool = False,
         deadline_ms: float | None = None,
-    ) -> list[tuple[str, float]] | SearchOutcome:
+    ) -> list[tuple[str, float]] | list[tuple[str, float, int]] | SearchOutcome:
         """Up to ``k`` ``(id, score)`` pairs, best first.
 
         Scores are cosine similarities for a vector ``query``. ``text``
@@ -202,6 +216,15 @@ class Database:
         (Reciprocal Rank Fusion, fused scores), with ``query=None`` the
         search is keyword-only (BM25 scores). ValueError if both are None,
         ``text`` has no letters or digits, or keyword search is not enabled.
+
+        ``expand=(link_type, hops[, max_results])`` follows outgoing links
+        of ``link_type`` from the hits for 1 to 3 hops (at most
+        ``max_results`` added, default 100, at most 1000) and returns
+        ``(id, score, hop)`` tuples instead; hits have hop 0. Linked
+        records inherit the score of the record they were reached from.
+        Works with vector, keyword (``text``) and hybrid hits; ValueError
+        if combined with ``where`` (linked records would not be filtered)
+        or with ``certify`` / ``deadline_ms`` (they would not be certified).
 
         RaBitQ modes only: ``certify=True`` uses the RaBitQ error bounds
         and rescores only uncertain candidates; ``deadline_ms`` stops the
@@ -224,6 +247,15 @@ class Database:
     ) -> list[list[tuple[str, float]]]:
         """One search() result list per query, in query order; ``where``
         is evaluated once for the batch."""
+    def link(self, source: str, link_type: str, target: str) -> bool:
+        """Add the link ``source -link_type-> target`` (durable after
+        save()). False if it existed. ``link_type`` matches
+        ``[a-z][a-z0-9_]{0,63}``; at most 1024 outgoing and 100000 incoming links per record, 1000000 links per database."""
+    def unlink(self, source: str, link_type: str, target: str) -> bool:
+        """Remove a link; False if it did not exist."""
+    def neighbors(self, id: str, type: str | None = None) -> list[tuple[str, str]]:
+        """Outgoing ``(link_type, target id)`` links of ``id``, sorted.
+        Deleting a record removes its links; upsert keeps them."""
     def enable_keyword_search(self, field: str = "text") -> None:
         """Index metadata field ``field`` (``"a.b"`` for nested) for
         ``search(text=...)``; saved by the next save()."""

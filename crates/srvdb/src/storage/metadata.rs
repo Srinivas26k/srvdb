@@ -163,6 +163,17 @@ impl MetadataStore {
     /// of vectors, and the `deletes` made since the last commit (tombstone
     /// recorded, metadata removed) survive a crash once this returns.
     pub fn commit(&mut self, count: u64, deletes: &[u64]) -> Result<()> {
+        self.commit_with(count, deletes, |_| Ok(()))
+    }
+
+    /// `commit`, also running `extra` inside the same durable transaction
+    /// (graph links, ADR 0016), so its writes are atomic with the commit.
+    pub(crate) fn commit_with(
+        &mut self,
+        count: u64,
+        deletes: &[u64],
+        extra: impl FnOnce(&redb::WriteTransaction) -> Result<()>,
+    ) -> Result<()> {
         let mut txn = self.db.begin_write()?;
         txn.set_durability(Durability::Immediate)?;
         txn.open_table(STATE_TABLE)?
@@ -175,6 +186,7 @@ impl MetadataStore {
                 tombstones.insert(id, ())?;
             }
         }
+        extra(&txn)?;
         txn.commit().context("failed to commit metadata.db")?;
         Ok(())
     }
@@ -190,6 +202,16 @@ impl MetadataStore {
     /// `keep.len()` and the compaction is marked pending until the vector
     /// file swap is done (`storage::compaction`).
     pub fn compact(&mut self, keep: &[u64]) -> Result<()> {
+        self.compact_with(keep, |_| Ok(()))
+    }
+
+    /// `compact`, also running `extra` (renumbering graph links, ADR 0016)
+    /// inside the same durable transaction.
+    pub(crate) fn compact_with(
+        &mut self,
+        keep: &[u64],
+        extra: impl FnOnce(&redb::WriteTransaction) -> Result<()>,
+    ) -> Result<()> {
         let mut txn = self.db.begin_write()?;
         txn.set_durability(Durability::Immediate)?;
         {
@@ -212,6 +234,7 @@ impl MetadataStore {
             state.insert(COMMITTED_COUNT, keep.len() as u64)?;
             state.insert(COMPACT_PENDING, 1)?;
         }
+        extra(&txn)?;
         txn.commit().context("failed to commit compaction")?;
         Ok(())
     }
@@ -244,6 +267,12 @@ impl MetadataStore {
             .retain_in(count.., |_, _| false)?;
         txn.commit()?;
         Ok(())
+    }
+
+    /// The underlying redb database, for tables owned by other modules
+    /// (graph links, ADR 0016)
+    pub(crate) fn database(&self) -> &Database {
+        &self.db
     }
 
     /// Every tombstoned id

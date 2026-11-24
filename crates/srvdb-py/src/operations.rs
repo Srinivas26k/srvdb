@@ -5,6 +5,7 @@
 
 use crate::database::{PyDatabase, State};
 use crate::errors::{non_negative, to_py};
+use crate::graph::{expand_named, to_expansion};
 use crate::where_arg::to_filter;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -38,6 +39,12 @@ impl PyDatabase {
     ///         {"year": {"$gte": 1950}}. Operators: $eq, $ne, $gt, $gte,
     ///         $lt, $lte, $in, $nin, $and, $or, $not; "a.b" names a nested
     ///         field. Only matching records are returned.
+    ///     expand: optional (link_type, hops) or (link_type, hops,
+    ///         max_results): after the k hits, follow outgoing links of
+    ///         link_type breadth-first for 1 to 3 hops, adding at most
+    ///         max_results records (default 100, at most 1000). Works with
+    ///         vector, keyword (text) and hybrid hits; cannot be combined
+    ///         with `where` (linked records would not be filtered).
     ///
     ///     certify: RaBitQ modes only. Use the RaBitQ error bounds to
     ///         certify results and rescore only uncertain candidates
@@ -49,6 +56,9 @@ impl PyDatabase {
     ///     Up to k (id, score) tuples, best first. Scores are cosine
     ///     similarities (approximate in "pq" mode) for vector search, BM25
     ///     scores for keyword-only search and fused RRF scores for hybrid.
+    ///     With `expand`, (id, score, hop) tuples instead: the hits with
+    ///     hop 0, then linked records ordered by hop, each scored with the
+    ///     score of the record it was reached from.
     ///     With certify or deadline_ms, a SearchOutcome: the same tuples
     ///     (iterable, indexable, sliceable, len()) plus completeness,
     ///     confidence, certified, reranked and scanned.
@@ -57,7 +67,9 @@ impl PyDatabase {
     ///     ValueError: k is 0 or negative, the query has the wrong
     ///         dimension or a NaN or infinite value, `where` is not a valid
     ///         filter, both query and text are None, text has no letters or
-    ///         digits, or text is given before enable_keyword_search();
+    ///         digits, text is given before enable_keyword_search(),
+    ///         `expand` is malformed or out of bounds, or `expand` is
+    ///         combined with `where`, `certify` or `deadline_ms`;
     ///         certify or deadline_ms on a non-RaBitQ database, without a
     ///         query vector, combined with text or where, or a negative or
     ///         non-finite deadline_ms.
@@ -66,7 +78,7 @@ impl PyDatabase {
     ///
     /// A filter reads every metadata record once per call (O(n)). Releases
     /// the GIL; vector searches from several threads run in parallel.
-    #[pyo3(signature = (query, k, *, text=None, r#where=None, certify=false, deadline_ms=None))]
+    #[pyo3(signature = (query, k, *, text=None, r#where=None, expand=None, certify=false, deadline_ms=None))]
     #[allow(clippy::too_many_arguments)]
     fn search(
         &self,
@@ -75,9 +87,19 @@ impl PyDatabase {
         k: i64,
         text: Option<String>,
         r#where: Option<Bound<'_, PyAny>>,
+        expand: Option<Bound<'_, PyAny>>,
         certify: bool,
         deadline_ms: Option<f64>,
     ) -> PyResult<Py<PyAny>> {
+        // A certified or deadline search returns a SearchOutcome about the
+        // k hits it certified; linked records would carry no such claim
+        if expand.is_some() && (certify || deadline_ms.is_some()) {
+            return Err(PyValueError::new_err(
+                "search() cannot combine `expand` with `certify` or \
+                 `deadline_ms`: linked records are not certified; run the \
+                 certified search and call neighbors() on its hits instead",
+            ));
+        }
         if certify || deadline_ms.is_some() {
             let unsupported = if text.is_some() {
                 Some("text (keyword and hybrid search)")
@@ -101,9 +123,18 @@ impl PyDatabase {
             return Ok(Py::new(py, outcome)?.into_any());
         }
         let k = non_negative("k", k)?;
+        // Linked records would bypass the filter, so `where` and `expand`
+        // together are refused rather than given a surprising meaning
+        if expand.is_some() && r#where.is_some() {
+            return Err(PyValueError::new_err(
+                "search() cannot combine `where` and `expand`: linked records \
+                 are not filtered; filter the hits and call neighbors() instead",
+            ));
+        }
+        let expansion = expand.map(|e| to_expansion(&e)).transpose()?;
         let filter = r#where.map(|w| to_filter(py, &w)).transpose()?;
         let query = query.map(srvdb::Vector::new);
-        self.read(py, |s| {
+        let (hits, expanded) = self.read(py, |s| {
             let results = match (&query, &text, &filter) {
                 (None, None, _) => {
                     return Err(PyValueError::new_err("pass a query vector, text, or both"))
@@ -114,9 +145,15 @@ impl PyDatabase {
                 (Some(q), None, None) => VectorEngine::search(&s.db, q, k),
             }
             .map_err(to_py)?;
-            Ok(named(s, results))
+            match &expansion {
+                Some(e) => Ok((Vec::new(), Some(expand_named(s, &results, e)?))),
+                None => Ok((named(s, results), None)),
+            }
+        })?;
+        Ok(match expanded {
+            Some(e) => e.into_pyobject(py)?.into_any().unbind(),
+            None => hits.into_pyobject(py)?.into_any().unbind(),
         })
-        .and_then(|r| Ok(r.into_pyobject(py)?.into_any().unbind()))
     }
 
     /// Index the string metadata field `field` for keyword (BM25) search

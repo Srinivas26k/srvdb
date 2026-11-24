@@ -19,9 +19,12 @@ code, run `cargo doc --open -p srvdb` in a clone.
 | `SearchResult` | `id: u64`, `score: f32` (cosine), `metadata: Option<String>`. |
 | `Error`, `Result` | Typed errors; see [Handling errors](/srvdb/guides/errors/). |
 | `Filter` | A metadata filter parsed by `Filter::from_json` (`$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$and`, `$or`, `$not`) for `search_where`; see [Filtered search](/srvdb/guides/filtered-search/). |
+| `Expansion`, `ExpandedResult` | Link expansion for `search_expand`: `Expansion::new(link_type, hops)` (1 to 3 hops) with `.with_max_results(n)` (default 100, at most 1,000); each `ExpandedResult` has `id`, `score`, `hop` and `metadata`. See [Links between records](/srvdb/guides/links/). |
 
 `SrvDB` methods beyond the trait: `delete`, `replace`, `is_deleted`,
 `live_count`, `compact`, `search_filtered`, `ids_where`, `search_where`, `search_batch_where`, `enable_keyword_index`, `keyword_field`, `keyword_search`, `search_hybrid` ([Keyword and hybrid search](/srvdb/guides/keyword-search/)), `set_mode`, `set_ef_search`, `configure_ivf`,
-`train_ivf`, `all_metadata`, `get_stats`, `index_name`, `dimension`.
+`train_ivf`, `all_metadata`, `get_stats`, `index_name`, `dimension`,
+`link`, `unlink`, `neighbors`, `link_count`, `move_links`, `search_expand`,
+`expand_hits` ([Links between records](/srvdb/guides/links/)).
 
 Example: [Using SrvDB from Rust](/srvdb/guides/rust/).

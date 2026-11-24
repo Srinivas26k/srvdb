@@ -26,6 +26,7 @@ __all__ = [
     "__version__",
     "create",
     "delete",
+    "drop_links",
     "open",
     "rebuild_checksums",
 ]
@@ -114,6 +115,26 @@ def delete(path: str) -> None:
         OSError: A file could not be removed.
     """
     _low_level.delete(path)
+
+
+def drop_links(path: str) -> int:
+    """Delete every link between records of the closed database at ``path``.
+
+    Use it when ``srvdb.open`` raises RuntimeError saying the links were
+    written before an older SrvDB (0.3 or earlier, which ignores links)
+    added, deleted or compacted records: those links may point at the
+    wrong records. Vectors and metadata are not changed; link again
+    afterwards. It never runs on its own.
+
+    Returns:
+        Number of links removed.
+
+    Raises:
+        FileNotFoundError: No database at ``path``.
+        BlockingIOError: The database is open (close it first).
+        OSError: A file could not be read or written.
+    """
+    return _low_level.drop_links(path)
 
 
 def rebuild_checksums(path: str) -> list[str]:

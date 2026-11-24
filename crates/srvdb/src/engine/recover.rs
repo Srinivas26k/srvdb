@@ -39,6 +39,7 @@ impl SrvDB {
         }
         self.metadata_store.truncate_from(committed)?;
         self.deleted = self.metadata_store.tombstones()?.into_iter().collect();
+        self.load_links()?;
         Ok(())
     }
 }

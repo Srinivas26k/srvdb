@@ -7,9 +7,9 @@ Find the k nearest vectors to a query.
 
 ```python
 db.search(query: Sequence[float] | None, k: int, *, text: str | None = None,
-          where: dict | None = None, certify: bool = False,
-          deadline_ms: float | None = None)
-    -> list[tuple[str, float]] | SearchOutcome
+          where: dict | None = None, expand: tuple | None = None,
+          certify: bool = False, deadline_ms: float | None = None)
+    -> list[tuple[str, float]] | list[tuple[str, float, int]] | SearchOutcome
 ```
 
 ## Parameters
@@ -26,6 +26,9 @@ db.search(query: Sequence[float] | None, k: int, *, text: str | None = None,
 - **where** : *dict, optional, keyword-only*
   Metadata filter, for example `{"genre": "jazz"}` or `{"year": {"$gte": 1950}}`. Operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$and`, `$or`, `$not`; `"a.b"` names a nested field. See [Filtered search](/srvdb/guides/filtered-search/). Default `None` searches every vector.
 
+- **expand** : *tuple, optional, keyword-only*
+  `(link_type, hops)` or `(link_type, hops, max_results)`: after the `k` hits, follow outgoing links of `link_type` for 1 to 3 hops, adding at most `max_results` linked records (default 100, at most 1,000). Works with vector, keyword (`text`) and hybrid hits; cannot be combined with `where` (linked records would not be filtered) or with `certify` / `deadline_ms` (linked records would not be certified). See [Links between records](/srvdb/guides/links/).
+
 - **certify** : *bool, keyword-only, RaBitQ modes only*
   Plain vector search only (not with `text` or `where`). Use the RaBitQ error bounds: certify results whose interval clears the k-th lower bound and rescore only the uncertain candidates on the full vectors. See [RaBitQ, step 5](/srvdb/concepts/rabitq/#5-certified-and-deadline-search-optional). Default `False`.
 
@@ -36,6 +39,8 @@ db.search(query: Sequence[float] | None, k: int, *, text: str | None = None,
 
 `list[tuple[str, float]]`: up to `k` `(id, score)` pairs, best first. Scores are cosine similarities computed in float32, so an identical vector scores about 0.99999994 rather than exactly 1.0. With `text` and no query, scores are BM25 scores; with both, they are fused rank scores that only order the results. With `where`, only matching vectors are returned, and `k` of them whenever at least `k` match. Fewer than `k` pairs come back when fewer vectors (or matches) exist; an empty database returns `[]`.
 
+With `expand`, `list[tuple[str, float, int]]`: `(id, score, hop)` tuples, the hits with hop 0 and then the linked records ordered by hop. A linked record carries the score of the record it was reached from.
+
 With `certify=True` or `deadline_ms`, a `SearchOutcome`. It iterates, indexes (integers and slices) and has a `len()` like the list above (`out.results` returns that plain list), and also has these attributes:
 
 - `completeness` (float): fraction of live vectors scanned, 1.0 unless the deadline passed.
@@ -45,7 +50,7 @@ With `certify=True` or `deadline_ms`, a `SearchOutcome`. It iterates, indexes (i
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`, when both `query` and `text` are `None`, when `text` has no letters or digits, is over 64 KiB or has more than 1,024 distinct words, and when `text` is given before `enable_keyword_search()`. Also raised for `certify` or `deadline_ms` on a database that is not in a RaBitQ mode, without a query vector, or combined with `text` or `where`, and for a negative or non-finite `deadline_ms`.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`, when both `query` and `text` are `None`, when `text` has no letters or digits, is over 64 KiB or has more than 1,024 distinct words, and when `text` is given before `enable_keyword_search()`. Also raised for `certify` or `deadline_ms` on a database that is not in a RaBitQ mode, without a query vector, or combined with `text` or `where`, and for a negative or non-finite `deadline_ms`. Also raised for an `expand` that is malformed, out of bounds, or combined with `where`, `certify` or `deadline_ms`.
 
 - **RuntimeError**
   An internal fault occurred, or the keyword index file is damaged (call `enable_keyword_search()` to rebuild it).

@@ -21,9 +21,10 @@ impl SrvDB {
             scalar.flush()?;
         }
 
-        // 2. The commit point (ADR 0003): metadata and the count are durable
+        // 2. The commit point (ADR 0003): metadata, the count and links
+        //    (ADR 0016) are durable
         let count = self.count();
-        self.metadata_store.commit(count, &self.pending_deletes)?;
+        self.commit_with_links(count)?;
         self.pending_deletes.clear();
 
         // 3. Derived indexes, each replaced atomically

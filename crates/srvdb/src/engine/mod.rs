@@ -93,6 +93,8 @@ pub struct SrvDB {
     pub(crate) deleted: std::collections::HashSet<u64>,
     /// Deletes since the last persist(), written by the next commit
     pub(crate) pending_deletes: Vec<u64>,
+    /// Typed links between records (ADR 0016), primary data
+    pub(crate) graph: crate::graph::LinkGraph,
     /// BM25 keyword index over one metadata field (ADR 0015)
     pub(crate) keyword: crate::keyword::KeywordState,
     /// Exclusive lock on the database directory, held while open
@@ -130,6 +132,7 @@ impl VectorEngine for SrvDB {
             current_mode: IndexMode::Flat,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            graph: Default::default(),
             keyword: Default::default(),
             _lock: lock,
             dimension: 1536,

@@ -53,6 +53,7 @@ impl SrvDB {
             current_mode: IndexMode::Flat, // PQ is technically a flat scan of compressed vectors
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            graph: Default::default(),
             keyword: Default::default(),
             _lock: lock,
             dimension,
@@ -120,6 +121,7 @@ impl SrvDB {
             current_mode: IndexMode::Sq8,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            graph: Default::default(),
             keyword: Default::default(),
             _lock: lock,
             dimension,
@@ -179,6 +181,7 @@ impl SrvDB {
             current_mode: IndexMode::Hnsw,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            graph: Default::default(),
             keyword: Default::default(),
             _lock: lock,
             dimension,
@@ -262,6 +265,7 @@ impl SrvDB {
             current_mode: IndexMode::Hnsw,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            graph: Default::default(),
             keyword: Default::default(),
             _lock: lock,
             // Non-empty: storage training above rejects an empty set
