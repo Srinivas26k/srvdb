@@ -58,7 +58,11 @@ fn poisoned() -> PyErr {
 impl PyDatabase {
     /// Wrap a database, rebuilding the string-id maps from the `__id__`
     /// field persisted in each metadata entry.
-    fn from_db(db: srvdb::SrvDB, dimension: usize, index_type: String) -> PyResult<Self> {
+    pub(crate) fn from_db(
+        db: srvdb::SrvDB,
+        dimension: usize,
+        index_type: String,
+    ) -> PyResult<Self> {
         let mut state = State {
             db,
             id_map: FxHashMap::default(),
@@ -98,7 +102,8 @@ impl PyDatabase {
     /// Args:
     ///     path: Database directory
     ///     dimension: Vector dimension (default: 1536)
-    ///     mode: Index mode - 'flat', 'hnsw', 'sq8', 'pq' (default: 'flat')
+    ///     mode: Index mode - 'flat', 'hnsw', 'sq8', 'pq', 'ivf', 'auto', or
+    ///         'rabitq1' / 'rabitq2' / 'rabitq4' (default: 'flat')
     ///
     /// Examples:
     ///     >>> db = srvdb.Database("./db", dimension=384)  # MiniLM
@@ -115,6 +120,9 @@ impl PyDatabase {
             )));
         }
 
+        if let Some(bits) = crate::rabitq::bits_for_mode(mode) {
+            return Self::open_rabitq(path, dimension, bits, None, None);
+        }
         let mut config = srvdb::types::DatabaseConfig::new(dimension)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
@@ -148,7 +156,8 @@ impl PyDatabase {
             }
             _ => {
                 return Err(PyValueError::new_err(format!(
-                    "Invalid mode '{}'. Choose: 'flat', 'hnsw', 'sq8', 'pq', or 'auto'",
+                    "Invalid mode '{}'. Choose: 'flat', 'hnsw', 'sq8', 'pq', 'ivf', 'auto', \
+                    'rabitq1', 'rabitq2' or 'rabitq4'",
                     mode
                 )));
             }

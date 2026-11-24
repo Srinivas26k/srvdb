@@ -6,6 +6,7 @@
 mod database;
 mod errors;
 mod operations;
+mod rabitq;
 mod writes;
 
 use database::PyDatabase;
