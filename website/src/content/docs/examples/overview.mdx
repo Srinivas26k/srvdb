@@ -85,8 +85,11 @@ python examples/gallery/01_getting_started/getting_started.py
 Builds one `make_blobs` dataset in flat, HNSW, IVF, SQ8, PQ and RaBitQ
 databases and measures recall@10 against exact search, single-query
 throughput, `memory_report()` memory and build time, printed as a table
-and saved as CSV. **Chart:** three bar panels (recall, queries per second,
-estimated memory in MiB), one bar per index mode.
+and saved as CSV. SQ8 and PQ train on 10,000 vectors; PQ always uses
+`dimension / 8` sub-spaces and no rerank, so on this tightly clustered
+data its recall@10 is low, which the example's README explains.
+**Chart:** three bar panels (recall, queries per second, estimated memory
+in MiB), one labelled bar per index mode, every axis from zero.
 
 ```python
 import random
@@ -258,9 +261,13 @@ python examples/gallery/06_clustering/clustering.py
 <Card title="classification.py" icon="approve-check">
 
 Labels each test digit by a vote of its five nearest training images
-stored in SrvDB (flat and HNSW) and compares accuracy, latency per image
-and agreement with `KNeighborsClassifier(metric="cosine")`. **Chart:**
-accuracy and mean latency per image, one bar per classifier.
+stored in SrvDB (flat and HNSW) and compares accuracy and agreement with
+`KNeighborsClassifier(metric="cosine")`. Latency per image is timed both
+one image per call and as one batch call over the whole test set
+(`db.search_batch` / `predict` on all rows); the batch figure is the fair
+comparison of the search itself, since per-call timing includes each
+library's Python overhead. **Chart:** accuracy bars from zero with values
+labelled, and per-call and batch latency bars for each classifier.
 
 ```python
 import json
