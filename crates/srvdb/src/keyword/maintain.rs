@@ -66,11 +66,8 @@ impl SrvDB {
     /// (ADR 0018); 0 while it is off or not read yet
     pub(crate) fn keyword_resident_bytes(&self) -> u64 {
         match &*self.keyword.0.lock() {
-            Slot::On { index, .. } => {
-                let pairs: usize = index.postings.values().map(|p| p.len()).sum();
-                (pairs as u64 + index.docs() as u64)
-                    .saturating_mul(crate::tuning::budget::KEYWORD_BYTES)
-            }
+            Slot::On { index, .. } => (index.pairs + index.docs() as u64)
+                .saturating_mul(crate::tuning::budget::KEYWORD_BYTES),
             _ => 0,
         }
     }
