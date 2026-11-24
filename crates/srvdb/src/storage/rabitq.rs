@@ -120,11 +120,20 @@ impl RabitqStorage {
     }
 
     /// Encode and append vectors; ids continue from [`Self::count`].
+    /// Encoding (one O(D^2) rotation per vector) runs on the rayon pool.
     pub(crate) fn append<'a>(&mut self, vectors: impl Iterator<Item = &'a [f32]>) -> Result<()> {
-        let mut bytes = Vec::new();
-        for v in vectors {
-            self.quantizer.encode_into(v, &mut bytes);
-        }
+        use rayon::prelude::*;
+        let vectors: Vec<&[f32]> = vectors.collect();
+        let size = self.quantizer.record_size();
+        let mut bytes = vec![0u8; vectors.len() * size];
+        bytes
+            .par_chunks_mut(size)
+            .zip(vectors.par_iter())
+            .for_each(|(out, v)| {
+                let mut record = Vec::with_capacity(size);
+                self.quantizer.encode_into(v, &mut record);
+                out.copy_from_slice(&record);
+            });
         if !bytes.is_empty() {
             self.file.append(&bytes)?;
         }
