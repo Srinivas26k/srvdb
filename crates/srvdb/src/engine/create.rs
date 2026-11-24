@@ -87,6 +87,67 @@ fn check_new(dir: &Path) -> Result<()> {
     }))
 }
 
+/// Everything `create` validated, passed to `build`
+struct Spec<'a> {
+    dimension: usize,
+    index: IndexChoice,
+    hnsw: Option<hnsw::HNSWConfig>,
+    rabitq: Option<RabitqConfig>,
+    ivf: Option<ivf::IVFConfig>,
+    training: Option<&'a [Vec<f32>]>,
+}
+
+/// A hidden sibling of `dir` to build the new database in
+fn staging_path(dir: &Path) -> Result<std::path::PathBuf> {
+    let name = dir.file_name().ok_or_else(|| {
+        Error::invalid_input(format!(
+            "{} does not name a directory; pass the database path itself",
+            dir.display()
+        ))
+    })?;
+    let parent = match dir.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+        _ => std::path::PathBuf::from("."),
+    };
+    std::fs::create_dir_all(&parent)?;
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.subsec_nanos());
+    Ok(parent.join(format!(
+        ".{}.srvdb-creating-{}-{nanos}",
+        name.to_string_lossy(),
+        std::process::id()
+    )))
+}
+
+/// Move the complete staging directory to `dir`. An empty `dir` is
+/// replaced; one that gained files since `check_new` is left alone.
+fn place(staging: &Path, dir: &Path) -> Result<()> {
+    if dir.is_dir() {
+        std::fs::remove_dir(dir).map_err(|_| {
+            Error::AlreadyExists(format!(
+                "{} is no longer empty; choose a new or empty directory",
+                dir.display()
+            ))
+        })?;
+    }
+    std::fs::rename(staging, dir)?;
+    let parent = dir.parent().filter(|p| !p.as_os_str().is_empty());
+    storage::atomic::sync_dir(parent.unwrap_or(Path::new(".")))?;
+    Ok(())
+}
+
+/// Remove a staging directory after a failed create. Only this call made
+/// it, so everything in it is ours; a failure to remove it is logged, and
+/// the original error is what the caller sees.
+fn discard(staging: &Path) {
+    if staging.exists() {
+        if let Err(e) = std::fs::remove_dir_all(staging) {
+            log::warn!("could not remove staging directory after a failed create: {e}");
+        }
+    }
+}
+
 impl SrvDB {
     /// Create a new database at `path` with the index and options given.
     ///
@@ -99,9 +160,10 @@ impl SrvDB {
     /// `nlist` 100, `nprobe` 10; RaBitQ 4 bits with the default rerank.
     /// SQ8 and PQ train on `training` if given, otherwise on the first
     /// batch added. Durability and thread-safety are as for every
-    /// constructor (ADR 0003, ADR 0005). The emptiness check and the
-    /// creation are not one atomic step: two processes creating the same
-    /// path at once are only kept apart by the database lock.
+    /// constructor (ADR 0003, ADR 0005). The database is built in a hidden
+    /// sibling directory (`.<name>.srvdb-creating-<pid>-<n>`) and renamed
+    /// into place only when complete, so a failure leaves nothing at `path`
+    /// and a retry succeeds; missing parent directories are kept.
     ///
     /// With [`CreateOptions::set_exist_ok`], an existing database is opened
     /// instead if its recorded index, dimension and every option given
@@ -145,7 +207,33 @@ impl SrvDB {
         }
         check_new(dir)?;
         log::info!("creating {index} database (dimension {dimension})");
+        let spec = Spec {
+            dimension,
+            index,
+            hnsw,
+            rabitq,
+            ivf,
+            training,
+        };
+        let staging = staging_path(dir)?;
+        let staging_str = staging
+            .to_str()
+            .ok_or_else(|| Error::invalid_input("database path is not valid UTF-8"))?;
+        if let Err(e) = Self::build(staging_str, &spec).map(drop) {
+            discard(&staging);
+            return Err(e);
+        }
+        if let Err(e) = place(&staging, dir) {
+            discard(&staging);
+            return Err(e);
+        }
+        Self::open_existing(path)
+    }
 
+    /// Construct the database at `path` (the staging directory) and record
+    /// its settings
+    fn build(path: &str, spec: &Spec<'_>) -> Result<Self> {
+        let dimension = spec.dimension;
         let open = |quant: Option<QuantizationMode>, index_type: IndexType| {
             let mut config = config_for(dimension, quant, index_type)?;
             if quant == Some(QuantizationMode::Product) {
@@ -153,14 +241,14 @@ impl SrvDB {
             }
             Self::open_config(path, config, Requested::Unspecified)
         };
-        let mut db = match (index, hnsw, rabitq) {
+        let mut db = match (spec.index, spec.hnsw.clone(), spec.rabitq) {
             (IndexChoice::Hnsw, Some(config), _) => Self::new_with_hnsw(path, dimension, config)?,
             (IndexChoice::Rabitq, _, Some(config)) => Self::new_rabitq(path, dimension, config)?,
-            (IndexChoice::Sq8, _, _) => match training {
+            (IndexChoice::Sq8, _, _) => match spec.training {
                 Some(t) => Self::new_scalar_quantized(path, dimension, t)?,
                 None => open(Some(QuantizationMode::Scalar), IndexType::ScalarQuantized)?,
             },
-            (IndexChoice::Pq, _, _) => match training {
+            (IndexChoice::Pq, _, _) => match spec.training {
                 Some(t) => {
                     let vectors: Vec<Vector> = t.iter().cloned().map(Vector::new).collect();
                     Self::new_quantized(path, &vectors)?
@@ -175,7 +263,7 @@ impl SrvDB {
             }
             _ => open(None, IndexType::Flat)?,
         };
-        if let Some(config) = ivf {
+        if let Some(config) = spec.ivf.clone() {
             db.configure_ivf(config)?;
         }
         // Mode changes after construction (IVF parameters, auto) are
