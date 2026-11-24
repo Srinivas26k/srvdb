@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `srvdb.open(path, dimension=1536, mode="flat")`, a shorter way to create
+  or open a database. It returns a `srvdb.Database` and takes the same
+  arguments as the `Database` constructor, which stays public and unchanged.
 - CRC32C checksums over vector files (one per 1 MiB block, in a
   `<file>.crc` sidecar) and over index and quantizer files. Every vector file
   is verified when the database opens; damage (bit rot, a torn write, a bad
