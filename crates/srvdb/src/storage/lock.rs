@@ -4,6 +4,12 @@
 //! directory and holds it until the `SrvDB` is dropped. The operating
 //! system releases it when the process exits, including on a crash, so a
 //! stale lock never blocks the next open.
+//!
+//! The lock is released explicitly on drop, not by closing the file. A
+//! `flock` belongs to the open file description, which a child process
+//! forked by any thread of the host shares until it calls exec; closing
+//! our descriptor alone would leave the database locked for that window
+//! (issue #82). Unlocking releases it for every copy at once.
 
 use crate::error::Error;
 use anyhow::{Context, Result};
@@ -15,7 +21,17 @@ pub const FILE_NAME: &str = "srvdb.lock";
 /// Held for the lifetime of an open database
 #[derive(Debug)]
 pub(crate) struct DbLock {
-    _file: File,
+    file: File,
+}
+
+impl Drop for DbLock {
+    fn drop(&mut self) {
+        // Closing the file afterwards also releases the lock once no
+        // forked child holds a copy, so a failure here is only logged.
+        if let Err(e) = self.file.unlock() {
+            log::warn!("could not release the database lock: {}", e.kind());
+        }
+    }
 }
 
 /// Take the exclusive lock for the database in `dir`.
@@ -32,7 +48,7 @@ pub(crate) fn acquire(dir: &Path) -> Result<DbLock> {
         .open(&path)
         .with_context(|| format!("failed to open {}", path.display()))?;
     match file.try_lock() {
-        Ok(()) => Ok(DbLock { _file: file }),
+        Ok(()) => Ok(DbLock { file }),
         Err(TryLockError::WouldBlock) => Err(Error::Locked(format!(
             "{} is already open in another SrvDB instance or process; \
              close it first (one writer per database)",

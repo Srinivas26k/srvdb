@@ -123,6 +123,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the u8 tables; reranked scores are unchanged. The on-disk format is
   unchanged. Resident memory grows by one copy of the codes (#24).
 
+### Fixed
+- Dropping a database now releases its lock explicitly. Before, a child
+  process forked by another thread of the host (for example
+  `subprocess` or `std::process::Command`) briefly shared the lock, so a
+  reopen right after drop, including the one inside `create`, could fail
+  with `Locked` (#82, ADR 0005).
+
 ### Added
 - Filtered search from Python (#46, ADR 0014): `db.search(query, k,
   where={...})` and `db.search_batch(queries, k, where={...})` return only

@@ -24,6 +24,13 @@ process, fails immediately with `Error::Locked` (Python:
 `BlockingIOError`). The OS releases the lock when a process exits, even
 on a crash, so a stale lock never blocks recovery.
 
+The lock is released explicitly (`File::unlock`) when the `SrvDB` is
+dropped, not only by closing the file. A `flock` belongs to the open file
+description, and a child process forked by any thread of the host shares
+it until exec closes the descriptor; relying on close left the database
+locked for that window, so a drop followed by a reopen could fail with
+`Locked` (issue #82). Unlocking releases the lock for every copy at once.
+
 ### Threads: shared reads, exclusive writes
 
 - `SrvDB` is `Send + Sync` (checked at compile time by a test).
