@@ -5,12 +5,12 @@ description: Sharing a database between threads, and why a second open is refuse
 
 ## Threads
 
-A `Database` object is safe to share between threads, with no lock of your
+A database object is safe to share between threads, with no lock of your
 own:
 
 - every method **releases the GIL**, so other Python threads keep running;
 - **searches run in parallel**;
-- writes (`add`, `upsert`, `delete`, `persist`, `compact`) wait for each
+- writes (`add`, `upsert`, `delete`, `save`, `compact`) wait for each
   other and for running searches instead of failing.
 
 ```python
@@ -28,11 +28,12 @@ A database directory can be open in **one place at a time**. A second open,
 from this process or another, raises `BlockingIOError`:
 
 ```python
-a = srvdb.open("./db", dimension=384)
-b = srvdb.open("./db", dimension=384)   # BlockingIOError: already open
+a = srvdb.open("./db")
+b = srvdb.open("./db")   # BlockingIOError: already open
+a.close()                # releases the lock; srvdb.open("./db") works again
 ```
 
-Share one `Database` object instead of opening the same path twice. The lock is
+Share one database object instead of opening the same path twice. The lock is
 released when the object is garbage-collected or the process exits, even after
 a crash. For multiple processes, put one process in charge of the database and
 send it requests.

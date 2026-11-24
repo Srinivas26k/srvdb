@@ -39,7 +39,7 @@ import srvdb
 from sentence_transformers import SentenceTransformer
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
-db = srvdb.open("./rag-db", dimension=384)
+db = srvdb.create("./rag-db", dimension=384, exist_ok=True)
 
 vectors = model.encode([p["text"] for p in passages], normalize_embeddings=True)
 db.upsert(
@@ -47,7 +47,7 @@ db.upsert(
     embeddings=vectors.tolist(),
     metadatas=[json.dumps({"source": p["source"], "text": p["text"]}) for p in passages],
 )
-db.persist()
+db.save()
 ```
 
 `upsert` makes the script safe to re-run: changed chunks replace the old ones.

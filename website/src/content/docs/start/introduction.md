@@ -19,9 +19,9 @@ written in Rust and used from Python or Rust.
 
 ## What it promises
 
-1. **Your committed data is safe.** `persist()` is a real commit point.
+1. **Your committed data is safe.** `save()` is a real commit point.
    After it returns, data survives a crash or power loss. After a crash, the
-   database reopens in exactly the state of the last `persist()`. See
+   database reopens in exactly the state of the last `save()`. See
    [Durability](/srvdb/guides/durability/).
 2. **Results mean what they say.** Scores are true cosine similarities in
    [-1, 1], in every mode.

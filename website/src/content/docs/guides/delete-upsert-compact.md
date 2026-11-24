@@ -11,7 +11,7 @@ removed = db.delete(["doc3", "doc9", "not-there"])   # -> 2
 
 Deleted vectors disappear from every search immediately, and searches still
 return `k` results. Unknown ids are ignored. The delete becomes durable at the
-next `persist()`; without it, a crash brings the vectors back.
+next `save()`; without it, a crash brings the vectors back.
 
 ## Upsert
 
