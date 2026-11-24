@@ -132,3 +132,4 @@ not cover the committed vectors, SrvDB retrains.
 - Hervé Jégou, Matthijs Douze, Cordelia Schmid (2011). *Product
   Quantization for Nearest Neighbor Search.* IEEE TPAMI 33(1). Introduces
   IVFADC, the inverted file used with compressed codes.
+  [doi:10.1109/TPAMI.2010.57](https://doi.org/10.1109/TPAMI.2010.57)
