@@ -57,6 +57,7 @@ Documentation = "https://github.com/Srinivas26k/srvdb/blob/master/README.md"
 manifest-path = "crates/srvdb-py/Cargo.toml"
 python-source = "python"
 module-name = "srvdb._low_level"
+features = ["extension-module"]
 
 [dependency-groups]
 dev = [
