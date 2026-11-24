@@ -48,7 +48,7 @@ A complete, runnable **Emerging Typology Radar** reference implementation is in 
 ## SrvDB features it uses
 
 - **[`search_batch`](/srvdb/reference/python/)**: runs many queries at once, in parallel inside Rust.
-- **[True cosine scores](/srvdb/guides/index-modes/)**: scores in [-1, 1] mean the same in every mode, so thresholds are stable.
+- **[Cosine scores](/srvdb/guides/index-modes/)**: flat, HNSW and IVF return true cosine scores in [-1, 1], so thresholds are stable across them; SQ8 and PQ scores are approximations.
 - **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 - **[HNSW graph (`hnsw`)](/srvdb/guides/index-modes/)**: approximate search that visits a small part of large collections; tune with `set_ef_search()`.
 

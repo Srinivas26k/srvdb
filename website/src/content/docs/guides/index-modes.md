@@ -3,8 +3,12 @@ title: Choosing an index mode
 description: Flat, HNSW, IVF, SQ8, PQ and auto, and how to choose between them.
 ---
 
-Every mode ranks by cosine similarity and reports true cosine scores in
-[-1, 1]. They differ in how they search and how much they store.
+Every mode ranks by cosine similarity and reports scores in [-1, 1]. Flat,
+HNSW and IVF score against the full vectors, so their scores are true cosine
+similarities. SQ8 scores the cosine against the decoded vector, and PQ scores
+the average of per-sub-space cosines against the centroids, so both are
+approximations of the true cosine. The modes also differ in how they search
+and how much they store.
 
 | Mode | Search | Stored per vector | Training |
 |------|--------|-------------------|----------|

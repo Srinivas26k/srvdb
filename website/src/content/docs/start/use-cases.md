@@ -97,8 +97,9 @@ for doc_id, vector in items:
         print(doc_id, "looks like", hits[1][0])
 ```
 
-- **Why SrvDB:** scores are true cosine similarities, so a threshold means
-  the same thing in every mode.
+- **Why SrvDB:** in flat, HNSW and IVF the scores are true cosine
+  similarities, so a threshold means the same thing in each of them. SQ8 and
+  PQ scores are approximations; re-check thresholds if you switch to them.
 - **Start with:** `flat` for exact scores.
 
 ## 9. Recommendations ("more like this")

@@ -48,7 +48,7 @@ A complete, runnable **Reviewer Matcher** reference implementation is in progres
 ## SrvDB features it uses
 
 - **[Exact search (`flat`)](/srvdb/guides/index-modes/)**: every query compares against every stored vector, so results are exact and explainable.
-- **[True cosine scores](/srvdb/guides/index-modes/)**: scores in [-1, 1] mean the same in every mode, so thresholds are stable.
+- **[Cosine scores](/srvdb/guides/index-modes/)**: flat, HNSW and IVF return true cosine scores in [-1, 1], so thresholds are stable across them; SQ8 and PQ scores are approximations.
 - **[`search_batch`](/srvdb/reference/python/)**: runs many queries at once, in parallel inside Rust.
 - **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 

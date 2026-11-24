@@ -23,8 +23,9 @@ written in Rust and used from Python or Rust.
    After it returns, data survives a crash or power loss. After a crash, the
    database reopens in exactly the state of the last `save()`. See
    [Durability](/srvdb/guides/durability/).
-2. **Results mean what they say.** Scores are true cosine similarities in
-   [-1, 1], in every mode.
+2. **Results mean what they say.** Scores are cosine similarities in
+   [-1, 1]. Flat, HNSW and IVF return true cosine scores; SQ8 and PQ return
+   approximations computed from their compressed codes.
 3. **Bad input is rejected, not stored.** Wrong dimensions, NaN, duplicate ids
    and invalid metadata raise clear errors before anything is written.
 4. **No surprises.** SrvDB never changes how your data is stored unless you
