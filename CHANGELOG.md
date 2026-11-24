@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Examples gallery (#60) in `examples/gallery/`: twelve offline scripts,
+  each with a README, covering getting started, index modes (recall, QPS
+  and memory across flat/HNSW/IVF/SQ8/PQ/RaBitQ), filtered search versus
+  selectivity, hybrid search, graph links with `expand=`, clustering with
+  KMeans and PCA, k-NN classification against scikit-learn, deduplication
+  thresholds, local RAG over the SrvDB docs, the memory budget, the
+  LangChain/LlamaIndex adapters and edge devices (`certify=`,
+  `deadline_ms=`, `rebuild_checksums`). Every printed or charted number is
+  measured by the run, which also prints hardware, OS, library versions
+  and commit. `run_all.py --fast` runs them all; a pytest smoke test runs
+  it in CI's adapter job. Charts are monochrome matplotlib saved to the
+  gitignored `examples/gallery/output/`. Requirements (scikit-learn,
+  NumPy, pandas, matplotlib) are listed in
+  `examples/gallery/requirements.txt` and are not dependencies of
+  `srvdb`. The website's "Live examples & cheat sheets (Soon)" page is
+  replaced by an Examples gallery page with a card per example, and
+  `check_examples.py` now also checks that page (and `.mdx` pages).
 - Edge builds (#87, ADR 0019). Release wheels use the stable ABI (abi3,
   CPython >= 3.9): one wheel per platform for linux x86_64 and aarch64
   (Raspberry Pi 64-bit), macOS arm64 and x86_64, and Windows x86_64. A

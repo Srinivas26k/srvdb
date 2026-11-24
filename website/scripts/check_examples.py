@@ -5,8 +5,11 @@ Usage (from the repository root, after ``maturin develop``)::
     python website/scripts/check_examples.py [PAGE_DIR ...]
 
 Without arguments it checks the Python API reference, the Concepts pages,
-Get started and the Guides. Mark a block that cannot run offline with
-``<!-- check_examples: skip (reason) -->`` on the line before it.
+Get started, the Guides and the Examples gallery (``.md`` and ``.mdx``
+pages). Mark a block that cannot run offline with
+``<!-- check_examples: skip (reason) -->`` on the line before it (in
+``.mdx`` pages, which reject HTML comments, use
+``{/* check_examples: skip (reason) */}``).
 
 Each example runs in a fresh temporary directory with a separate
 interpreter. When an example contains comment lines starting with ``# ``
@@ -29,12 +32,16 @@ DEFAULT_DIRS = [
     DOCS / "concepts",
     DOCS / "start",
     DOCS / "guides",
+    DOCS / "examples",
 ]
 # A block directly preceded by ``<!-- check_examples: skip (reason) -->`` is
 # not run: it needs software or data the checker cannot assume (a model
-# download, a local LLM server). Say why in the marker.
+# download, a local LLM server). Say why in the marker. MDX pages use the
+# ``{/* ... */}`` comment form instead.
 BLOCK = re.compile(
-    r"^(<!-- check_examples: skip[^\n]*-->\n)?```python\n(.*?)^```", re.S | re.M
+    r"^((?:<!--|\{/\*) check_examples: skip[^\n]*(?:-->|\*/\})\n)?"
+    r"```python\n(.*?)^```",
+    re.S | re.M,
 )
 
 
@@ -78,7 +85,7 @@ def run(page: Path, index: int, code: str) -> str | None:
 
 def main() -> int:
     dirs = [Path(a) for a in sys.argv[1:]] or DEFAULT_DIRS
-    pages = sorted(p for d in dirs for p in d.glob("*.md"))
+    pages = sorted(p for d in dirs for p in (*d.glob("*.md"), *d.glob("*.mdx")))
     failures = total = 0
     for page in pages:
         blocks = [
