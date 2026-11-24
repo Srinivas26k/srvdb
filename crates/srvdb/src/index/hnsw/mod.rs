@@ -72,6 +72,18 @@ impl Default for HNSWConfig {
 }
 
 impl HNSWConfig {
+    /// Check the parameters against [`crate::index::limits`].
+    ///
+    /// # Errors
+    /// `InvalidInput` if `m` is outside 2..=256 or `ef_construction` /
+    /// `ef_search` outside 1..=10000.
+    pub fn validate(&self) -> crate::Result<()> {
+        use crate::index::limits::{check, MAX_HNSW_EF, MAX_HNSW_M, MIN_HNSW_M};
+        check("HNSW m", self.m, MIN_HNSW_M, MAX_HNSW_M)?;
+        check("HNSW ef_construction", self.ef_construction, 1, MAX_HNSW_EF)?;
+        check("HNSW ef_search", self.ef_search, 1, MAX_HNSW_EF)
+    }
+
     pub fn new(m: usize, ef_construction: usize, ef_search: usize) -> Self {
         Self {
             m,

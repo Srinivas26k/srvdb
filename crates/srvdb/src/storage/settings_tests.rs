@@ -86,6 +86,27 @@ fn unknown_kinds_formats_and_bad_parameters_are_corrupt() {
         Box::new(|r| r.kind = 42),
         Box::new(|r| r.format = 2),
         Box::new(|r| r.dimension = 0),
+        Box::new(|r| r.dimension = 4097),
+        Box::new(|r| {
+            r.kind = 1;
+            r.m = 4096; // above MAX_HNSW_M
+            r.ef_construction = 200;
+            r.ef_search = 50;
+        }),
+        Box::new(|r| {
+            r.kind = 1;
+            r.m = 16;
+            r.ef_construction = 1_000_000;
+            r.ef_search = 50;
+        }),
+        Box::new(|r| {
+            r.kind = 5;
+            r.m = 16;
+            r.ef_construction = 200;
+            r.ef_search = 50;
+            r.nlist = 1_000_000; // a million partitions
+            r.nprobe = 1;
+        }),
         Box::new(|r| r.m = 16),   // flat with HNSW parameters
         Box::new(|r| r.kind = 1), // hnsw with m = 0
         Box::new(|r| {
@@ -94,7 +115,7 @@ fn unknown_kinds_formats_and_bad_parameters_are_corrupt() {
             r.ef_construction = 200;
             r.ef_search = 50;
             r.nlist = 4;
-            r.nprobe = 5; // more probes than partitions
+            r.nprobe = 100_000; // above MAX_IVF_NLIST
         }),
         Box::new(|r| {
             r.kind = 6;

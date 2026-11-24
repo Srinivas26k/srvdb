@@ -122,3 +122,116 @@ fn quantized_database_from_0_3_must_be_opened_with_its_mode_once() {
     assert!(matches!(open_err(dir.path()), Error::InvalidState(_)));
     assert!(!dir.path().join(FILE).exists());
 }
+
+/// postcard varint of `v` (the encoding of the settings payload)
+fn varint(mut v: u64, out: &mut Vec<u8>) {
+    loop {
+        let byte = (v & 0x7F) as u8;
+        v >>= 7;
+        if v == 0 {
+            out.push(byte);
+            return;
+        }
+        out.push(byte | 0x80);
+    }
+}
+
+/// A well-formed, correctly checksummed settings file with any values:
+/// what an attacker could write. Fields in payload order.
+fn crafted(kind: u8, dimension: u64, hnsw: [u64; 3], ivf: [u64; 2]) -> Vec<u8> {
+    let mut payload = Vec::new();
+    varint(1, &mut payload); // payload format
+    payload.push(kind);
+    for v in [dimension, hnsw[0], hnsw[1], hnsw[2], ivf[0], ivf[1]] {
+        varint(v, &mut payload);
+    }
+    payload.extend_from_slice(&[0, 0, 0]); // RaBitQ bits, rerank, seed
+    let mut file = b"SRVDIDXS".to_vec();
+    file.extend_from_slice(&2u16.to_le_bytes());
+    file.extend_from_slice(&[0, 0]);
+    file.extend_from_slice(&(payload.len() as u64).to_le_bytes());
+    file.extend_from_slice(&crc32c::crc32c(&payload).to_le_bytes());
+    file.extend_from_slice(&payload);
+    file
+}
+
+/// Huge values in a valid-looking file are refused before anything is
+/// allocated from them (a million IVF partitions, m = 4096, dimension 65535)
+#[test]
+fn crafted_settings_with_huge_values_are_corrupt() {
+    let dir = TempDir::new().unwrap();
+    hnsw_db(dir.path());
+    let path = dir.path().join(FILE);
+    // Sanity: the hand-built encoding is accepted when values are in range
+    std::fs::write(&path, crafted(1, 128, [8, 64, 40], [0, 0])).unwrap();
+    let db = SrvDB::open_existing(dir.path().to_str().unwrap()).unwrap();
+    assert_eq!(db.count(), 50);
+    drop(db);
+
+    let cases = [
+        crafted(5, 128, [16, 200, 50], [1_000_000, 10]),
+        crafted(5, 128, [16, 200, 50], [100, 1_000_000]),
+        crafted(1, 128, [4096, 200, 50], [0, 0]),
+        crafted(1, 128, [16, 1_000_000, 50], [0, 0]),
+        crafted(1, 65_535, [16, 200, 50], [0, 0]),
+        crafted(0, 4097, [0, 0, 0], [0, 0]),
+    ];
+    for bytes in cases {
+        std::fs::write(&path, bytes).unwrap();
+        let err = open_err(dir.path());
+        assert!(matches!(err, Error::Corrupt(_)), "{err:?}");
+    }
+}
+
+#[test]
+fn configure_ivf_and_hnsw_settings_are_bounded() {
+    use srvdb::IVFConfig;
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().to_str().unwrap();
+    let mut db = SrvDB::new_with_config(path, DatabaseConfig::new(DIM).unwrap()).unwrap();
+    let ivf = |edit: fn(&mut IVFConfig)| {
+        let mut config = IVFConfig::default();
+        edit(&mut config);
+        config
+    };
+    let bad = [
+        ivf(|c| c.nlist = 0),
+        ivf(|c| c.nlist = 1_000_000),
+        ivf(|c| {
+            c.nlist = 8;
+            c.nprobe = 100_000;
+        }),
+        ivf(|c| c.nprobe = 0),
+        ivf(|c| c.max_iterations = 0),
+        ivf(|c| c.tolerance = f32::NAN),
+        ivf(|c| c.hnsw_config = HNSWConfig::new(4096, 200, 50)),
+    ];
+    for config in bad {
+        let err = db.configure_ivf(config).unwrap_err();
+        assert!(matches!(err, Error::InvalidInput(_)), "{err:?}");
+    }
+    assert!(db.configure_ivf(IVFConfig::default()).is_ok());
+    let err = db.set_ef_search(10_001).unwrap_err();
+    assert!(matches!(err, Error::InvalidInput(_)), "{err:?}");
+    drop(db);
+    let bad_graphs = [
+        HNSWConfig::new(1, 200, 50),
+        HNSWConfig::new(16, 0, 50),
+        HNSWConfig::new(16, 200, 20_000),
+    ];
+    for config in bad_graphs {
+        let err = SrvDB::new_with_hnsw(path, DIM, config).err().unwrap();
+        assert!(matches!(err, Error::InvalidInput(_)), "{err:?}");
+    }
+}
+
+/// The settings are read under the lock: a busy database reports Locked
+#[test]
+fn default_open_of_a_busy_database_is_locked() {
+    let dir = TempDir::new().unwrap();
+    hnsw_db(dir.path());
+    let path = dir.path().to_str().unwrap();
+    let _held = SrvDB::open_existing(path).unwrap();
+    let err = SrvDB::new_with_config(path, DatabaseConfig::new(DIM).unwrap()).err();
+    assert!(matches!(err, Some(Error::Locked(_))), "{err:?}");
+}

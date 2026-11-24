@@ -44,8 +44,14 @@ impl SrvDB {
         }
     }
 
-    /// Configure IVF parameters
+    /// Configure IVF parameters. In IVF mode this replaces the index with
+    /// an untrained one; call `train_ivf()` afterwards.
+    ///
+    /// # Errors
+    /// `InvalidInput` if a parameter is out of range (see
+    /// [`ivf::IVFConfig::validate`]); nothing is changed then.
     pub fn configure_ivf(&mut self, config: ivf::IVFConfig) -> Result<()> {
+        config.validate()?;
         if self.current_mode == IndexMode::Ivf {
             // If already initialized, we might need to rebuild or just update config?
             // For now, simpler: just update config and re-init empty index if needed.
@@ -129,11 +135,13 @@ impl SrvDB {
     /// is saved with the index by `persist()`.
     ///
     /// # Errors
-    /// `InvalidInput` if `ef_search` is 0.
+    /// `InvalidInput` if `ef_search` is 0 or above
+    /// [`crate::index::limits::MAX_HNSW_EF`].
     pub fn set_ef_search(&mut self, ef_search: usize) -> Result<()> {
         if ef_search == 0 {
             return Err(Error::invalid_input("ef_search must be at least 1"));
         }
+        crate::index::limits::check("ef_search", ef_search, 1, crate::index::limits::MAX_HNSW_EF)?;
         if let Some(ref mut hnsw) = self.hnsw_index {
             hnsw.set_ef_search(ef_search);
         }

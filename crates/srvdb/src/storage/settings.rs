@@ -13,6 +13,7 @@
 
 use super::{atomic::write_atomic, format};
 use crate::error::Error;
+use crate::index::limits;
 use crate::quant::rabitq::RabitqConfig;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -22,8 +23,6 @@ use std::path::Path;
 pub const FILE_NAME: &str = "index_settings.bin";
 /// Payload format written by this version
 const FORMAT: u16 = 1;
-/// Upper bound for dimensions and graph/partition parameters read from disk
-const MAX_PARAM: u64 = 1_000_000;
 
 /// HNSW parameters that shape a graph (`m`, `ef_construction`) and the
 /// search-time candidate list (`ef_search`)
@@ -144,19 +143,22 @@ fn corrupt(why: impl std::fmt::Display) -> anyhow::Error {
     .into()
 }
 
-/// A parameter in `1..=max`
-fn param(name: &str, value: u64, max: u64) -> Result<usize> {
-    if value == 0 || value > max {
-        return Err(corrupt(format!("{name} = {value} is out of range")));
+/// A parameter in `min..=max`: the same bounds the public API enforces
+/// (`index::limits`), checked before anything is allocated from it
+fn param(name: &str, value: u64, min: usize, max: usize) -> Result<usize> {
+    if value < min as u64 || value > max as u64 {
+        return Err(corrupt(format!(
+            "{name} = {value} is outside {min}..={max}"
+        )));
     }
     Ok(value as usize)
 }
 
 fn hnsw_params(r: &Record) -> Result<HnswParams> {
     Ok(HnswParams {
-        m: param("m", r.m, 4096)?,
-        ef_construction: param("ef_construction", r.ef_construction, MAX_PARAM)?,
-        ef_search: param("ef_search", r.ef_search, MAX_PARAM)?,
+        m: param("m", r.m, limits::MIN_HNSW_M, limits::MAX_HNSW_M)?,
+        ef_construction: param("ef_construction", r.ef_construction, 1, limits::MAX_HNSW_EF)?,
+        ef_search: param("ef_search", r.ef_search, 1, limits::MAX_HNSW_EF)?,
     })
 }
 
@@ -168,7 +170,7 @@ fn from_record(r: &Record) -> Result<IndexSettings> {
             r.format
         )));
     }
-    let dimension = param("dimension", r.dimension, 65_535)?;
+    let dimension = param("dimension", r.dimension, 1, limits::MAX_DIMENSION)?;
     let hnsw_used = (r.m | r.ef_construction | r.ef_search) != 0;
     let ivf_used = (r.nlist | r.nprobe) != 0;
     let rabitq_used = r.bits != 0 || r.rerank != 0 || r.seed != 0;
@@ -179,8 +181,8 @@ fn from_record(r: &Record) -> Result<IndexSettings> {
         3 => (IndexKind::Pq, false, false, false),
         4 => (IndexKind::HnswPq(hnsw_params(r)?), true, false, false),
         5 => {
-            let nlist = param("nlist", r.nlist, MAX_PARAM)?;
-            let nprobe = param("nprobe", r.nprobe, r.nlist)?;
+            let nlist = param("nlist", r.nlist, 1, limits::MAX_IVF_NLIST)?;
+            let nprobe = param("nprobe", r.nprobe, 1, limits::MAX_IVF_NLIST)?;
             let hnsw = hnsw_params(r)?;
             (
                 IndexKind::Ivf {

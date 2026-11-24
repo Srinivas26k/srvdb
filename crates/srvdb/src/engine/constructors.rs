@@ -132,6 +132,7 @@ impl SrvDB {
         dimension: usize,
         hnsw_config: hnsw::HNSWConfig,
     ) -> Result<Self> {
+        hnsw_config.validate()?;
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
@@ -195,6 +196,7 @@ impl SrvDB {
         training_vectors: &[Vector],
         hnsw_config: hnsw::HNSWConfig,
     ) -> Result<Self> {
+        hnsw_config.validate()?;
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
 
