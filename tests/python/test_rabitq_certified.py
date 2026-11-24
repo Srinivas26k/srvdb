@@ -75,3 +75,13 @@ def test_other_modes_and_bad_arguments_raise(tmp_path):
         rq.search([0.1] * DIM, K, deadline_ms=-1)
     with pytest.raises(ValueError):
         rq.search([0.1] * DIM, K, certify=True, where={"i": 1})
+
+
+def test_outcome_supports_slices(tmp_path):
+    vectors = clustered(200, 9)
+    db = rabitq_db(tmp_path, vectors)
+    out = db.search(vectors[0], 5, certify=True)
+    assert out[1:3] == out.results[1:3]
+    assert out[-1] == out.results[-1]
+    with pytest.raises(IndexError):
+        out[99]

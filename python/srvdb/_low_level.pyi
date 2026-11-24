@@ -68,14 +68,18 @@ class SearchOutcome:
 
     @property
     def results(self) -> list[tuple[str, float]]:
-        """The ``(id, score)`` tuples, best first."""
+        """The ``(id, score)`` tuples, best first, as a plain list (a copy)."""
     @property
     def completeness(self) -> float:
         """Fraction of live vectors scanned before the deadline, 0.0 to 1.0."""
     @property
     def confidence(self) -> float | None:
-        """Certified search: lower bound on the probability that the
-        results are exactly the top k of the scanned vectors; else None."""
+        """Certified search: nominal lower bound (approximate) on the
+        probability, over a hypothetical random rotation seed, that the
+        results are exactly the top k of the scanned vectors. Not a
+        guarantee for this query, not a long-run rate for this database's
+        fixed seed, not joint across queries. None when not certified,
+        including when the rerank cap or deadline cut the rescoring short."""
     @property
     def certified(self) -> int:
         """Results certified without rescoring."""
@@ -86,7 +90,10 @@ class SearchOutcome:
     def scanned(self) -> int:
         """Live vectors scanned."""
     def __len__(self) -> int: ...
+    @overload
     def __getitem__(self, index: int) -> tuple[str, float]: ...
+    @overload
+    def __getitem__(self, index: slice) -> list[tuple[str, float]]: ...
     def __iter__(self) -> Iterator[tuple[str, float]]: ...
 
 class Database:

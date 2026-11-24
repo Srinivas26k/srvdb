@@ -81,8 +81,10 @@ pub(crate) struct PySearchOutcome {
     /// Fraction of live vectors scanned, 0.0 to 1.0
     #[pyo3(get)]
     completeness: f64,
-    /// Certified search: lower bound on the probability that the results
-    /// are exactly the top k of the scanned vectors; None otherwise
+    /// Certified search: nominal, approximate lower bound on the
+    /// probability over a hypothetical random rotation seed that the
+    /// results are the top k of the scanned vectors (not a per-query
+    /// guarantee); None when not certified or the rerank was cut short
     #[pyo3(get)]
     confidence: Option<f64>,
     /// Results certified without rescoring
@@ -108,15 +110,15 @@ impl PySearchOutcome {
         self.results.len()
     }
 
-    fn __getitem__(&self, index: isize) -> PyResult<(String, f32)> {
-        let n = self.results.len() as isize;
-        let i = if index < 0 { index + n } else { index };
-        if i < 0 || i >= n {
-            return Err(pyo3::exceptions::PyIndexError::new_err(
-                "SearchOutcome index out of range",
-            ));
-        }
-        Ok(self.results[i as usize].clone())
+    /// An index or a slice, exactly as on the plain list in `results`
+    fn __getitem__<'py>(
+        &self,
+        py: Python<'py>,
+        index: Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        pyo3::types::PyList::new(py, self.results.clone())?
+            .as_any()
+            .get_item(index)
     }
 
     fn __iter__(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
