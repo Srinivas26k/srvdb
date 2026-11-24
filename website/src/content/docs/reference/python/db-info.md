@@ -1,12 +1,12 @@
 ---
-title: srvdb.Database.info
+title: db.info
 description: Return a one-line summary of the database.
 ---
 
 Return a one-line summary of the database.
 
 ```python
-Database.info() -> str
+db.info() -> str
 ```
 
 ## Parameters
@@ -31,13 +31,13 @@ Nothing in normal use.
 ```python
 import srvdb
 
-db = srvdb.open("./vectors", dimension=128)
+db = srvdb.create("./vectors", dimension=128)
 v = [1.0] + [0.0] * 127   # tiny 128-dimension vectors
 w = [0.0, 1.0] + [0.0] * 126
 print(db.info())
-# SrvDB(dimension=128, mode='flat', vectors=0)
+# SrvDB(dimension=128, mode='hnsw', vectors=0)
 ```
 
 ## See also
 
-- [`srvdb.Database.count`](/srvdb/reference/python/database-count/): Return the number of searchable vectors.
+- [`db.count`](/srvdb/reference/python/db-count/): Return the number of searchable vectors.

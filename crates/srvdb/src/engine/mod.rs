@@ -3,7 +3,11 @@
 mod commit;
 mod compact;
 mod constructors;
+mod create;
+mod create_existing;
+mod create_options;
 mod delete;
+mod destroy;
 mod filter;
 mod modes;
 mod open;
@@ -17,6 +21,8 @@ mod write;
 
 #[cfg(test)]
 mod tests;
+
+pub use create_options::{CreateOptions, IndexChoice};
 
 use crate::error::{Error, Result};
 use std::path::Path;

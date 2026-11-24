@@ -55,7 +55,7 @@ stores embeddings on local disk, with no server and no cloud.
 
 - 🦅 **In-process, offline.** A library, not a service: no server, no Docker,
   no network access. `pip install srvdb` and go.
-- 🛡️ **Crash-safe by design.** After `persist()` returns, your data survives a
+- 🛡️ **Crash-safe by design.** After `save()` returns, your data survives a
   crash or power loss, and the database reopens exactly as it was. Every write
   path has a crash test.
 - 🎯 **Honest results.** True cosine scores in [-1, 1] in every mode. Bad input
@@ -103,22 +103,29 @@ needs Rust 1.99+ ([details](https://srinivas26k.github.io/srvdb/start/installati
 import json
 import srvdb
 
-db = srvdb.open("./my-db", dimension=384)    # returns a srvdb.Database; any dimension 128–4096
+with srvdb.create("./my-db", dimension=384) as db:   # new database, HNSW index by default
+    db.add(
+        ids=["intro", "pricing"],
+        embeddings=[intro_vector, pricing_vector],     # lists of 384 floats
+        metadatas=[json.dumps({"page": "intro"}), json.dumps({"page": "pricing"})],
+    )
+# the with block saved: crash-safe from here on
 
-db.add(
-    ids=["intro", "pricing"],
-    embeddings=[intro_vector, pricing_vector],   # lists of 384 floats
-    metadatas=[json.dumps({"page": "intro"}), json.dumps({"page": "pricing"})],
-)
-db.persist()                                     # crash-safe from here on
-
+db = srvdb.open("./my-db")                           # settings are read from disk
 for doc_id, score in db.search(question_vector, k=5):
     print(doc_id, round(score, 3), db.get(doc_id))
 
 db.upsert(ids=["pricing"], embeddings=[new_vector], metadatas=['{"page": "pricing", "v": 2}'])
 db.delete(["intro"])
-db.persist()
+db.save()
+db.close()
+
+srvdb.delete("./my-db")                              # remove the database from disk
 ```
+
+Five verbs: `srvdb.create`, `srvdb.open`, `db.save`, `db.close` and
+`srvdb.delete`. Pick another index by name, with its options:
+`srvdb.create(path, 384, "rabitq", bits=2)`, `"sq8"`, `"ivf"`, `"flat"`.
 
 ## Local RAG in a few lines
 
@@ -128,15 +135,15 @@ import srvdb
 from sentence_transformers import SentenceTransformer   # pip install sentence-transformers
 
 model = SentenceTransformer("all-MiniLM-L6-v2")          # 384-dim, runs offline
-db = srvdb.open("./rag-db", dimension=384)
+db = srvdb.create("./rag-db", dimension=384, exist_ok=True)
 
-chunks = ["SrvDB stores vectors on local disk.", "persist() makes writes crash-safe."]
+chunks = ["SrvDB stores vectors on local disk.", "save() makes writes crash-safe."]
 db.upsert(
     ids=[f"chunk-{i}" for i in range(len(chunks))],
     embeddings=model.encode(chunks).tolist(),
     metadatas=[json.dumps({"text": c}) for c in chunks],
 )
-db.persist()
+db.save()
 
 question = model.encode("How do I make writes durable?").tolist()
 context = [json.loads(db.get(i))["text"] for i, _ in db.search(question, k=2)]
@@ -162,9 +169,9 @@ measure recall against `flat` before switching.
 
 ## The durability promise
 
-> When `persist()` returns, every earlier `add`, `upsert` and `delete`
+> When `save()` returns, every earlier `add`, `upsert` and `delete`
 > survives a process crash or power loss. After a crash the database reopens
-> in exactly the state of the last `persist()`: later writes are absent,
+> in exactly the state of the last `save()`: later writes are absent,
 > never half-present.
 
 How it works: [Durability](https://srinivas26k.github.io/srvdb/guides/durability/) ·
@@ -185,9 +192,9 @@ python benchmarks/universal_benchmark.py
 ## Use it from Rust
 
 ```rust
-use srvdb::{types::DatabaseConfig, SrvDB, Vector, VectorEngine};
+use srvdb::{CreateOptions, IndexChoice, SrvDB, Vector, VectorEngine};
 
-let mut db = SrvDB::new_with_config("./rust-db", DatabaseConfig::new(384)?)?;
+let mut db = SrvDB::create("./rust-db", 384, &CreateOptions::new(IndexChoice::Hnsw))?;
 db.add(&Vector::new(vec![0.1; 384]), r#"{"title": "first"}"#)?;
 db.persist()?;
 let hits = db.search(&Vector::new(vec![0.1; 384]), 5)?;
@@ -212,7 +219,7 @@ connection.
 
 **How is SrvDB different from Chroma, FAISS or LanceDB?**
 SrvDB focuses on a small, embeddable core with a documented crash-safety
-guarantee: after `persist()` returns, data survives a crash or power loss.
+guarantee: after `save()` returns, data survives a crash or power loss.
 FAISS is a similarity-search library that leaves metadata and transactional
 storage to you; Chroma and LanceDB are broader data platforms.
 

@@ -1,0 +1,57 @@
+/* Hand-made SVG diagrams on the Concepts pages. Monochrome: every colour is
+   a theme variable or currentColor, so a diagram reads in light and dark. */
+.concept-diagram {
+	margin: 1.5rem 0;
+	color: var(--sl-color-white);
+}
+.concept-diagram svg {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-width: 44rem;
+	font-family: var(--sl-font-mono);
+}
+.concept-diagram text {
+	fill: currentColor;
+	font-size: 12px;
+}
+.concept-diagram .dg-muted {
+	fill: var(--sl-color-gray-3);
+}
+.concept-diagram .dg-box {
+	fill: var(--sl-color-gray-6);
+	stroke: var(--sl-color-gray-4);
+	stroke-width: 1.25;
+}
+.concept-diagram .dg-hi {
+	fill: var(--sl-color-gray-5);
+	stroke: currentColor;
+	stroke-width: 1.5;
+}
+.concept-diagram .dg-line {
+	fill: none;
+	stroke: var(--sl-color-gray-4);
+	stroke-width: 1.25;
+}
+.concept-diagram .dg-dash {
+	fill: none;
+	stroke: var(--sl-color-gray-4);
+	stroke-width: 1.25;
+	stroke-dasharray: 4 3;
+}
+.concept-diagram .dg-arrow {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.5;
+}
+.concept-diagram .dg-dot {
+	fill: var(--sl-color-gray-3);
+}
+.concept-diagram .dg-dot-hi {
+	fill: currentColor;
+}
+.concept-diagram figcaption {
+	margin-top: 0.5rem;
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-gray-3);
+}

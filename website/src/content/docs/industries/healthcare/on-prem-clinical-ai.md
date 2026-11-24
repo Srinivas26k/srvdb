@@ -26,7 +26,7 @@ A complete, runnable **On-prem Clinical AI Stack** reference implementation is i
 
 1. SrvDB is the retrieval layer: one database per department or data domain, all on hospital hardware.
 2. Assistants share the same pattern: retrieve, answer with citations, log what was shown.
-3. Crash-safe `persist()` and a local audit log of retrievals support governance.
+3. Crash-safe `save()` and a local audit log of retrievals support governance.
 4. Database folders can be copied to offline rural sites.
 
 ## What changes
@@ -49,7 +49,7 @@ A complete, runnable **On-prem Clinical AI Stack** reference implementation is i
 
 - **[Several databases](/srvdb/start/use-cases/)**: each database is a directory, so different data types or tenants stay separate.
 - **[Fully offline](/srvdb/start/introduction/)**: SrvDB runs in-process and never opens a network connection.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 - **[Thread-safe handles](/srvdb/guides/concurrency/)**: one database object can be shared between threads; searches run in parallel.
 - **[HNSW graph (`hnsw`)](/srvdb/guides/index-modes/)**: approximate search that visits a small part of large collections; tune with `set_ef_search()`.
 
@@ -70,7 +70,7 @@ A complete, runnable **On-prem Clinical AI Stack** reference implementation is i
 import json
 import srvdb
 
-db = srvdb.open("./on-prem-clinical-ai-db", dimension=768, mode="hnsw")
+db = srvdb.create("./on-prem-clinical-ai-db", dimension=768, index="hnsw", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -79,7 +79,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def retrieve(query, k=5):
     hits = db.search(embed(query), k)
@@ -98,7 +98,7 @@ SrvDB keeps data local, but it is not a certified medical device or a compliance
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

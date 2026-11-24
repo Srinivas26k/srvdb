@@ -74,7 +74,7 @@ impl SrvDB {
     pub fn train_ivf(&mut self) -> Result<()> {
         if self.ivf_index.is_none() {
             return Err(Error::invalid_state(
-                "IVF mode not enabled. Call set_mode(IndexMode::Ivf) first.",
+                "IVF mode is not enabled: switch the database to IVF mode before training",
             ));
         }
 
@@ -104,24 +104,8 @@ impl SrvDB {
 
         // 3. Re-index / Populate Partitions
         log::debug!("IVF: populating partitions");
-        if let Some(ref ivf) = self.ivf_index {
-            if let Some(ref vstorage) = self.vector_storage {
-                let distance_fn = |a_id: u64, b_id: u64| -> f32 {
-                    if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
-                        1.0 - search::cosine_similarity(a, b)
-                    } else {
-                        f32::MAX
-                    }
-                };
-
-                use rayon::prelude::*;
-                (0..count).into_par_iter().for_each(|id| {
-                    if let Some(vec_data) = vstorage.get(id) {
-                        let vec = Vector::new(vec_data.to_vec());
-                        let _ = ivf.add(id, &vec, &distance_fn);
-                    }
-                });
-            }
+        if let (Some(ivf), Some(vstorage)) = (&self.ivf_index, &self.vector_storage) {
+            populate_partitions(ivf, count, |id| vstorage.get(id))?;
         }
 
         log::info!("IVF: training complete");
@@ -158,4 +142,28 @@ impl SrvDB {
         }
         Ok(())
     }
+}
+
+/// Insert vectors `0..count` into their IVF partitions.
+///
+/// Stops at the first failure and returns it: a partially populated index
+/// would silently miss vectors in search. `get` returns `None` for ids
+/// without a stored vector, which are skipped.
+pub(super) fn populate_partitions<'a, G>(ivf: &IVFIndex, count: u64, get: G) -> Result<()>
+where
+    G: Fn(u64) -> Option<&'a [f32]> + Sync,
+{
+    use rayon::prelude::*;
+    let distance_fn = |a_id: u64, b_id: u64| -> f32 {
+        match (get(a_id), get(b_id)) {
+            (Some(a), Some(b)) => 1.0 - search::cosine_similarity(a, b),
+            _ => f32::MAX,
+        }
+    };
+    (0..count).into_par_iter().try_for_each(|id| match get(id) {
+        Some(values) => ivf
+            .add(id, &Vector::new(values.to_vec()), &distance_fn)
+            .map_err(Error::from),
+        None => Ok(()),
+    })
 }

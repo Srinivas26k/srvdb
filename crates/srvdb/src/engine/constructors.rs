@@ -4,12 +4,17 @@ use super::*;
 
 impl SrvDB {
     /// Create new database with Product Quantization
+    ///
+    /// # Errors
+    /// `InvalidInput` for empty, ragged or non-finite training vectors or a
+    /// dimension outside 128..=4096 (checked before anything is created),
+    /// `InvalidState` if the directory already holds PQ vectors, `Locked`,
+    /// `SettingsMismatch`, or I/O.
     pub fn new_quantized(path: &str, training_vectors: &[Vector]) -> Result<Self> {
+        let dimension = validate::training(training_vectors.iter().map(|v| v.data.as_slice()))?;
+        validate::new_dimension(dimension)?;
         let db_path = Path::new(path);
         std::fs::create_dir_all(db_path)?;
-
-        validate::training(training_vectors.iter().map(|v| v.data.as_slice()))?;
-        let dimension = training_vectors[0].data.len();
 
         // Convert training vectors to Vec<Vec<f32>>
         let embedded: Vec<Vec<f32>> = training_vectors.iter().map(|v| v.data.clone()).collect();
@@ -57,14 +62,18 @@ impl SrvDB {
     }
 
     /// Create new database with Scalar Quantization (SQ8)
+    ///
+    /// # Errors
+    /// `InvalidInput` for a dimension outside 128..=4096 or invalid training
+    /// vectors, `DimensionMismatch` if they do not match `dimension` (both
+    /// checked before anything is created), `Locked`, `SettingsMismatch`,
+    /// or I/O.
     pub fn new_scalar_quantized(
         path: &str,
         dimension: usize,
         training_vectors: &[Vec<f32>],
     ) -> Result<Self> {
-        let db_path = Path::new(path);
-        std::fs::create_dir_all(db_path)?;
-
+        validate::new_dimension(dimension)?;
         let trained_dim = validate::training(training_vectors.iter().map(|v| v.as_slice()))?;
         if trained_dim != dimension {
             return Err(Error::DimensionMismatch {
@@ -72,6 +81,8 @@ impl SrvDB {
                 actual: trained_dim,
             });
         }
+        let db_path = Path::new(path);
+        std::fs::create_dir_all(db_path)?;
 
         // First: opening metadata finishes an interrupted compaction
         let lock = storage::lock::acquire(Path::new(path))?;

@@ -1,12 +1,12 @@
 ---
-title: srvdb.Database.train_ivf
+title: db.train_ivf
 description: Train the IVF index on the stored vectors.
 ---
 
 Train the IVF index on the stored vectors.
 
 ```python
-Database.train_ivf() -> None
+db.train_ivf() -> None
 ```
 
 ## Parameters
@@ -31,14 +31,14 @@ None.
 ## Notes
 
 - Trains on up to the first 10,000 stored vectors, then assigns every vector to a partition. Takes time proportional to the data.
-- Thread safety: a `Database` is safe to share between threads. This method releases the GIL; writes (`add`, `upsert`, `delete`, `persist`, `compact`, mode and IVF changes) take an exclusive lock and wait for each other and for running searches instead of failing. See [Threads and processes](/srvdb/guides/concurrency/).
+- Thread safety: a database object is safe to share between threads. This method releases the GIL; writes (`add`, `upsert`, `delete`, `save`, `compact`, mode and IVF changes) take an exclusive lock and wait for each other and for running searches instead of failing. See [Threads and processes](/srvdb/guides/concurrency/).
 
 ## Examples
 
 ```python
 import srvdb
 
-db = srvdb.open("./vectors", dimension=128)
+db = srvdb.create("./vectors", dimension=128)
 v = [1.0] + [0.0] * 127   # tiny 128-dimension vectors
 w = [0.0, 1.0] + [0.0] * 126
 db.add(["a", "b"], [v, w], ["{}", "{}"])
@@ -48,5 +48,5 @@ db.train_ivf()
 
 ## See also
 
-- [`srvdb.Database.configure_ivf`](/srvdb/reference/python/database-configure-ivf/): Set the IVF partition parameters.
-- [`srvdb.Database.set_mode`](/srvdb/reference/python/database-set-mode/): Switch the index mode of an open database.
+- [`db.configure_ivf`](/srvdb/reference/python/db-configure-ivf/): Set the IVF partition parameters.
+- [`db.set_mode`](/srvdb/reference/python/db-set-mode/): Switch the index mode of an open database.

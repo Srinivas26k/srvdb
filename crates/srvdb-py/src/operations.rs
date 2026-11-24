@@ -4,7 +4,7 @@
 //! to call from several Python threads at once.
 
 use crate::database::{PyDatabase, State};
-use crate::errors::to_py;
+use crate::errors::{non_negative, to_py};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use srvdb::{SearchResult, VectorEngine};
@@ -35,13 +35,13 @@ impl PyDatabase {
     ///     similarities (approximate in "pq" mode).
     ///
     /// Raises:
-    ///     ValueError: k is 0, or the query has the wrong dimension or a NaN
-    ///         or infinite value.
-    ///     OverflowError: k is negative.
+    ///     ValueError: k is 0 or negative, or the query has the wrong
+    ///         dimension or a NaN or infinite value.
     ///     RuntimeError: an internal fault occurred.
     ///
     /// Releases the GIL; searches from several threads run in parallel.
-    fn search(&self, py: Python<'_>, query: Vec<f32>, k: usize) -> PyResult<Vec<(String, f32)>> {
+    fn search(&self, py: Python<'_>, query: Vec<f32>, k: i64) -> PyResult<Vec<(String, f32)>> {
+        let k = non_negative("k", k)?;
         let query = srvdb::Vector::new(query);
         self.read(py, |s| {
             let results = VectorEngine::search(&s.db, &query, k).map_err(to_py)?;
@@ -57,8 +57,9 @@ impl PyDatabase {
         &self,
         py: Python<'_>,
         queries: Vec<Vec<f32>>,
-        k: usize,
+        k: i64,
     ) -> PyResult<Vec<Vec<(String, f32)>>> {
+        let k = non_negative("k", k)?;
         let queries: Vec<srvdb::Vector> = queries.into_iter().map(srvdb::Vector::new).collect();
         self.read(py, |s| {
             let batches = VectorEngine::search_batch(&s.db, &queries, k).map_err(to_py)?;
@@ -67,18 +68,17 @@ impl PyDatabase {
     }
 
     /// Metadata stored for `id`, as a JSON object string that also holds
-    /// the id under the key "__id__".
+    /// the id under the key "__id__", or None if no live vector has this
+    /// id (like dict.get).
     ///
     /// Raises:
-    ///     ValueError: no live vector has this id.
     ///     OSError: reading the metadata failed.
     ///     RuntimeError: an internal fault occurred.
     fn get(&self, py: Python<'_>, id: String) -> PyResult<Option<String>> {
         self.read(py, |s| {
-            let internal_id = s
-                .id_map
-                .get(&id)
-                .ok_or_else(|| PyValueError::new_err(format!("ID not found: {id}")))?;
+            let Some(internal_id) = s.id_map.get(&id) else {
+                return Ok(None);
+            };
             VectorEngine::get_metadata(&s.db, *internal_id).map_err(to_py)
         })
     }
@@ -88,10 +88,10 @@ impl PyDatabase {
         self.read(py, |s| Ok(s.db.live_count() as usize))
     }
 
-    /// Make everything written so far durable (crash-safe commit).
+    /// Alias of save(): make everything written so far durable.
     ///
     /// When it returns, every earlier add, upsert and delete survives a
-    /// crash or power loss; writes after the last persist() may be lost.
+    /// crash or power loss; writes after the last save() may be lost.
     ///
     /// Raises:
     ///     OSError: writing or syncing the files failed.
@@ -131,8 +131,9 @@ impl PyDatabase {
     /// lower is faster (typical 50-300). Saved by persist().
     ///
     /// Raises:
-    ///     ValueError: ef_search is 0.
-    fn set_ef_search(&self, py: Python<'_>, ef_search: usize) -> PyResult<()> {
+    ///     ValueError: ef_search is 0, negative or above 10000.
+    fn set_ef_search(&self, py: Python<'_>, ef_search: i64) -> PyResult<()> {
+        let ef_search = non_negative("ef_search", ef_search)?;
         self.write(py, |s| s.db.set_ef_search(ef_search).map_err(to_py))
     }
 
@@ -146,7 +147,11 @@ impl PyDatabase {
     /// values; in "ivf" mode it replaces the index with an untrained one.
     /// Either way, call train_ivf() afterwards.
     #[pyo3(signature = (nlist=100, nprobe=10))]
-    fn configure_ivf(&self, py: Python<'_>, nlist: usize, nprobe: usize) -> PyResult<()> {
+    fn configure_ivf(&self, py: Python<'_>, nlist: i64, nprobe: i64) -> PyResult<()> {
+        let (nlist, nprobe) = (
+            non_negative("nlist", nlist)?,
+            non_negative("nprobe", nprobe)?,
+        );
         let config = srvdb::ivf::IVFConfig {
             nlist,
             nprobe,
@@ -187,6 +192,9 @@ impl PyDatabase {
     }
 
     fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+        if self.is_closed(py) {
+            return Ok("SrvDB(closed)".to_string());
+        }
         self.info(py)
     }
 }

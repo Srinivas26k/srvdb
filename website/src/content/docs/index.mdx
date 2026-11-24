@@ -34,9 +34,11 @@ pip install srvdb
 ```python
 import srvdb
 
-db = srvdb.open("./memory", dimension=384)
-db.add(ids=["a"], embeddings=[embedding], metadatas=['{"text": "hello"}'])
-db.persist()                       # crash-safe from here on
+with srvdb.create("./memory", dimension=384) as db:
+    db.add(ids=["a"], embeddings=[embedding], metadatas=['{"text": "hello"}'])
+# saved: crash-safe from here on
+
+db = srvdb.open("./memory")        # settings are read from disk
 print(db.search(query, k=5))       # [("a", 0.93), ...]
 ```
 
@@ -50,6 +52,7 @@ or see [Community](/srvdb/project/community/) for every way to take part.
 
 <CardGrid>
 	<LinkCard title="Quickstart" description="Install SrvDB and run your first search." href="/srvdb/start/quickstart/" />
+	<LinkCard title="Concepts" description="How flat, HNSW, IVF, SQ8, PQ and RaBitQ work inside SrvDB, with diagrams." href="/srvdb/concepts/comparison/" />
 	<LinkCard title="Guides" description="Local RAG, index modes, durability, concurrency and errors." href="/srvdb/guides/local-rag/" />
 	<LinkCard title="Python API" description="Every class, method, argument and exception." href="/srvdb/reference/python/" />
 	<LinkCard title="Benchmarks" description="How SrvDB is measured, with the commands to reproduce it." href="/srvdb/benchmarks/" />

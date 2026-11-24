@@ -15,7 +15,7 @@ sending documents anywhere. Chunks are embedded, stored with their text as
 metadata, and the closest chunks become the LLM's context.
 
 - **Why SrvDB:** no server to run, data stays on the machine, `upsert` makes
-  re-indexing changed files simple, `persist()` makes the index crash-safe.
+  re-indexing changed files simple, `save()` makes the index crash-safe.
 - **Start with:** `flat`; `hnsw` for very large corpora.
 - **Guide:** [Build a local RAG app](/srvdb/guides/local-rag/).
 
@@ -26,11 +26,11 @@ tool results as embeddings, recall the relevant ones each turn, forget with
 `delete`.
 
 ```python
-memory = srvdb.open("./agent-memory", dimension=384)
+memory = srvdb.create("./agent-memory", dimension=384, exist_ok=True)
 
 def remember(key, text):
     memory.upsert([key], [embed(text)], [json.dumps({"text": text})])
-    memory.persist()
+    memory.save()
 
 def recall(query, k=5):
     return [json.loads(memory.get(i))["text"] for i, _ in memory.search(embed(query), k)]
@@ -126,7 +126,7 @@ Desktop apps and services that keep each user's data apart.
 - **Why SrvDB:** each database is a separate directory; deleting a user
   means deleting their directory.
 - **Note:** each directory can be open in one place at a time, so keep one
-  `Database` object per user in a single process.
+  database object per user in a single process.
 
 ## When to choose something else
 

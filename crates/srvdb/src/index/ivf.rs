@@ -182,7 +182,10 @@ impl IVFIndex {
         distance_fn: &impl Fn(u64, u64) -> f32,
     ) -> Result<()> {
         if self.centroids.is_empty() {
-            anyhow::bail!("IVF Index not trained");
+            return Err(crate::Error::invalid_state(
+                "the IVF index is not trained: call train_ivf() after adding vectors",
+            )
+            .into());
         }
 
         let partition_id = self.find_partition(vector);

@@ -72,8 +72,12 @@ pytest tests/python
 ```
 
 Changes to the Python API update its page under the
-[Python API reference](/srvdb/reference/python/). Docs site changes must pass
-`npm run build` in `website/`.
+[Python API reference](/srvdb/reference/python/). Every example there and
+under Concepts, Get started and Guides must pass
+`python website/scripts/check_examples.py` after `maturin develop`; mark a
+block that cannot run offline with `<!-- check_examples: skip (reason) -->`
+on the line before it. Docs site changes must pass `npm run build` in
+`website/`.
 
 ## Proposing an idea
 

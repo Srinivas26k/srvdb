@@ -1,35 +1,49 @@
 ---
-title: Durability and persist()
-description: Exactly what survives a crash, and how to use persist().
+title: Durability and save()
+description: Exactly what survives a crash, and how to use save().
 ---
 
 ## The guarantee
 
-> When `persist()` returns successfully, every earlier `add`, `upsert` and
+> When `save()` returns successfully, every earlier `add`, `upsert` and
 > `delete` survives a process crash or power loss. After a crash the database
-> reopens in exactly the state of the last successful `persist()`: later
+> reopens in exactly the state of the last successful `save()`: later
 > writes are absent, never partially present, and nothing committed is
 > corrupted.
 
-Writes after the last `persist()` may be lost. Searches see writes as soon as
-the call that made them returns, before `persist()`.
+Writes after the last `save()` may be lost. Searches see writes as soon as
+the call that made them returns, before `save()`.
 
 ## Using it
 
 ```python
 for batch in batches:
     db.add(batch.ids, batch.vectors, batch.metas)
-    db.persist()          # checkpoint: this batch is now safe
+    db.save()             # checkpoint: this batch is now safe
 ```
 
-`persist()` flushes and fsyncs to disk, so it costs real time. Call it once
-per batch or at natural checkpoints, not after every vector.
+`save()` flushes and fsyncs to disk, so it costs real time. Call it once
+per batch or at natural checkpoints, not after every vector. `persist()` is
+the same method under its 0.3 name.
+
+A `with` block saves for you when it ends normally, and on an exception
+closes the database **without** saving, so a half-finished batch is never
+made durable:
+
+```python
+with srvdb.open("./db") as db:
+    db.add(ids, vectors, metas)
+# saved and closed here; after an exception: closed, not saved
+```
+
+SrvDB never saves behind your back: there is no autosave timer, and
+`db.close()` or garbage collection without `save()` discards unsaved writes.
 
 ## How it works
 
 - Vectors are appended to a file; metadata goes to an embedded
   [redb](https://github.com/cberner/redb) database.
-- `persist()` fsyncs the vector file, then records the committed count and
+- `save()` fsyncs the vector file, then records the committed count and
   pending deletes in **one durable redb transaction**. That transaction is the
   commit point.
 - On open, anything beyond the committed count is truncated, so the vector
@@ -46,7 +60,7 @@ per batch or at natural checkpoints, not after every vector.
 
 - The index mode and its parameters are stored in `index_settings.bin`
   (checksummed, replaced atomically). It is written when a database is
-  created and rewritten by `persist()` when the mode or a parameter changed;
+  created and rewritten by `save()` when the mode or a parameter changed;
   a crash leaves the old or the new settings, never a mix, and never affects
   committed vectors. Opening with settings that conflict with the stored ones
   is refused with an error and changes nothing.

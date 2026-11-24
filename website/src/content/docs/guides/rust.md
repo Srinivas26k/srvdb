@@ -10,12 +10,12 @@ anyhow = "1"
 ```
 
 ```rust
-use srvdb::types::DatabaseConfig;
-use srvdb::{SrvDB, Vector, VectorEngine};
+use srvdb::{CreateOptions, IndexChoice, SrvDB, Vector, VectorEngine};
 
 fn main() -> anyhow::Result<()> {
-    let config = DatabaseConfig::new(384)?;
-    let mut db = SrvDB::new_with_config("./rust-db", config)?;
+    let mut options = CreateOptions::new(IndexChoice::Hnsw);
+    options.set("m", 16)?.set_exist_ok(true);
+    let mut db = SrvDB::create("./rust-db", 384, &options)?;
 
     let id = db.add(&Vector::new(vec![0.1; 384]), r#"{"title": "first"}"#)?;
     db.persist()?;                                   // crash-safe from here
@@ -65,8 +65,12 @@ search is Rust-only for now; from Python, filter the results of `search`.
 ## Notes
 
 - Ids are `u64`, assigned in insertion order. `compact()` renumbers them.
-- Other constructors: `SrvDB::new_with_hnsw`, `new_scalar_quantized`,
-  `new_quantized` (PQ), `new_with_hnsw_quantized` (HNSW over PQ).
+- `SrvDB::create(path, dimension, &options)` makes a new database with an
+  index chosen by name (`IndexChoice`) and options checked against that
+  index; `SrvDB::open_existing(path)` reopens it with the recorded settings;
+  `SrvDB::delete_database(path)` removes a closed database directory. The
+  mode-specific constructors (`new_with_hnsw`, `new_scalar_quantized`,
+  `new_quantized`, `new_with_hnsw_quantized`, `new_rabitq`) still work.
 - Searches take `&self`; writes take `&mut self`. See
   [Threads and processes](/srvdb/guides/concurrency/).
 - Errors are a typed `srvdb::Error`; see [Handling errors](/srvdb/guides/errors/).

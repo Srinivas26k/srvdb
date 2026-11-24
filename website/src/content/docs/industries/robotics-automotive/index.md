@@ -17,7 +17,7 @@ Robots, vehicles and devices increasingly carry AI models that need memory, with
 ## Why SrvDB fits
 
 - **In-process search:** no network hop.
-- **Crash-safe:** after `persist()`, data survives power loss.
+- **Crash-safe:** after `save()`, data survives power loss.
 - **Compact storage** with SQ8 or PQ; ARM Linux wheels; usable from Rust.
 
 ## Five projects, five levels

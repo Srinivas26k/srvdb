@@ -38,7 +38,7 @@ def write(
     embeddings: Sequence[Sequence[float]],
     records: Iterable[dict[str, Any]],
 ) -> None:
-    """Upsert vectors with their records, then persist so they are durable."""
+    """Upsert vectors with their records, then save so they are durable."""
     if len(ids) != len(embeddings):
         raise ValueError(
             f"got {len(ids)} ids but {len(embeddings)} embeddings; "
@@ -48,15 +48,15 @@ def write(
         return
     metas = [json.dumps(r, ensure_ascii=False) for r in records]
     db.upsert(list(ids), [[float(x) for x in e] for e in embeddings], metas)
-    db.persist()
+    db.save()
 
 
 def remove(db: Database, ids: Sequence[str]) -> int:
-    """Delete ``ids`` (unknown ones are ignored) and persist the delete."""
+    """Delete ``ids`` (unknown ones are ignored) and save the delete."""
     if not ids:
         return 0
     removed = db.delete(list(ids))
-    db.persist()
+    db.save()
     return removed
 
 

@@ -49,7 +49,7 @@ A complete, runnable **Experiment Memory Agent** reference implementation is in 
 
 - **[Several databases](/srvdb/start/use-cases/)**: each database is a directory, so different data types or tenants stay separate.
 - **[`upsert`](/srvdb/guides/delete-upsert-compact/)**: inserts new items and replaces changed ones, so the knowledge base stays current.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 - **[`search_batch`](/srvdb/reference/python/)**: runs many queries at once, in parallel inside Rust.
 
 ## Use cases
@@ -69,7 +69,7 @@ A complete, runnable **Experiment Memory Agent** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.open("./experiment-memory-agent-db", dimension=512)
+db = srvdb.create("./experiment-memory-agent-db", dimension=512, index="flat", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def similar_runs(summary, k=5):
     hits = db.search(embed(summary), k)
@@ -97,7 +97,7 @@ SrvDB is classical software: it stores ordinary vectors describing experiments a
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

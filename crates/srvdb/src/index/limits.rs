@@ -10,6 +10,9 @@ use crate::error::{Error, Result};
 
 /// Largest vector dimension (the vector header and `DatabaseConfig` limit)
 pub const MAX_DIMENSION: usize = 4096;
+/// Smallest dimension `DatabaseConfig::new` and the quantized constructors
+/// accept for a new database
+pub const MIN_DIMENSION: usize = 128;
 /// Largest HNSW `m` (links per node; layer 0 keeps `2 * m`)
 pub const MAX_HNSW_M: usize = 256;
 /// Smallest HNSW `m`: the level multiplier is `1 / ln(m)`

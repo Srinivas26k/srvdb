@@ -72,8 +72,8 @@ fn damaged_settings_fail_with_checksum_mismatch_or_corrupt() {
 fn missing_or_empty_directories_are_not_databases() {
     let dir = TempDir::new().unwrap();
     let missing = dir.path().join("missing");
-    assert!(matches!(open_err(&missing), Error::InvalidInput(_)));
-    assert!(matches!(open_err(dir.path()), Error::InvalidInput(_)));
+    assert!(matches!(open_err(&missing), Error::NotFound(_)));
+    assert!(matches!(open_err(dir.path()), Error::NotFound(_)));
     assert!(!missing.exists(), "open_existing must not create anything");
 }
 

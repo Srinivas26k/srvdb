@@ -8,6 +8,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The Python API is a few verbs (#57, ADR 0013):
+  `srvdb.create(path, dimension, index="hnsw", *, exist_ok=False, **options)`
+  makes a new database (`FileExistsError` if one exists; `exist_ok=True`
+  opens it when its recorded settings match, `ValueError` otherwise), with
+  the index chosen by name (`flat`, `hnsw`, `ivf`, `sq8`, `pq`, `rabitq`,
+  `auto`) and options checked against that index (`m`, `ef_construction`,
+  `ef_search`, `nlist`, `nprobe`, `training`, `bits`, `rerank`, `seed`);
+  `srvdb.open(path)` reopens it with only the path (`FileNotFoundError` if
+  there is none; its unreleased `dimension`/`mode` arguments are removed);
+  `db.save()` commits (`persist()` stays as an alias); `db.close()` releases
+  the lock without saving; a database is a context manager that saves and
+  closes on a clean exit and closes without saving on an exception;
+  `srvdb.delete(path)` removes a closed database directory, refusing one
+  that holds other files or no SrvDB file. `Database(...)` and the `new_*`
+  constructors keep working but are no longer documented. The Python
+  reference is retitled around these verbs (`srvdb.create`, `db.add`,
+  `db.save`, ...); the per-constructor pages are removed. The LangChain
+  adapter's `from_texts` takes `index=` and index options instead of
+  `mode=`.
+- `db.get(id)` returns `None` for an unknown or deleted id, as the stub
+  declared, instead of raising `ValueError`. A negative `k`, `ef_search`,
+  `nlist`, `nprobe` or `rerank` raises `ValueError` instead of
+  `OverflowError` (#48).
+- `create` builds the database in a hidden sibling directory and renames it
+  into place, so a failed create leaves nothing behind; `delete` renames the
+  locked directory to a hidden tombstone before removing it and refuses
+  symbolic links.
+- Rust: `SrvDB::create(path, dimension, &CreateOptions)` with `IndexChoice`,
+  `SrvDB::delete_database(path)`, `SrvDB::index_name()` and
+  `SrvDB::dimension()`; new `Error::NotFound` and `Error::AlreadyExists`.
+  `SrvDB::open_existing` on a path without a database returns `NotFound`
+  (was `InvalidInput`).
 - RaBitQ search uses a fast-scan kernel (ADR 0012). Query tables are
   quantized to u8 and looked up in registers (AVX2 `vpshufb`, NEON `tbl`,
   chosen at runtime, with a scalar fallback) over a block-interleaved
@@ -100,6 +132,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unchanged (#26).
 
 ### Fixed
+- Product-quantized (PQ) similarity scores stay within [-1, 1] (#51). The
+  per-subspace cosine assumed unit-length centroids, but k-means reseeds
+  empty clusters with raw vectors, so scores up to about 1.09 were seen.
+  Both magnitudes are now divided out. Existing codebooks are unchanged;
+  scores from them are corrected on the next search.
+- `SrvDB::new_scalar_quantized` and `SrvDB::new_quantized` (Python
+  `new_scalar_quantized`, `new_product_quantized`) reject a dimension
+  outside 128..=4096 with `InvalidInput` (Python `ValueError`) before
+  creating anything, matching `DatabaseConfig::new` (#48). Existing
+  smaller quantized databases still open with `SrvDB::open_existing`.
+  PQ training with a sub-quantizer count that does not divide the
+  dimension is `InvalidInput`, and codebooks whose shape is inconsistent
+  are rejected on load as `Corrupt` instead of panicking during search.
+- `train_ivf()` returns the first error from placing a vector in its IVF
+  partition instead of discarding it and reporting success with an
+  incomplete index (#49). Its error outside IVF mode names the IVF mode
+  rather than a Rust enum variant.
 - The `ValueError` for an unknown mode now lists every accepted mode; `ivf`
   and the `scalar` and `product` aliases were missing.
 - HNSW recall on clustered data (#28). The graph kept only the M nearest

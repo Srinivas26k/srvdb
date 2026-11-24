@@ -1,12 +1,12 @@
 ---
-title: srvdb.Database.get_all_ids
+title: db.get_all_ids
 description: Return every live id.
 ---
 
 Return every live id.
 
 ```python
-Database.get_all_ids() -> list[str]
+db.get_all_ids() -> list[str]
 ```
 
 ## Parameters
@@ -31,7 +31,7 @@ Nothing in normal use.
 ```python
 import srvdb
 
-db = srvdb.open("./vectors", dimension=128)
+db = srvdb.create("./vectors", dimension=128)
 v = [1.0] + [0.0] * 127   # tiny 128-dimension vectors
 w = [0.0, 1.0] + [0.0] * 126
 db.add(["a", "b"], [v, w], ["{}", "{}"])
@@ -41,5 +41,5 @@ print(sorted(db.get_all_ids()))
 
 ## See also
 
-- [`srvdb.Database.count`](/srvdb/reference/python/database-count/): Return the number of searchable vectors.
-- [`srvdb.Database.get`](/srvdb/reference/python/database-get/): Return the metadata stored for an id.
+- [`db.count`](/srvdb/reference/python/db-count/): Return the number of searchable vectors.
+- [`db.get`](/srvdb/reference/python/db-get/): Return the metadata stored for an id.
