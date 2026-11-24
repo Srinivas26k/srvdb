@@ -1,0 +1,48 @@
+# Labelled proof steps for the recall@k evaluation, written for this example.
+# Columns (tab-separated): goal (a Lean goal state, abbreviated), useful premises
+# (comma-separated lemma names from lemmas.tsv that close or advance the goal).
+a b : ℕ ⊢ a + b = b + a	Nat.add_comm,add_comm
+n : ℕ ⊢ n * 1 = n	Nat.mul_one,mul_one
+a b c : ℕ ⊢ a * (b + c) = a * b + a * c	Nat.left_distrib,mul_add
+x y z : ℕ h₁ : x ≤ y h₂ : y ≤ z ⊢ x ≤ z	Nat.le_trans,le_trans
+n : ℕ ⊢ n % 2 = 0 ∨ n % 2 = 1	Nat.mod_two_eq_zero_or_one
+n : ℕ ⊢ Even n ∨ Odd n	Nat.even_or_odd
+m n : ℕ h : Even m ⊢ Even (m * n)	Nat.even_mul
+a b c : ℕ h₁ : a ∣ b h₂ : b ∣ c ⊢ a ∣ c	Nat.dvd_trans
+d a b : ℕ ha : d ∣ a hb : d ∣ b ⊢ d ∣ a + b	Nat.dvd_add
+a b : ℕ ⊢ Nat.gcd a b = Nat.gcd b a	Nat.gcd_comm
+p a b : ℕ hp : p.Prime h : p ∣ a * b ⊢ p ∣ a ∨ p ∣ b	Nat.Prime.dvd_mul
+p : ℕ hp : p.Prime ⊢ 0 < p	Nat.Prime.pos,Nat.Prime.two_le
+N : ℕ ⊢ ∃ p, N ≤ p ∧ p.Prime	Nat.exists_infinite_primes
+n : ℕ ⊢ 0 < n !	Nat.factorial_pos
+n : ℕ ⊢ ∑ i ∈ Finset.range (n + 1), i = ∑ i ∈ Finset.range n, i + n	Finset.sum_range_succ
+s t : Finset α f : α → β hc : t.card < s.card hf : ∀ a ∈ s, f a ∈ t ⊢ ∃ x ∈ s, ∃ y ∈ s, x ≠ y ∧ f x = f y	Finset.exists_ne_map_eq_of_card_lt_of_maps_to
+a b c d n : ℤ h₁ : a ≡ b [ZMOD n] h₂ : c ≡ d [ZMOD n] ⊢ a * c ≡ b * d [ZMOD n]	Int.ModEq.mul
+a b n : ℤ k : ℕ h : a ≡ b [ZMOD n] ⊢ a ^ k ≡ b ^ k [ZMOD n]	Int.ModEq.pow
+p : ℕ hp : p.Prime a : ZMod p ha : a ≠ 0 ⊢ a ^ (p - 1) = 1	ZMod.pow_card_sub_one_eq_one
+G : Type [Group G] a b : G ⊢ (a * b)⁻¹ = b⁻¹ * a⁻¹	mul_inv_rev
+G : Type [Group G] a : G ⊢ a * a⁻¹ = 1	mul_inv_cancel
+G : Type [Group G] [Fintype G] x : G ⊢ x ^ Fintype.card G = 1	pow_card_eq_one,orderOf_dvd_card
+M : Type [Monoid M] a : M m n : ℕ ⊢ a ^ (m + n) = a ^ m * a ^ n	pow_add
+x y : ℝ ⊢ (x + y) ^ 2 = x ^ 2 + 2 * x * y + y ^ 2	add_sq
+x : ℝ ⊢ 0 ≤ x ^ 2	sq_nonneg
+a b : ℝ ⊢ 2 * a * b ≤ a ^ 2 + b ^ 2	two_mul_le_add_sq
+x y : ℝ ⊢ |x + y| ≤ |x| + |y|	abs_add
+ε : ℝ hε : 0 < ε ⊢ 0 < ε / 2	half_pos
+x : ℝ hx : 0 ≤ x ⊢ √x ^ 2 = x	Real.sq_sqrt
+x : ℝ ⊢ x + 1 ≤ Real.exp x	Real.add_one_le_exp
+x y : ℝ hx : 0 < x hy : 0 < y ⊢ Real.log (x * y) = Real.log x + Real.log y	Real.log_mul
+x : ℝ ⊢ Real.sin x ^ 2 + Real.cos x ^ 2 = 1	Real.sin_sq_add_cos_sq
+x y z : α [MetricSpace α] ⊢ dist x z ≤ dist x y + dist y z	dist_triangle
+u : ℕ → ℝ ⊢ Filter.Tendsto u Filter.atTop (nhds a) ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, dist (u n) a < ε	Metric.tendsto_atTop
+f g : ℕ → ℝ hf : Filter.Tendsto f Filter.atTop (nhds a) hg : Filter.Tendsto g Filter.atTop (nhds b) ⊢ Filter.Tendsto (fun n => f n + g n) Filter.atTop (nhds (a + b))	Filter.Tendsto.add
+f g : ℝ → ℝ hf : Continuous f hg : Continuous g ⊢ Continuous (g ∘ f)	Continuous.comp
+f : ℝ → ℝ a b : ℝ hab : a < b hfc : ContinuousOn f (Set.Icc a b) hfd : DifferentiableOn ℝ f (Set.Ioo a b) ⊢ ∃ c ∈ Set.Ioo a b, deriv f c = (f b - f a) / (b - a)	exists_deriv_eq_slope
+n : ℕ ⊢ ∫ x in a..b, x ^ n = (b ^ (n + 1) - a ^ (n + 1)) / (n + 1)	integral_pow
+s t : Set α ⊢ (s ∪ t)ᶜ = sᶜ ∩ tᶜ	Set.compl_union
+s t : Set α h₁ : s ⊆ t h₂ : t ⊆ s ⊢ s = t	Set.Subset.antisymm,Set.ext
+f : β → γ g : α → β hf : Function.Injective f hg : Function.Injective g ⊢ Function.Injective (f ∘ g)	Function.Injective.comp
+l : List α ⊢ l.reverse.reverse = l	List.reverse_reverse
+l₁ l₂ : List α ⊢ (l₁ ++ l₂).length = l₁.length + l₂.length	List.length_append
+A B : Matrix (Fin n) (Fin n) ℝ ⊢ (A * B).det = A.det * B.det	Matrix.det_mul
+⊢ Irrational √2	irrational_sqrt_two

@@ -1,0 +1,18 @@
+data/lemmas.tsv contains lemma names and statements taken from, or closely
+following, Lean 4 core and mathlib4:
+
+  mathlib4  https://github.com/leanprover-community/mathlib4
+  Copyright (c) the mathlib contributors
+  Licensed under the Apache License, Version 2.0
+  https://www.apache.org/licenses/LICENSE-2.0
+
+  Lean 4  https://github.com/leanprover/lean4
+  Copyright (c) Microsoft Corporation and the Lean FRO contributors
+  Licensed under the Apache License, Version 2.0
+
+Changes: statements were selected, shortened to one line (proofs and
+docstrings removed) and may differ in detail from the current mathlib
+version; the "uses" column is a simplified dependency graph written for this
+example, not extracted from mathlib's proof terms.
+
+data/proof_steps.tsv was written for this example.
