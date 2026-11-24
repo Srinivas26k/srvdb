@@ -3,25 +3,21 @@ title: SrvDB, the embedded vector database for local AI
 description: SrvDB is an open-source embedded vector database for Python and Rust. Semantic search and RAG on local disk, no server, crash-safe. Not SurrealDB.
 template: splash
 hero:
-  title: The sharpest eye for your local AI
-  tagline: SrvDB is an embedded vector database. It runs inside your app, needs no server, and keeps your data safe through crashes.
-  image:
-    file: ../../assets/eagle.svg
-    alt: The SrvDB eagle
+  title: SrvDB
+  tagline: An embedded vector database that runs inside your application, needs no server, and keeps your data safe through crashes.
   actions:
-    - text: Get started
+    - text: Quickstart
       link: /srvdb/start/quickstart/
       icon: right-arrow
-    - text: Build a local RAG app
-      link: /srvdb/guides/local-rag/
-      variant: secondary
     - text: GitHub
       link: https://github.com/Srinivas26k/srvdb
       icon: github
       variant: minimal
 ---
 
-import { Card, CardGrid, Code } from '@astrojs/starlight/components';
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+## Quickstart
 
 ```bash
 pip install srvdb
@@ -36,21 +32,11 @@ db.persist()                       # crash-safe from here on
 print(db.search(query, k=5))       # [("a", 0.93), ...]
 ```
 
-<CardGrid stagger>
-	<Card title="In-process, offline" icon="laptop">
-		A library, not a service. No server, no network access, no background
-		process. Works on laptops, desktops and air-gapped machines.
-	</Card>
-	<Card title="Crash-safe by design" icon="approve-check">
-		After `persist()` returns, your data survives a crash or power loss, and
-		the database reopens exactly as it was. Every write path has a crash test.
-	</Card>
-	<Card title="Pick your trade-off" icon="setting">
-		Exact flat search, HNSW, IVF, or 4× (SQ8) and up to 32× (PQ) smaller
-		storage. Switch with one argument.
-	</Card>
-	<Card title="Rust core, Python first" icon="seti:rust">
-		A Rust engine with SIMD distance kernels, thread-safe Python bindings that
-		release the GIL, typed errors in both languages.
-	</Card>
+## Documentation
+
+<CardGrid>
+	<LinkCard title="Quickstart" description="Install SrvDB and run your first search." href="/srvdb/start/quickstart/" />
+	<LinkCard title="Guides" description="Local RAG, index modes, durability, concurrency and errors." href="/srvdb/guides/local-rag/" />
+	<LinkCard title="Python API" description="Every class, method, argument and exception." href="/srvdb/reference/python-api/" />
+	<LinkCard title="Benchmarks" description="How SrvDB is measured, with the commands to reproduce it." href="/srvdb/benchmarks/" />
 </CardGrid>
