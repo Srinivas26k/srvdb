@@ -62,7 +62,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of post-filtering search results; LangChain dict filters now
   accept the operators above (a dict value is an operator object, a list
   value is rejected; use `$in`), and LlamaIndex `NIN` now matches a
-  missing key, like `NE`. A LangChain callable filter still post-filters.
+  missing key, like `NE`. A LangChain callable filter, and a LangChain dict
+  filter with a dotted key such as `"a.b"` (equality on that literal key,
+  as before), still post-filter. Integers compare exactly (2^53 + 1 is not
+  2^53). A filter holds at most 1,000 conditions and each `$in` / `$nin`
+  list at most 10,000 values; dict keys in `where` must be `str` at every
+  level. LlamaIndex queries now raise `ValueError` for: an empty nested
+  `MetadataFilters` group (it used to match everything under AND), `IN` /
+  `NIN` with a string value (it used to test substrings; pass a list),
+  `EQ` / `NE` with a list value (pass `IN`), and more than 10,000
+  `node_ids` or `doc_ids`.
 - Persisted index settings (#50, ADR 0011): the index mode and its
   parameters (HNSW `m` / `ef_construction` / `ef_search`, IVF `nlist` /
   `nprobe`, RaBitQ bits / rerank / seed, SQ8, PQ, auto) are stored in a

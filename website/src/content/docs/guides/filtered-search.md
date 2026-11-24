@@ -48,8 +48,11 @@ the value to match or a dict of operators. Several keys must all match.
 | `{"$not": {...}}` | the filter does not match |
 | `{"source.lang": "en"}` | `lang` inside the object stored under `source` |
 
-Numbers compare by value, so `1` matches `1.0`. A bool is not a number,
-so `True` does not match `1`.
+Numbers compare by value, so `1` matches `1.0`; integers compare
+exactly, so `2**53 + 1` does not match `2**53`. A bool is not a number,
+so `True` does not match `1`. Dict keys must be `str`. A filter holds at
+most 1,000 conditions, and each `$in` or `$nin` list at most 10,000
+values.
 
 ```python
 import json
