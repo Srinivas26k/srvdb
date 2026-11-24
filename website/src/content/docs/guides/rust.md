@@ -57,9 +57,9 @@ fn recent(db: &SrvDB, query: &Vector) -> srvdb::Result<()> {
 
 With an HNSW index, non-matching vectors are still walked through but
 never returned. When few enough vectors match that scoring them directly is
-cheaper (with the default settings, under about 11% of 1M vectors or 35%
-of 100k), SrvDB scores the matching ones exactly instead, which is faster
-and exact. Other modes always score the matching vectors exactly. Filtered
+cheaper (`matches² < 4 · ef_search · M · vectors`; see the
+[measurements](https://github.com/Srinivas26k/srvdb/blob/master/docs/benchmarks.md#filtered-search)),
+SrvDB scores the matching ones exactly instead, which is faster and exact. Other modes always score the matching vectors exactly. Filtered
 search is Rust-only for now; from Python, filter the results of `search`.
 
 ## Notes

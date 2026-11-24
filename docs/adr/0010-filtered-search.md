@@ -10,6 +10,8 @@ non-matching results, so a selective filter returned fewer than k results.
 In the benchmark harness (`--filter-pct`, 50k clustered 128-d vectors,
 k = 10) post-filtering left every query short at 1% and 10% matching, with
 recall@10 of 0.008 and 0.09 against exact filtered search (issue #25).
+Hardware, OS, commit and command for this and every number below are in
+docs/benchmarks.md, "Filtered search".
 
 Constraints: indexes are derived data (ADR 0004), so nothing new may be
 persisted; metadata lives in redb as JSON text, and reading it per visited
@@ -32,16 +34,21 @@ node would dominate the cost of a search.
    per node so the expansion costs O(M^2) per node. Without the cap the
    two-hop scan cost seconds per query on 20k vectors.
 3. **Exact scan when it is cheaper.** HNSW skips the graph and scores the
-   matching ids exactly when `matches^2 < 15 * ef * M * live`. Measured on
-   20k vectors (ef 100, M 16), with the walk forced: about 2.5k distance
-   calls unfiltered, 4.5k at 50% matching, 12.5k at 10% and 19.9k (the
-   whole graph) at 1%, so visits follow roughly `ef * M / s`. Each visit
-   cost about 2 us including the two-hop expansion; scoring one id
-   exactly cost about 0.13 us. Equal cost gives `s^2 * n = 15 * ef * M`.
-   With the defaults (ef 50, M 16) the walk is used above about 35%
-   matching at 100k vectors, 11% at 1M and 3.5% at 10M. A fixed
-   percentage would be wrong: at 50k vectors the exact scan won even at
-   10%.
+   matching ids exactly when `matches^2 < 4 * ef * M * live`. Equal cost
+   at selectivity `s` is `s * n * c_exact = c_walk(s)`. The ignored test
+   `filtered_walk_cost` (`cargo test --release -p srvdb filtered_walk_cost
+   -- --ignored --nocapture`) forces the walk on 20k seeded clustered 64-d
+   vectors (M 16, ef 100). On an AMD Ryzen 5 3550H, Ubuntu 26.04.1,
+   kernel 7.0.0-43, commit 08801ab, it measured 760, 2.4k, 7.8k and 19.1k
+   visits per query at 100%, 50%, 10% and 1% matching. Each visit cost
+   0.4 to 4 us, rising as the filter gets more selective (two-hop
+   expansion), against 0.14 to 0.21 us per exactly scored id. That gives
+   a crossover ratio of 1.1 to 4.1, so the ratio is 4, the top of the
+   selective range. With the defaults (ef 50, M 16) the exact scan is used
+   below about 18% matching at 100k vectors, 5.7% at 1M and 1.8% at 10M.
+   A fixed percentage would be wrong for either small or large databases.
+   An earlier probe on uniform random data suggested a ratio of 15; it
+   was not committed and was replaced by this measurement.
 4. **k results guaranteed.** If the walk returns fewer than
    `min(k, matches)` results (an unreachable part of the graph), the
    matches are scored exactly. Flat, SQ8, PQ and IVF modes always score
@@ -78,5 +85,5 @@ node would dominate the cost of a search.
     the threshold and needs its own benchmark.
   - **IVF.** IVF scores the matches exactly instead of walking partitions
     with the filter.
-  - The 15 ratio comes from one machine under load; re-measure on a quiet
-    machine and at 1M vectors.
+  - The ratio of 4 comes from one machine under load and one dataset;
+    re-measure on a quiet machine, on real datasets and at 1M vectors.

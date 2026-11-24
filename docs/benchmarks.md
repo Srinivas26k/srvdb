@@ -64,13 +64,57 @@ for p in 1 10 50; do
 done
 ```
 
-The HNSW exact-scan threshold (`EXACT_COST_RATIO` in
-`crates/srvdb/src/engine/filter.rs`) comes from forcing the graph walk at
-every selectivity on 20 000 vectors (ef 100, M 16): the walk made about
-2 500 distance calls unfiltered, 4 500 at 50%, 12 500 at 10% and 19 900
-(the whole graph) at 1%, at roughly 2 us per visited node including the
-two-hop expansion, while an exact scan cost about 0.13 us per matching
-id. Equal cost gives `s^2 * n = 15 * ef * M` at selectivity `s`.
+Example run on an AMD Ryzen 5 3550H (8 logical cores), Ubuntu 26.04.1,
+kernel 7.0.0-43, release build of the code committed as 3a54d1d (before
+`EXACT_COST_RATIO` changed from 15 to 4, so HNSW took the exact path at
+all three selectivities), synthetic dataset
+`synthetic-gauss(dim=128,n=50000,clusters=500,seed=42)`, 200 queries,
+k = 10, ef 100. The machine was shared with other builds (load average
+above 8), so QPS is indicative only; recall and short counts are not
+affected by load. Command, once per P in 1, 10, 50:
+`cargo run --release -p srvdb --example bench -- --dim 128 --n 50000 --modes flat,sq8,hnsw --filter-pct P`.
+
+| mode | filter | recall@10 | short | post-filter recall@10 | post-filter short |
+|---|--:|--:|--:|--:|--:|
+| flat | 1% | 1.000 | 0 | 0.008 | 200 |
+| sq8 | 1% | 0.988 | 0 | 0.0075 | 200 |
+| hnsw | 1% | 1.000 | 0 | 0.008 | 200 |
+| flat | 10% | 1.000 | 0 | 0.0945 | 200 |
+| sq8 | 10% | 0.992 | 0 | 0.095 | 200 |
+| hnsw | 10% | 1.000 | 0 | 0.0945 | 200 |
+| flat | 50% | 1.000 | 0 | 0.504 | 199 |
+| sq8 | 50% | 0.985 | 0 | 0.502 | 200 |
+| hnsw | 50% | 1.000 | 0 | 0.504 | 199 |
+
+### Exact-scan threshold
+
+With HNSW, `search_filtered` scores the matching ids exactly instead of
+walking the graph when `matches^2 < EXACT_COST_RATIO * ef * M * live`
+(`crates/srvdb/src/engine/filter.rs`). Equal cost at selectivity `s` is
+`s * n * c_exact = c_walk(s)`, so `ratio = s * c_walk / (c_exact * ef * M)`.
+An ignored test measures it with the walk forced:
+
+```bash
+cargo test --release -p srvdb filtered_walk_cost -- --ignored --nocapture
+```
+
+Two consecutive runs on the machine above (Ubuntu 26.04.1, kernel
+7.0.0-43, commit 08801ab, load average about 8), with 20 000 seeded
+clustered 64-d vectors (200 clusters), 50 queries, M 16, ef 100:
+
+| matching | visits/query | walk us/query | us/visit | exact us/match | ratio |
+|--:|--:|--:|--:|--:|--:|
+| 100% | 760 / 759 | 331 / 294 | 0.44 / 0.39 | 0.15 / 0.17 | 1.4 / 1.1 |
+| 50% | 2384 / 2382 | 1220 / 1205 | 0.51 / 0.51 | 0.17 / 0.20 | 2.2 / 1.9 |
+| 10% | 7804 / 7801 | 9415 / 9587 | 1.21 / 1.23 | 0.21 / 0.15 | 2.8 / 4.1 |
+| 1% | 19143 / 19141 | 76542 / 74800 | 4.00 / 3.91 | 0.14 / 0.14 | 3.5 / 3.4 |
+
+Each visit gets more expensive as the filter gets more selective, because
+of the two-hop expansion. `EXACT_COST_RATIO` is 4, the top of the
+selective range where the choice matters. With the defaults (ef 50, M 16)
+that means an exact scan below about 18% matching at 100k vectors, 5.7%
+at 1M and 1.8% at 10M. A fixed percentage would be too low for small
+databases and too high for large ones.
 
 ## Real datasets (SIFT1M, GloVe)
 
