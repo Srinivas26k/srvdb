@@ -69,7 +69,7 @@ A complete, runnable **Continuous Compliance Platform** reference implementation
 import json
 import srvdb
 
-db = srvdb.Database("./continuous-compliance-platform-db", dimension=768, mode="hnsw")
+db = srvdb.open("./continuous-compliance-platform-db", dimension=768, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

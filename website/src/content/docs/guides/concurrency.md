@@ -28,8 +28,8 @@ A database directory can be open in **one place at a time**. A second open,
 from this process or another, raises `BlockingIOError`:
 
 ```python
-a = srvdb.Database("./db", dimension=384)
-b = srvdb.Database("./db", dimension=384)   # BlockingIOError: already open
+a = srvdb.open("./db", dimension=384)
+b = srvdb.open("./db", dimension=384)   # BlockingIOError: already open
 ```
 
 Share one `Database` object instead of opening the same path twice. The lock is

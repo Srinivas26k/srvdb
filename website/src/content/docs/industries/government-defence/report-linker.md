@@ -69,7 +69,7 @@ A complete, runnable **Report Linker** reference implementation is in progress. 
 import json
 import srvdb
 
-db = srvdb.Database("./report-linker-db", dimension=384)
+db = srvdb.open("./report-linker-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

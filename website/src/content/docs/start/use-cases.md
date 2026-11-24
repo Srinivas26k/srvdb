@@ -26,7 +26,7 @@ tool results as embeddings, recall the relevant ones each turn, forget with
 `delete`.
 
 ```python
-memory = srvdb.Database("./agent-memory", dimension=384)
+memory = srvdb.open("./agent-memory", dimension=384)
 
 def remember(key, text):
     memory.upsert([key], [embed(text)], [json.dumps({"text": text})])

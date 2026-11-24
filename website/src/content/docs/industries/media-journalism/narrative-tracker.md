@@ -69,7 +69,7 @@ A complete, runnable **Narrative Tracker** reference implementation is in progre
 import json
 import srvdb
 
-db = srvdb.Database("./narrative-tracker-db", dimension=384)
+db = srvdb.open("./narrative-tracker-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -91,7 +91,7 @@ needs Rust 1.99+ ([details](https://srinivas26k.github.io/srvdb/start/installati
 import json
 import srvdb
 
-db = srvdb.Database("./my-db", dimension=384)    # any dimension 128–4096
+db = srvdb.open("./my-db", dimension=384)    # returns a srvdb.Database; any dimension 128–4096
 
 db.add(
     ids=["intro", "pricing"],
@@ -116,7 +116,7 @@ import srvdb
 from sentence_transformers import SentenceTransformer   # pip install sentence-transformers
 
 model = SentenceTransformer("all-MiniLM-L6-v2")          # 384-dim, runs offline
-db = srvdb.Database("./rag-db", dimension=384)
+db = srvdb.open("./rag-db", dimension=384)
 
 chunks = ["SrvDB stores vectors on local disk.", "persist() makes writes crash-safe."]
 db.upsert(

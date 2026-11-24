@@ -8,7 +8,7 @@ description: Which exception SrvDB raises, and when.
 | `ValueError` | Invalid input: wrong dimension, NaN or infinity, `k < 1`, empty or duplicate ids, metadata that is not a JSON object, unknown mode, a call that does not fit the current mode |
 | `BlockingIOError` | The database is already open elsewhere |
 | `OSError` | The operating system reported an I/O failure (disk full, permissions, ...) |
-| `RuntimeError` | An internal fault, including a corrupt database file |
+| `RuntimeError` | An internal fault, including a corrupt database file or data that fails its checksum (restore from a backup) |
 
 Input is validated **before** anything is written, so a rejected call leaves
 the database unchanged.
@@ -38,4 +38,6 @@ match db.search(&query, 10) {
 ```
 
 Variants: `InvalidInput`, `DimensionMismatch`, `InvalidState`, `Locked`,
-`Corrupt`, `Io`, `Internal`.
+`Corrupt`, `ChecksumMismatch`, `Io`, `Internal`. `ChecksumMismatch` means a
+file was damaged after it was written; the message names the file and byte
+range.

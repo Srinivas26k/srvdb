@@ -69,7 +69,7 @@ A complete, runnable **Adverse Media Matcher** reference implementation is in pr
 import json
 import srvdb
 
-db = srvdb.Database("./adverse-media-matcher-db", dimension=768)
+db = srvdb.open("./adverse-media-matcher-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -70,7 +70,7 @@ A complete, runnable **On-prem Clinical AI Stack** reference implementation is i
 import json
 import srvdb
 
-db = srvdb.Database("./on-prem-clinical-ai-db", dimension=768, mode="hnsw")
+db = srvdb.open("./on-prem-clinical-ai-db", dimension=768, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

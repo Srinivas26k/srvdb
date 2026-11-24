@@ -69,7 +69,7 @@ A complete, runnable **Lab Q&A Assistant** reference implementation is in progre
 import json
 import srvdb
 
-db = srvdb.Database("./lab-qa-assistant-db", dimension=384)
+db = srvdb.open("./lab-qa-assistant-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

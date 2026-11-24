@@ -69,7 +69,7 @@ A complete, runnable **Second-source Finder** reference implementation is in pro
 import json
 import srvdb
 
-db = srvdb.Database("./second-source-finder-db", dimension=384)
+db = srvdb.open("./second-source-finder-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

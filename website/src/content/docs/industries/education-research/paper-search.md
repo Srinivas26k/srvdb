@@ -69,7 +69,7 @@ A complete, runnable **Paper Search** reference implementation is in progress. T
 import json
 import srvdb
 
-db = srvdb.Database("./paper-search-db", dimension=768)
+db = srvdb.open("./paper-search-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

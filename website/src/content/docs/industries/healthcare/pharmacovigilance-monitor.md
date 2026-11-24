@@ -69,7 +69,7 @@ A complete, runnable **Pharmacovigilance Monitor** reference implementation is i
 import json
 import srvdb
 
-db = srvdb.Database("./pharmacovigilance-monitor-db", dimension=768)
+db = srvdb.open("./pharmacovigilance-monitor-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

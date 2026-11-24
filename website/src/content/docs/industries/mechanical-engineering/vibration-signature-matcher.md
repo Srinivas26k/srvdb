@@ -69,7 +69,7 @@ A complete, runnable **Vibration Signature Matcher** reference implementation is
 import json
 import srvdb
 
-db = srvdb.Database("./vibration-signature-matcher-db", dimension=128, mode="sq8")
+db = srvdb.open("./vibration-signature-matcher-db", dimension=128, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -69,7 +69,7 @@ A complete, runnable **Scenario Miner** reference implementation is in progress.
 import json
 import srvdb
 
-db = srvdb.Database("./scenario-miner-db", dimension=256, mode="hnsw")
+db = srvdb.open("./scenario-miner-db", dimension=256, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -69,7 +69,7 @@ A complete, runnable **Scientific Similarity Lab** reference implementation is i
 import json
 import srvdb
 
-db = srvdb.Database("./scientific-similarity-lab-db", dimension=256)
+db = srvdb.open("./scientific-similarity-lab-db", dimension=256)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
