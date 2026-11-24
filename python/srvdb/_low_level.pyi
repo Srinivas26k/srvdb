@@ -4,8 +4,8 @@ Keep in sync with crates/srvdb-py/src.
 
 Errors: invalid arguments (wrong dimension, NaN or infinity, k < 1, negative
 counts, empty or duplicate ids, metadata that is not a JSON object) and
-calls that do not fit the current mode raise ValueError; operating-system I/O failures raise
-OSError, and opening a database that is already open elsewhere raises
+calls that do not fit the current mode raise ValueError; operating-system I/O
+failures raise OSError, and opening a database that is already open elsewhere raises
 BlockingIOError (an OSError); anything unexpected raises RuntimeError.
 
 Threads: a Database is safe to share between threads. Every method releases

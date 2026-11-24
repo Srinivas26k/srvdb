@@ -15,7 +15,7 @@ srvdb.create(path: str, dimension: int, index: str = "hnsw", *, exist_ok: bool =
   Directory for the database files, used exactly as given. It must not exist, or must be an empty directory. Missing parent directories are created.
 
 - **dimension** : *int*
-  Vector dimension, 1 to 4096. Every vector added and every query must have it.
+  Vector dimension, 1 to 4096 (128 to 4096 for `sq8` and `pq` with `training`). Every vector added and every query must have it.
 
 - **index** : *str*, default `"hnsw"`
   One of `"hnsw"`, `"flat"`, `"ivf"`, `"sq8"`, `"pq"`, `"rabitq"` or `"auto"` (case-insensitive). See [Choosing an index mode](/srvdb/guides/index-modes/).

@@ -3,7 +3,7 @@
 use srvdb::{CreateOptions, Error, IndexChoice, SrvDB, VectorEngine};
 use tempfile::TempDir;
 
-const DIM: usize = 16;
+const DIM: usize = 128;
 
 fn training(n: usize, dim: usize) -> Vec<Vec<f32>> {
     (0..n)
@@ -28,8 +28,8 @@ fn failed_create_leaves_nothing_and_a_retry_succeeds() {
     // PQ needs a dimension divisible by 4; the error comes from training,
     // after the lock and metadata files were made
     let mut bad = CreateOptions::new(IndexChoice::Pq);
-    bad.set_training(training(300, 18)).unwrap();
-    let err = SrvDB::create(path, 18, &bad).err().unwrap();
+    bad.set_training(training(300, 130)).unwrap();
+    let err = SrvDB::create(path, 130, &bad).err().unwrap();
     assert!(err.to_string().contains("divisible by 4"), "{err}");
     assert!(!target.exists(), "nothing at the path after a failure");
     assert!(leftovers(parent.path(), "db").is_empty(), "no staging left");

@@ -3,7 +3,7 @@
 use srvdb::{CreateOptions, Error, IndexChoice, SrvDB, Vector, VectorEngine};
 use tempfile::TempDir;
 
-const DIM: usize = 16;
+const DIM: usize = 128;
 
 type Case = (IndexChoice, &'static [(&'static str, u64)], &'static str);
 
