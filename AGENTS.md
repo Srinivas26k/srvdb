@@ -119,6 +119,10 @@ Validate at the public boundary (core API and bindings), with allow-lists:
   commit message, a compatible licence (MIT, Apache-2.0, BSD, ISC,
   Unlicense, Zlib) and an active maintainer. CI runs `cargo deny` (licences
   and advisories) and generates an SBOM for releases.
+- The allow-list binds the core crates, bindings and published wheel.
+  Optional Python extras may also pull in MPL-2.0, PSF-2.0, MIT-CMU or
+  CNRI-Python packages, which SrvDB does not bundle (ADR 0009). Anything
+  else needs an ADR.
 - Use established, reviewed libraries for hashing and checksums; never
   hand-roll cryptography.
 

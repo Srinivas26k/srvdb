@@ -1,6 +1,6 @@
 # ADR 0009: LangChain and LlamaIndex adapters as optional extras
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-24
 
 ## Context
@@ -104,5 +104,9 @@ tracing on through environment variables. SrvDB never does.
   case until #25.
 - Persisting on every write makes bulk ingestion through the adapters
   slower than calling `Database.add` directly in batches.
-- The transitive licences above need the maintainer's sign-off before
-  release.
+- The maintainer accepted the transitive licences above (2026-11-24). The
+  allow-list in AGENTS.md section 9 binds the core crates, the bindings and
+  the published wheel. Optional extras may pull in permissive or weak-copyleft
+  packages (MPL-2.0, PSF-2.0, MIT-CMU, CNRI-Python) because SrvDB neither
+  bundles nor redistributes them; users install them only by asking for the
+  extra.
