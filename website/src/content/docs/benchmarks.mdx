@@ -1,0 +1,77 @@
+---
+title: Benchmarks
+description: SrvDB measured against FAISS, hnswlib, usearch and turbovec on the same data, with the environment and the command to reproduce every number.
+---
+
+import data from '../../data/benchmarks/comparison.json';
+import Environment from '../../components/bench/Environment.astro';
+import RecallQps from '../../components/bench/RecallQps.astro';
+import Bars from '../../components/bench/Bars.astro';
+import Summary from '../../components/bench/Summary.astro';
+
+export const TARGET = 0.95;
+
+{data.preliminary && (
+	<aside class="starlight-aside starlight-aside--caution" aria-label="Preliminary results">
+		<p class="starlight-aside__title">Preliminary results</p>
+		<div class="starlight-aside__content">
+			<p>These numbers are preliminary. They were measured on a busy machine, so QPS, latency and build time are not reliable; recall figures are unaffected by load. They will be rerun on an idle machine before release.</p>
+			{data.preliminary_note && <p>{data.preliminary_note}</p>}
+		</div>
+	</aside>
+)}
+
+Every number and chart on this page is generated at build time from
+[`website/src/data/benchmarks/comparison.json`](https://github.com/Srinivas26k/srvdb/blob/master/website/src/data/benchmarks/comparison.json),
+written by the comparison runner in `benchmarks/compare/`. Nothing is typed
+by hand. The numbers describe one laptop and one synthetic dataset; measure
+on your own hardware before you rely on them.
+
+## Environment
+
+<Environment env={data.environment} params={data.parameters} />
+
+## How to read this
+
+- **recall@10** is the share of the exact top 10 (brute-force cosine search)
+  that an index returns. 1.0 is perfect.
+- **QPS** is one query per call from one caller thread, through each
+  library's Python API. **batch QPS** sends all queries in one call.
+- **Build** for SrvDB includes writing to disk and `persist()` (the data
+  survives a crash). The other libraries build in memory only and save
+  nothing. This is part of what SrvDB is for, and it costs time.
+- **Peak RSS** is the whole process, including the dataset copy the runner
+  holds, which is the same for every index.
+- **1 thread** limits every library (and SrvDB's internal pool) to one
+  thread. **All threads** lets each use every core.
+
+SrvDB rows and lines are highlighted. The summary lists each index's
+fastest setting that reaches recall@10 of at least {TARGET}, and says in
+plain words where SrvDB is slower as well as where it is faster.
+
+{data.runs.map((run) => data.parameters.threads.map((t) => (
+	<section>
+		<h2>{`dim ${run.dataset.dim}, ${run.dataset.base.toLocaleString('en-US')} vectors, ${t === 1 ? '1 thread' : `${t} threads`}`}</h2>
+		<Summary run={run} threads={t} target={TARGET} />
+		<RecallQps run={run} threads={t} />
+		<Bars run={run} threads={t} metric="build_secs" unit="s" title="Build time" />
+		<Bars run={run} threads={t} metric="peak_rss_mib" unit="MiB" title="Peak memory (RSS)" />
+	</section>
+)))}
+
+## Reproduce
+
+Set up a separate venv for the competitors (they are never SrvDB
+dependencies), build SrvDB into it, and run from a clean checkout:
+
+```bash
+uv venv -p 3.12 .bench-venv
+uv pip install -p .bench-venv/bin/python -r benchmarks/compare/requirements.txt
+VIRTUAL_ENV=$PWD/.bench-venv .bench-venv/bin/maturin develop --release
+.bench-venv/bin/python benchmarks/compare/run.py --dims 384,768 --ns 5000,50000
+```
+
+The run rewrites `website/src/data/benchmarks/comparison.json`; rebuild the
+site to update this page. Method details and licences of the compared
+libraries are in `benchmarks/compare/README.md`; SrvDB's own per-mode
+harness is described in `docs/benchmarks.md`.
