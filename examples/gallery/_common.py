@@ -136,6 +136,8 @@ def pyplot():
         {
             "figure.figsize": (7, 4.2),
             "figure.dpi": 110,
+            # Constrained layout keeps suptitles, titles and labels apart.
+            "figure.constrained_layout.use": True,
             "font.size": 10,
             "axes.edgecolor": "#222222",
             "axes.labelcolor": "#222222",
@@ -146,6 +148,7 @@ def pyplot():
             "axes.spines.top": False,
             "axes.spines.right": False,
             "axes.grid": True,
+            "axes.axisbelow": True,
             "grid.color": "#e6e6e6",
             "grid.linewidth": 0.8,
             "xtick.color": "#444444",
@@ -156,6 +159,15 @@ def pyplot():
         }
     )
     return plt
+
+
+def label_bars(ax, bars, fmt: str = "{:.3f}") -> None:
+    """Write each bar's value above it; bar axes always start at zero."""
+    ax.bar_label(
+        bars, labels=[fmt.format(b.get_height()) for b in bars], padding=2, fontsize=8
+    )
+    ax.set_ylim(bottom=0)
+    ax.margins(y=0.12)
 
 
 def save_chart(fig, out: Path, name: str) -> Path:
