@@ -85,7 +85,9 @@ follows outgoing links of `link_type` breadth-first:
   not its own similarity to the query.
 - `expand` works with vector, keyword (`text=`) and hybrid searches: the
   hits of any of them are expanded. It cannot be combined with `where`,
-  because linked records would not be filtered; that raises `ValueError`.
+  because linked records would not be filtered, or with `certify` or
+  `deadline_ms` (RaBitQ), because linked records would not be certified;
+  both raise `ValueError`.
 
 ## Opening with an older SrvDB
 

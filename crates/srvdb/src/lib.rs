@@ -31,7 +31,9 @@ pub use graph::{ExpandedResult, Expansion};
 pub use index::hnsw::{HNSWConfig, HNSWIndex};
 pub use index::ivf::{IVFConfig, IVFIndex};
 pub use quant::product::{ProductQuantizer, QuantizedVector};
-pub use quant::rabitq::RabitqConfig;
+pub use quant::rabitq::{
+    RabitqConfig, RabitqSearch, SearchOutcome, SearchStats, DEFAULT_MAX_RERANK,
+};
 pub use storage::metadata::MetadataStore;
 pub use storage::{QuantizedVectorStorage, ScalarQuantizedStorage, VectorStorage};
 pub use tuning::strategy::IndexMode;

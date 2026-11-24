@@ -13,6 +13,7 @@ mod modes;
 mod open;
 mod open_existing;
 mod rabitq;
+mod rabitq_search;
 mod read;
 mod recover;
 mod repair;

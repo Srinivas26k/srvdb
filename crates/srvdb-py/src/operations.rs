@@ -12,7 +12,7 @@ use pyo3::prelude::*;
 use srvdb::{SearchResult, VectorEngine};
 
 /// Translate internal ids to string ids, dropping entries without one
-fn named(state: &State, results: Vec<SearchResult>) -> Vec<(String, f32)> {
+pub(crate) fn named(state: &State, results: Vec<SearchResult>) -> Vec<(String, f32)> {
     results
         .into_iter()
         .filter_map(|r| {
@@ -46,6 +46,12 @@ impl PyDatabase {
     ///         vector, keyword (text) and hybrid hits; cannot be combined
     ///         with `where` (linked records would not be filtered).
     ///
+    ///     certify: RaBitQ modes only. Use the RaBitQ error bounds to
+    ///         certify results and rescore only uncertain candidates
+    ///         (ADR 0017).
+    ///     deadline_ms: RaBitQ modes only. Stop scanning codes after this
+    ///         many milliseconds and return the best results found.
+    ///
     /// Returns:
     ///     Up to k (id, score) tuples, best first. Scores are cosine
     ///     similarities (approximate in "pq" mode) for vector search, BM25
@@ -53,6 +59,9 @@ impl PyDatabase {
     ///     With `expand`, (id, score, hop) tuples instead: the hits with
     ///     hop 0, then linked records ordered by hop, each scored with the
     ///     score of the record it was reached from.
+    ///     With certify or deadline_ms, a SearchOutcome: the same tuples
+    ///     (iterable, indexable, sliceable, len()) plus completeness,
+    ///     confidence, certified, reranked and scanned.
     ///
     /// Raises:
     ///     ValueError: k is 0 or negative, the query has the wrong
@@ -60,13 +69,17 @@ impl PyDatabase {
     ///         filter, both query and text are None, text has no letters or
     ///         digits, text is given before enable_keyword_search(),
     ///         `expand` is malformed or out of bounds, or `expand` is
-    ///         combined with `where`.
+    ///         combined with `where`, `certify` or `deadline_ms`;
+    ///         certify or deadline_ms on a non-RaBitQ database, without a
+    ///         query vector, combined with text or where, or a negative or
+    ///         non-finite deadline_ms.
     ///     RuntimeError: an internal fault occurred (including a damaged
     ///         keyword index; enable_keyword_search() rebuilds it).
     ///
     /// A filter reads every metadata record once per call (O(n)). Releases
     /// the GIL; vector searches from several threads run in parallel.
-    #[pyo3(signature = (query, k, *, text=None, r#where=None, expand=None))]
+    #[pyo3(signature = (query, k, *, text=None, r#where=None, expand=None, certify=false, deadline_ms=None))]
+    #[allow(clippy::too_many_arguments)]
     fn search(
         &self,
         py: Python<'_>,
@@ -75,7 +88,40 @@ impl PyDatabase {
         text: Option<String>,
         r#where: Option<Bound<'_, PyAny>>,
         expand: Option<Bound<'_, PyAny>>,
+        certify: bool,
+        deadline_ms: Option<f64>,
     ) -> PyResult<Py<PyAny>> {
+        // A certified or deadline search returns a SearchOutcome about the
+        // k hits it certified; linked records would carry no such claim
+        if expand.is_some() && (certify || deadline_ms.is_some()) {
+            return Err(PyValueError::new_err(
+                "search() cannot combine `expand` with `certify` or \
+                 `deadline_ms`: linked records are not certified; run the \
+                 certified search and call neighbors() on its hits instead",
+            ));
+        }
+        if certify || deadline_ms.is_some() {
+            let unsupported = if text.is_some() {
+                Some("text (keyword and hybrid search)")
+            } else if r#where.is_some() {
+                Some("where (filtered search)")
+            } else {
+                None
+            };
+            if let Some(what) = unsupported {
+                return Err(PyValueError::new_err(format!(
+                    "certify and deadline_ms work only for a plain vector search; \
+                     they cannot be combined with {what}"
+                )));
+            }
+            let Some(query) = query else {
+                return Err(PyValueError::new_err(
+                    "certify and deadline_ms need a query vector",
+                ));
+            };
+            let outcome = self.search_rabitq(py, query, k, certify, deadline_ms)?;
+            return Ok(Py::new(py, outcome)?.into_any());
+        }
         let k = non_negative("k", k)?;
         // Linked records would bypass the filter, so `where` and `expand`
         // together are refused rather than given a surprising meaning

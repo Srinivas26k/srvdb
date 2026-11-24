@@ -144,6 +144,32 @@ def test_expand_with_text_and_where_is_refused(worded):
         worded.search(vec(0), 1, text="alpha", where={"even": True}, expand=("next", 1))
 
 
+@pytest.fixture
+def rabitq_linked(tmp_path):
+    database = srvdb.Database.new_rabitq(str(tmp_path / "rq"), dimension=DIM, bits=4)
+    database.add([f"doc{i}" for i in range(6)], [vec(i) for i in range(6)], ["{}"] * 6)
+    database.link("doc0", "next", "doc1")
+    yield database
+    database.close()
+
+
+def test_expand_with_certify_is_refused(rabitq_linked):
+    assert rabitq_linked.search(vec(0), 2, certify=True).certified >= 0
+    with pytest.raises(ValueError, match="expand.*certify"):
+        rabitq_linked.search(vec(0), 2, certify=True, expand=("next", 1))
+
+
+def test_expand_with_deadline_is_refused(rabitq_linked):
+    assert len(rabitq_linked.search(vec(0), 2, deadline_ms=60_000)) == 2
+    with pytest.raises(ValueError, match="expand.*deadline_ms"):
+        rabitq_linked.search(vec(0), 2, deadline_ms=60_000, expand=("next", 1))
+
+
+def test_expand_works_in_rabitq_mode_without_certify(rabitq_linked):
+    hits = rabitq_linked.search(vec(0), 1, expand=("next", 1))
+    assert [h[2] for h in hits][:1] == [0]
+
+
 def test_expand_without_query_or_text_is_refused(worded):
     with pytest.raises(ValueError, match="query vector, text"):
         worded.search(None, 1, expand=("next", 1))
