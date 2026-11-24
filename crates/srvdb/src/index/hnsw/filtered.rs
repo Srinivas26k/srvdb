@@ -18,7 +18,15 @@ use std::collections::{BinaryHeap, HashSet};
 type Results = BinaryHeap<Reverse<DistanceId>>;
 
 impl HNSWIndex {
-    /// Search for the `k` nearest live neighbours, skipping `deleted`
+    /// Search for the `k` nearest live neighbours, skipping `deleted`.
+    ///
+    /// Deleted nodes are walked through but never returned. Returns
+    /// `(id, distance)` pairs, closest first, or nothing for an empty index.
+    ///
+    /// # Errors
+    /// Does not fail today: missing nodes are skipped. The `Result` is kept
+    /// so a future check can report a corrupt index (rebuild it from
+    /// vector storage) without an API change.
     pub fn search_filtered<F>(
         &self,
         query_id: u64,
@@ -37,7 +45,8 @@ impl HNSWIndex {
     /// Nodes failing `accept` are used for navigation only. Returns
     /// `(id, distance)` pairs, closest first; fewer than `k` only when
     /// fewer than `k` accepted nodes are reachable from the entry point.
-    pub fn search_accepted<F, A>(
+    /// Errors as [`HNSWIndex::search_filtered`].
+    pub(crate) fn search_accepted<F, A>(
         &self,
         query_id: u64,
         k: usize,
