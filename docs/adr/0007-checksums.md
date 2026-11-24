@@ -116,6 +116,40 @@ Python maps both to `RuntimeError`.
 - Fixtures written by SrvDB 0.3 live in `crates/srvdb/tests/data/v0.3`
   and are opened by `tests/test_checksums.rs` and the `format` unit tests.
 
+### Recovering a missing or damaged sidecar (amendment, issue #33)
+
+A missing or damaged `<file>.crc` makes open fail even when the records
+are intact (for example after copying only `vectors.bin`). Open never
+repairs this by itself: a sidecar rebuilt silently from the data would
+bless any damage in it. Recovery is an explicit call,
+`SrvDB::rebuild_checksums(path)` (Python `srvdb.rebuild_checksums`), on a
+closed database (it takes the lock). For each vector file with a version
+5 header:
+
+- **Intact sidecar** (envelope CRC holds, record size and block count
+  match) **that matches the records**: left alone.
+- **Intact sidecar that does not match the records** (or claims more
+  records than the file holds): the data is damaged, not the sidecar. The
+  call fails with `ChecksumMismatch` (`Corrupt` for truncation) and writes
+  nothing; the user is told to restore from a backup.
+- **Missing sidecar, or one that fails its own envelope check or does not
+  describe the file**: recomputed from the records as found. This is the
+  only case that trusts the data, and only because the user asked; the
+  documentation says a rebuilt checksum cannot detect damage that was
+  already there. Deleting a sidecar and rebuilding is the documented way
+  to force that trust.
+
+The new table covers `min(header count, whole records present)`, the rule
+of the version 4 upgrade. The header count is written and fsynced before
+the redb commit, so it is never below the committed count; open then
+truncates to the committed count as usual. The sidecar is written with
+`write_atomic` (temp file, fsync, rename, directory fsync): a crash leaves
+the old or the new sidecar and the call can be repeated. Vector files,
+redb and indexes are not modified. The record size comes from the header
+(flat, SQ8, RaBitQ) or from `codebooks.bin` (PQ). Staged compaction files
+(`*.compact.crc`) are not rebuilt; `compaction::finish` handles them on
+open.
+
 ## Alternatives considered
 
 - **Store block CRCs in redb, in the commit transaction**: atomic with the
