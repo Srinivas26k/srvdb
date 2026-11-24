@@ -36,12 +36,22 @@ pytest tests/python               # Python tests
 Start with `crates/srvdb/src/lib.rs` for the public API and
 `crates/srvdb/src/engine/` for how a call flows through the system.
 
+## Where to start
+
+Issues labelled
+[`good first issue`](https://github.com/Srinivas26k/srvdb/labels/good%20first%20issue)
+are small and point at the files involved;
+[`help wanted`](https://github.com/Srinivas26k/srvdb/labels/help%20wanted)
+marks larger tasks where outside help is useful. A guided version of this
+file is on the [website](https://srinivas26k.github.io/srvdb/project/contributing/).
+
 ## Making a change
 
 1. Open or pick an issue, and say you are working on it.
 2. Create a branch from the current release branch (for example
-   `release/0.3`, not `master`): `fix/<topic>`, `feat/<topic>`,
-   `docs/<topic>`. Pull requests target that release branch;
+   `release/0.4`, not `master`): `feat/<topic>`, `fix/<topic>`,
+   `docs/<topic>`, `ci/<topic>` or `refactor/<topic>`. Pull requests
+   target that release branch;
    `master` only receives finished releases.
 3. Write a failing test first for bug fixes.
 4. Keep each commit to one logical change and stage files explicitly.
@@ -51,6 +61,7 @@ Start with `crates/srvdb/src/lib.rs` for the public API and
    cargo fmt --all
    cargo clippy --workspace --all-targets -- -D warnings
    cargo test --workspace
+   pytest tests/python
    ```
 
 6. Open a pull request describing what changed, why, and how you tested
