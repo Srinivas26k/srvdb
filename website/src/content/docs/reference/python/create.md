@@ -57,6 +57,7 @@ The open database object (`db`). Use it in a `with` block to save and close it o
 
 ## Notes
 
+- The database is built in a hidden sibling directory and renamed into place only when complete. If `create` fails, nothing is left at `path` and you can simply retry.
 - The settings are durable when `create` returns: a crash right after still leaves a database that [`srvdb.open`](/srvdb/reference/python/open/) reopens with the same index.
 - Search-time knobs can be changed later: [`db.set_ef_search`](/srvdb/reference/python/db-set-ef-search/), [`db.configure_ivf`](/srvdb/reference/python/db-configure-ivf/), [`db.set_rabitq_rerank`](/srvdb/reference/python/db-set-rabitq-rerank/).
 - One database object holds an exclusive lock on the directory until it is closed.

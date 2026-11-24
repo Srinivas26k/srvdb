@@ -69,7 +69,7 @@ A complete, runnable **Mission Knowledge System** reference implementation is in
 import json
 import srvdb
 
-db = srvdb.create("./mission-knowledge-system-db", dimension=768, exist_ok=True)
+db = srvdb.create("./mission-knowledge-system-db", dimension=768, index="flat", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.save()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def similar_anomalies(anomaly, k=5):
     hits = db.search(embed(anomaly), k)

@@ -89,11 +89,28 @@ with srvdb.open(path) as db: ...
 SrvDB writes (its known file names, `.crc` sidecars, `.compact` staging
 copies, `.<name>.tmp` atomic-write temporaries; no subdirectories) and at
 least one file starts with a SrvDB magic number (`SRVD` envelope or `SvDB`
-vector header). It takes the database lock first, so an open database is
-refused with `Locked` (`BlockingIOError`). Files are removed, the lock is
-released, then the lock file and the directory are removed (Windows cannot
-delete an open file). It is not crash-atomic; a second call finishes an
-interrupted delete while a file with a magic number remains.
+vector header). A path that is itself a symbolic link is refused (checked
+with `symlink_metadata`), and magic numbers are read only from regular
+files, so a FIFO cannot hang the check. It takes the database lock first,
+so an open database is refused with `Locked` (`BlockingIOError`). With the
+lock held, the directory is renamed to a hidden sibling tombstone
+`.<name>.srvdb-deleting-<pid>`; the entries are checked again there, the
+files are removed, on Unix the lock file is unlinked while still locked,
+the lock is released and the tombstone is removed. Nobody can open or lock
+the database at its old path once the rename has happened, which closes
+the window in which a second writer could take a fresh lock in a
+directory being emptied, and later steps cannot be redirected through a
+changed path component. A crash part way can leave the tombstone; it is
+removed by hand.
+
+### Failure safety of `create`
+
+`create` builds the database in a hidden sibling directory
+(`.<name>.srvdb-creating-<pid>-<n>`) and renames it into place only when it
+is complete and its settings are recorded; an existing empty target
+directory is replaced. On any error the staging directory, which only this
+call created, is removed, so a failed create leaves nothing at `path` and a
+retry succeeds. Missing parent directories are kept.
 
 ### Core API (Rust)
 

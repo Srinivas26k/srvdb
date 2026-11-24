@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.save()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def known_emitters_like(fingerprint, k=5):
     hits = db.search(embed(fingerprint), k)

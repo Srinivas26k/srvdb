@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.save()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def fleet_recall(situation, k=5):
     hits = db.search(embed(situation), k)

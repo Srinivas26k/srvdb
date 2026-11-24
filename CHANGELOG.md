@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `db.save`, ...); the per-constructor pages are removed. The LangChain
   adapter's `from_texts` takes `index=` and index options instead of
   `mode=`.
+- `db.get(id)` returns `None` for an unknown or deleted id, as the stub
+  declared, instead of raising `ValueError`. A negative `k`, `ef_search`,
+  `nlist`, `nprobe` or `rerank` raises `ValueError` instead of
+  `OverflowError` (#48).
+- `create` builds the database in a hidden sibling directory and renames it
+  into place, so a failed create leaves nothing behind; `delete` renames the
+  locked directory to a hidden tombstone before removing it and refuses
+  symbolic links.
 - Rust: `SrvDB::create(path, dimension, &CreateOptions)` with `IndexChoice`,
   `SrvDB::delete_database(path)`, `SrvDB::index_name()` and
   `SrvDB::dimension()`; new `Error::NotFound` and `Error::AlreadyExists`.

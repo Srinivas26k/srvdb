@@ -19,7 +19,7 @@ the call that made them returns, before `save()`.
 ```python
 for batch in batches:
     db.add(batch.ids, batch.vectors, batch.metas)
-    db.save()          # checkpoint: this batch is now safe
+    db.save()             # checkpoint: this batch is now safe
 ```
 
 `save()` flushes and fsyncs to disk, so it costs real time. Call it once

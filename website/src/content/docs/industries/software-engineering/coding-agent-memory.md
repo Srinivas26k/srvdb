@@ -69,7 +69,7 @@ A complete, runnable **Coding Agent Memory** reference implementation is in prog
 import json
 import srvdb
 
-db = srvdb.create("./coding-agent-memory-db", dimension=384, exist_ok=True)
+db = srvdb.create("./coding-agent-memory-db", dimension=384, index="flat", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.save()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def recall_memory(task, k=5):
     hits = db.search(embed(task), k)

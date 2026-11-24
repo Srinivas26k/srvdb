@@ -24,7 +24,7 @@ srvdb.delete(path: str) -> None
   `path` does not exist or is not a directory.
 
 - **ValueError**
-  `path` holds files SrvDB did not create (the message names one), a subdirectory, or no SrvDB database at all. Nothing is deleted.
+  `path` is a symbolic link (pass the real directory), or holds files SrvDB did not create (the message names one), a subdirectory, or no SrvDB database at all. Nothing is deleted.
 
 - **BlockingIOError**
   The database is open, in this process or another. Close it first.
@@ -34,8 +34,8 @@ srvdb.delete(path: str) -> None
 
 ## Notes
 
-- Safety: only a directory that is provably a SrvDB database is removed. Every entry must be a file SrvDB writes, and at least one must start with a SrvDB header (magic number). A mistyped path that points at your home directory or a project folder is refused.
-- Deleted data cannot be recovered. A crash part way leaves some SrvDB files; calling `srvdb.delete` again finishes the job.
+- Safety: only a directory that is provably a SrvDB database is removed. Every entry must be a file SrvDB writes, and at least one must start with a SrvDB header (magic number). A mistyped path that points at your home directory or a project folder is refused, and so is a symbolic link, even one that points at a database.
+- With the database locked, the directory is first renamed to a hidden sibling `.<name>.srvdb-deleting-<pid>`, then emptied and removed, so no other process can open the database while it is being deleted. A crash part way can leave that hidden directory; remove it by hand. Deleted data cannot be recovered.
 - To delete vectors rather than the whole database, use [`db.delete`](/srvdb/reference/python/db-delete/).
 
 ## Examples

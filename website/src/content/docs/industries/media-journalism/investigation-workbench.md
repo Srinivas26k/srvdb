@@ -69,7 +69,7 @@ A complete, runnable **Investigation Workbench** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.create("./investigation-workbench-db", dimension=512, exist_ok=True)
+db = srvdb.create("./investigation-workbench-db", dimension=512, index="flat", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.save()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def investigation_search(query, k=5):
     hits = db.search(embed(query), k)
