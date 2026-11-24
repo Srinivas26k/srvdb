@@ -39,8 +39,8 @@ one simple, fast transformation, at the cost of approximate scores.
 
 1. **Train.** SrvDB records the minimum and maximum of every dimension
    over the training vectors: the sample passed to
-   `Database.new_scalar_quantized`, or the first batch added to a database
-   opened with `mode="sq8"`. The ranges are saved atomically in
+   `srvdb.create(..., index="sq8", training=...)`, or the first batch added
+   when no `training` was given. The ranges are saved atomically in
    `scalar_quantizer.bin`.
 2. **Encode.** Value `x_i` becomes
    `floor(clamp((x_i - min_i) / (max_i - min_i) × 255, 0, 255))`.
@@ -65,9 +65,9 @@ rng = random.Random(7)
 vectors = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(1000)]
 ids = [f"doc-{i}" for i in range(len(vectors))]
 
-db = srvdb.Database.new_scalar_quantized("./sq8-db", 128, vectors[:200])
+db = srvdb.create("./sq8-db", dimension=128, index="sq8", training=vectors[:200])
 db.add(ids, vectors, ["{}"] * len(ids))
-db.persist()
+db.save()
 print(db.search(vectors[42], k=1)[0][0])
 # doc-42
 ```
@@ -117,7 +117,7 @@ outside that range are clamped.
 - [PQ](/srvdb/concepts/pq/): more compression with learned codebooks.
 - [RaBitQ](/srvdb/concepts/rabitq/): low-bit codes that keep exact scores via rerank.
 - [Compare index modes](/srvdb/concepts/comparison/).
-- Reference: [`Database.new_scalar_quantized`](/srvdb/reference/python/database-new-scalar-quantized/), [on-disk files](/srvdb/reference/files/).
+- Reference: [`srvdb.create`](/srvdb/reference/python/create/), [on-disk files](/srvdb/reference/files/).
 :::
 
 **Next:** [What is product quantization?](/srvdb/concepts/pq/)

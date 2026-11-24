@@ -43,8 +43,8 @@ against.
 - **Scan.** The file is memory-mapped and scored in blocks of 256 vectors
   in parallel. Each block keeps its own best `k`, and the blocks are merged.
 - **Scores.** Results are true cosine similarities in `[-1, 1]`.
-- **Durability.** After `persist()` returns, every vector added before it
-  survives a crash; see [Durability and persist()](/srvdb/guides/durability/).
+- **Durability.** After `save()` returns, every vector added before it
+  survives a crash; see [Durability and save()](/srvdb/guides/durability/).
 
 ## Try it in SrvDB
 
@@ -56,9 +56,9 @@ rng = random.Random(7)
 vectors = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(1000)]
 ids = [f"doc-{i}" for i in range(len(vectors))]
 
-db = srvdb.open("./flat-db", dimension=128, mode="flat")
+db = srvdb.create("./flat-db", dimension=128, index="flat")
 db.add(ids, vectors, ["{}"] * len(ids))
-db.persist()
+db.save()
 
 top = db.search(vectors[42], k=3)
 print(top[0][0], round(top[0][1], 3))
@@ -108,7 +108,7 @@ build, train or tune.
 - [RaBitQ](/srvdb/concepts/rabitq/): a faster scan that keeps flat's exact scores through rerank.
 - [HNSW](/srvdb/concepts/hnsw/): search without reading every vector.
 - [Compare index modes](/srvdb/concepts/comparison/).
-- Reference: [`srvdb.open`](/srvdb/reference/python/open/), [`Database.search`](/srvdb/reference/python/database-search/), [on-disk files](/srvdb/reference/files/).
+- Reference: [`srvdb.create`](/srvdb/reference/python/create/), [`db.search`](/srvdb/reference/python/db-search/), [on-disk files](/srvdb/reference/files/).
 :::
 
 **Next:** [What is HNSW?](/srvdb/concepts/hnsw/)

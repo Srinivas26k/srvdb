@@ -148,9 +148,9 @@ rng = random.Random(7)
 vectors = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(2000)]
 ids = [f"doc-{i}" for i in range(len(vectors))]
 
-db = srvdb.Database.new_rabitq("./rabitq-db", dimension=128, bits=2)
+db = srvdb.create("./rabitq-db", dimension=128, index="rabitq", bits=2)
 db.add(ids, vectors, ["{}"] * len(ids))
-db.persist()
+db.save()
 
 top = db.search(vectors[42], k=3)   # 3 x 20 candidates, reranked exactly
 print(top[0][0], round(top[0][1], 3))
@@ -203,8 +203,8 @@ The rerank step then reads `k × rerank` full vectors: 100 vectors
   collections, choose [HNSW](/srvdb/concepts/hnsw/).
 
 Compare every mode on one page in [Compare index modes](/srvdb/concepts/comparison/).
-API: [`Database.new_rabitq`](/srvdb/reference/python/database-new-rabitq/),
-[`Database.set_rabitq_rerank`](/srvdb/reference/python/database-set-rabitq-rerank/),
+API: [`srvdb.create`](/srvdb/reference/python/create/),
+[`db.set_rabitq_rerank`](/srvdb/reference/python/db-set-rabitq-rerank/),
 and the [on-disk files](/srvdb/reference/files/).
 
 ## FAQ
