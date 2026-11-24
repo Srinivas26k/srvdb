@@ -44,6 +44,9 @@ bench = [
 langchain = [
     "langchain-core>=0.3",
 ]
+llamaindex = [
+    "llama-index-core>=0.12",
+]
 
 [project.urls]
 Homepage = "https://github.com/Srinivas26k/srvdb"
