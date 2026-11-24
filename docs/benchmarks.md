@@ -49,6 +49,29 @@ search list, default 100), `--nlist` (IVF partitions, default `sqrt(n)`),
 `--nprobe` (default 8), `--work-dir` (where temporary databases go),
 `--out` (JSON path, default `bench-results.json`, git-ignored).
 
+## Filtered search
+
+`--filter-pct P` restricts every query to a seeded random P% of the base
+vectors (independent of the clusters) and reports, per mode, recall@k and
+QPS of `search_filtered` against exact filtered search, next to
+post-filtering (`search` k, then drop non-matching results). The `short`
+columns count queries that returned fewer than k results.
+
+```bash
+for p in 1 10 50; do
+  cargo run --release -p srvdb --example bench -- \
+    --dim 128 --n 50000 --modes flat,sq8,hnsw --filter-pct $p
+done
+```
+
+The HNSW exact-scan threshold (`EXACT_COST_RATIO` in
+`crates/srvdb/src/engine/filter.rs`) comes from forcing the graph walk at
+every selectivity on 20 000 vectors (ef 100, M 16): the walk made about
+2 500 distance calls unfiltered, 4 500 at 50%, 12 500 at 10% and 19 900
+(the whole graph) at 1%, at roughly 2 us per visited node including the
+two-hop expansion, while an exact scan cost about 0.13 us per matching
+id. Equal cost gives `s^2 * n = 15 * ef * M` at selectivity `s`.
+
 ## Real datasets (SIFT1M, GloVe)
 
 The library never downloads anything and datasets are never committed. To

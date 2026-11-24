@@ -97,6 +97,9 @@ pub fn table(env: &Value, dataset: &Value, results: &[Value], k: usize) -> Strin
     ));
     out.push_str(&format!("Dataset:  {}\n", s(dataset, "name")));
     out.push_str(&format!("Command:  {}\n\n", s(env, "command")));
+    if dataset.get("filter_pct").is_some_and(|p| !p.is_null()) {
+        return out + &filtered_table(results, k);
+    }
     out.push_str(&format!(
         "| mode | recall@{k} | QPS | p50 ms | p99 ms | build s | peak RSS MiB |\n"
     ));
@@ -119,6 +122,36 @@ pub fn table(env: &Value, dataset: &Value, results: &[Value], k: usize) -> Strin
             f(r, "p99_ms"),
             f(r, "build_secs"),
             rss
+        ));
+    }
+    out
+}
+
+/// Filtered runs: filtered search next to post-filtering, per mode.
+fn filtered_table(results: &[Value], k: usize) -> String {
+    let mut out = format!(
+        "| mode | filter % | matching | recall@{k} | QPS | p99 ms | short | \
+         post-filter recall@{k} | post-filter QPS | post-filter short |\n"
+    );
+    out.push_str("|------|--:|--:|--:|--:|--:|--:|--:|--:|--:|\n");
+    for r in results {
+        let mode = r.get("mode").and_then(Value::as_str).unwrap_or("?");
+        if let Some(err) = r.get("error").and_then(Value::as_str) {
+            out.push_str(&format!("| {mode} | error: {err} | | | | | | | | |\n"));
+            continue;
+        }
+        let n = |key: &str| r.get(key).and_then(Value::as_u64).unwrap_or(0);
+        out.push_str(&format!(
+            "| {mode} | {} | {} | {:.4} | {:.0} | {:.3} | {} | {:.4} | {:.0} | {} |\n",
+            f(r, "filter_pct"),
+            n("matching"),
+            f(r, "recall_at_k"),
+            f(r, "qps"),
+            f(r, "p99_ms"),
+            n("short_queries"),
+            f(r, "post_filter_recall"),
+            f(r, "post_filter_qps"),
+            n("post_filter_short_queries"),
         ));
     }
     out
