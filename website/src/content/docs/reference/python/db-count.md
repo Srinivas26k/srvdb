@@ -1,12 +1,12 @@
 ---
-title: srvdb.Database.count
+title: db.count
 description: Return the number of searchable vectors.
 ---
 
 Return the number of searchable vectors.
 
 ```python
-Database.count() -> int
+db.count() -> int
 ```
 
 ## Parameters
@@ -31,7 +31,7 @@ Nothing in normal use.
 ```python
 import srvdb
 
-db = srvdb.open("./vectors", dimension=128)
+db = srvdb.create("./vectors", dimension=128)
 v = [1.0] + [0.0] * 127   # tiny 128-dimension vectors
 w = [0.0, 1.0] + [0.0] * 126
 db.add(["a", "b"], [v, w], ["{}", "{}"])
@@ -42,5 +42,5 @@ print(db.count())
 
 ## See also
 
-- [`srvdb.Database.get_all_ids`](/srvdb/reference/python/database-get-all-ids/): Return every live id.
-- [`srvdb.Database.info`](/srvdb/reference/python/database-info/): Return a one-line summary of the database.
+- [`db.get_all_ids`](/srvdb/reference/python/db-get-all-ids/): Return every live id.
+- [`db.info`](/srvdb/reference/python/db-info/): Return a one-line summary of the database.

@@ -22,18 +22,17 @@ multi-bit extension; see [ADR 0008](https://github.com/Srinivas26k/srvdb/blob/ma
 ```python
 import srvdb
 
-db = srvdb.Database.new_rabitq("./db", dimension=384, bits=4)
+db = srvdb.create("./db", dimension=384, index="rabitq", bits=4)
 db.add(["a", "b"], [[0.1] * 384, [0.2] * 384], ['{"t": 1}', '{"t": 2}'])
-db.persist()
+db.save()
 print(db.search([0.1] * 384, k=1))
 
 db.set_rabitq_rerank(20)   # more candidates: higher recall, slower
 db.set_rabitq_rerank(0)    # no rerank: estimated scores, fastest
 ```
 
-The mode strings `"rabitq1"`, `"rabitq2"` and `"rabitq4"` work with
-`srvdb.open(path, dimension, mode=...)` and `srvdb.Database(...)` too. Reopen a database with the
-same bit width; opening it with another one rebuilds the codes.
+Options: `bits` (1, 2 or 4), `rerank` and `seed`. `srvdb.open("./db")` reopens
+the database with the recorded bit width and rerank factor.
 
 From Rust:
 

@@ -1,6 +1,6 @@
 ---
 title: What is an HNSW index?
-description: How SrvDB's HNSW mode builds a layered neighbour graph, descends it at search time, saves it with persist(), and supports filtered search - with m, ef settings and memory per vector.
+description: How SrvDB's HNSW mode builds a layered neighbour graph, descends it at search time, saves it with save(), and supports filtered search - with m, ef settings and memory per vector.
 head:
   - tag: script
     attrs:
@@ -50,7 +50,7 @@ downwards, so it scores a small part of the collection instead of all of it.
    neighbour closest to the query on each upper layer, then runs a
    best-first search on layer 0 that keeps `ef_search` candidates (at
    least `k`). Scores are exact cosine similarities from `vectors.bin`.
-4. **Persist.** `persist()` writes `hnsw.graph` atomically (temp file,
+4. **Save.** `save()` writes `hnsw.graph` atomically (temp file,
    fsync, rename). The graph is derived data: if it is missing or damaged
    it is rebuilt from the vectors on open.
 5. **Filtered search (Rust).** `search_filtered` walks the graph and, when
@@ -72,10 +72,10 @@ rng = random.Random(7)
 vectors = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(1000)]
 ids = [f"doc-{i}" for i in range(len(vectors))]
 
-db = srvdb.Database.new_hnsw("./hnsw-db", dimension=128, m=16, ef_construction=200, ef_search=50)
+db = srvdb.create("./hnsw-db", dimension=128, index="hnsw", m=16, ef_construction=200, ef_search=50)
 db.add(ids, vectors, ["{}"] * len(ids))
 db.set_ef_search(120)   # wider search: higher recall, slower
-db.persist()            # hnsw.graph is saved and reloaded on open
+db.save()               # hnsw.graph is saved and reloaded on open
 print(len(db.search(vectors[42], k=5)))
 # 5
 ```
@@ -128,7 +128,7 @@ The graph is derived data. SrvDB rebuilds it from `vectors.bin` when
 - [IVF](/srvdb/concepts/ivf/): partitions, each with its own HNSW graph.
 - [Flat (exact) search](/srvdb/concepts/flat/): the ground truth for recall.
 - [Compare index modes](/srvdb/concepts/comparison/).
-- Reference: [`Database.new_hnsw`](/srvdb/reference/python/database-new-hnsw/), [`Database.set_ef_search`](/srvdb/reference/python/database-set-ef-search/).
+- Reference: [`srvdb.create`](/srvdb/reference/python/create/), [`db.set_ef_search`](/srvdb/reference/python/db-set-ef-search/).
 :::
 
 **Next:** [What is an IVF index?](/srvdb/concepts/ivf/)

@@ -30,7 +30,7 @@ Until they arrive, the [Quickstart](/srvdb/start/quickstart/) and the
 |-------------|----------|--------|
 | Python API | Every method on one page | Coming soon |
 | Index modes | Choosing and tuning flat, HNSW, IVF, SQ8, PQ | Coming soon |
-| Durability | When to call `persist()`, what survives a crash | Coming soon |
+| Durability | When to call `save()`, what survives a crash | Coming soon |
 | Rust API | Types, constructors and errors | Coming soon |
 
 Want a specific example? Ask in

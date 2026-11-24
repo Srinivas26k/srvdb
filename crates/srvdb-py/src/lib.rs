@@ -6,6 +6,7 @@
 mod constructors;
 mod database;
 mod errors;
+mod lifecycle;
 mod operations;
 mod rabitq;
 mod writes;
@@ -16,6 +17,9 @@ use pyo3::prelude::*;
 #[pymodule]
 fn _low_level(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDatabase>()?;
+    m.add_function(wrap_pyfunction!(lifecycle::create, m)?)?;
+    m.add_function(wrap_pyfunction!(lifecycle::open, m)?)?;
+    m.add_function(wrap_pyfunction!(lifecycle::delete, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add(
         "__doc__",

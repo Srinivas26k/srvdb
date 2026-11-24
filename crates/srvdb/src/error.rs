@@ -56,6 +56,17 @@ pub enum Error {
     #[error("index settings mismatch: {0}")]
     SettingsMismatch(String),
 
+    /// No SrvDB database exists at the given path (`SrvDB::open_existing`,
+    /// `SrvDB::delete_database`). Create it first with `SrvDB::create`.
+    #[error("database not found: {0}")]
+    NotFound(String),
+
+    /// `SrvDB::create` was given a path that already holds a database or
+    /// other files. Nothing was changed; open the database instead, or
+    /// choose a new or empty directory.
+    #[error("already exists: {0}")]
+    AlreadyExists(String),
+
     /// The operating system reported an I/O failure.
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),

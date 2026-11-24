@@ -39,9 +39,9 @@ it with per-query lookup tables.
 1. **Split.** SrvDB uses `M = D / 8` sub-spaces when `D` is divisible by
    8, otherwise `D / 4`. Other dimensions are refused with `ValueError`.
 2. **Train.** Each sub-space learns 256 centroids with k-means (20
-   iterations), trained in parallel. A database opened with `mode="pq"`
+   iterations), trained in parallel. A database created with `index="pq"` and no `training`
    trains on its first batch, which must hold at least 256 vectors;
-   `Database.new_product_quantized` trains on the sample you pass. The
+   `training=` trains on the sample you pass. The
    codebooks are saved in `codebooks.bin`.
 3. **Encode.** Each sub-vector is replaced by the index of the centroid
    with the highest cosine similarity. Codes go to
@@ -61,9 +61,9 @@ rng = random.Random(7)
 vectors = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(1000)]
 ids = [f"doc-{i}" for i in range(len(vectors))]
 
-db = srvdb.Database.new_product_quantized("./pq-db", 128, vectors[:300])
+db = srvdb.create("./pq-db", dimension=128, index="pq", training=vectors[:300])
 db.add(ids, vectors, ["{}"] * len(ids))
-db.persist()
+db.save()
 print(len(db.search(vectors[42], k=5)))
 # 5
 ```
@@ -104,7 +104,7 @@ divisible by 8, otherwise dimension / 4. At dimension 768 that is 96 bytes,
 ### How much data does PQ need for training?
 
 Each sub-space learns 256 centroids with k-means. A database opened with
-`mode="pq"` trains on the first batch added, which must hold at least 256
+`index="pq"` without `training` trains on the first batch added, which must hold at least 256
 vectors.
 
 ### Are PQ scores exact?
@@ -118,7 +118,7 @@ query sub-vector and the stored centroid. The full vectors are not kept.
 - [SQ8](/srvdb/concepts/sq8/): simpler 4× compression.
 - [RaBitQ](/srvdb/concepts/rabitq/): training-free codes, exact rerank.
 - [IVF](/srvdb/concepts/ivf/): the same k-means idea, applied to whole vectors.
-- Reference: [`Database.new_product_quantized`](/srvdb/reference/python/database-new-product-quantized/).
+- Reference: [`srvdb.create`](/srvdb/reference/python/create/).
 :::
 
 **Next:** [What is RaBitQ quantization?](/srvdb/concepts/rabitq/)

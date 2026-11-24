@@ -49,7 +49,7 @@ A complete, runnable **On-prem Risk AI Platform** reference implementation is in
 
 - **[Several databases](/srvdb/start/use-cases/)**: each database is a directory, so different data types or tenants stay separate.
 - **[Thread-safe handles](/srvdb/guides/concurrency/)**: one database object can be shared between threads; searches run in parallel.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 - **[Fully offline](/srvdb/start/introduction/)**: SrvDB runs in-process and never opens a network connection.
 - **[HNSW graph (`hnsw`)](/srvdb/guides/index-modes/)**: approximate search that visits a small part of large collections; tune with `set_ef_search()`.
 
@@ -70,7 +70,7 @@ A complete, runnable **On-prem Risk AI Platform** reference implementation is in
 import json
 import srvdb
 
-db = srvdb.open("./on-prem-risk-ai-db", dimension=768, mode="hnsw")
+db = srvdb.create("./on-prem-risk-ai-db", dimension=768, index="hnsw", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -79,7 +79,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def retrieve(query, k=5):
     hits = db.search(embed(query), k)
@@ -94,7 +94,7 @@ def retrieve(query, k=5):
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

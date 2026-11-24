@@ -34,9 +34,11 @@ pip install srvdb
 ```python
 import srvdb
 
-db = srvdb.open("./memory", dimension=384)
-db.add(ids=["a"], embeddings=[embedding], metadatas=['{"text": "hello"}'])
-db.persist()                       # crash-safe from here on
+with srvdb.create("./memory", dimension=384) as db:
+    db.add(ids=["a"], embeddings=[embedding], metadatas=['{"text": "hello"}'])
+# saved: crash-safe from here on
+
+db = srvdb.open("./memory")        # settings are read from disk
 print(db.search(query, k=5))       # [("a", 0.93), ...]
 ```
 

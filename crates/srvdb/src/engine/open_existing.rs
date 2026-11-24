@@ -13,7 +13,7 @@ use types::{IndexType, QuantizationMode};
 /// `new_scalar_quantized`, ...), and `validate` checks PQ `m` = 192 from
 /// the default config (for SQ8 too), while a stored PQ database uses the
 /// `m` of its checksummed codebooks.
-fn config_for(
+pub(super) fn config_for(
     dimension: usize,
     quant: Option<QuantizationMode>,
     index_type: IndexType,
@@ -51,14 +51,14 @@ impl SrvDB {
     /// ADR 0005).
     ///
     /// # Errors
-    /// `InvalidInput` if `path` holds no SrvDB database, `InvalidState` for
+    /// `NotFound` if `path` holds no SrvDB database, `InvalidState` for
     /// a quantized database without recorded settings, `Corrupt` /
     /// `ChecksumMismatch` for a damaged settings or data file (including an
     /// unknown index kind), `Locked`, or I/O.
     pub fn open_existing(path: &str) -> Result<Self> {
         let dir = Path::new(path);
         if !dir.is_dir() {
-            return Err(Error::invalid_input(format!(
+            return Err(Error::NotFound(format!(
                 "{} is not a SrvDB database directory; create the database first",
                 dir.display()
             )));
@@ -107,7 +107,10 @@ impl SrvDB {
                     dir.display()
                 ))
             } else {
-                Error::invalid_input(format!("{} holds no SrvDB database", dir.display()))
+                Error::NotFound(format!(
+                    "{} holds no SrvDB database; create it first",
+                    dir.display()
+                ))
             });
         }
         let mut header = [0u8; types::VectorHeader::SIZE];

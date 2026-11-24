@@ -1,12 +1,12 @@
 ---
-title: srvdb.Database.search
+title: db.search
 description: Find the k nearest vectors to a query.
 ---
 
 Find the k nearest vectors to a query.
 
 ```python
-Database.search(query: Sequence[float], k: int) -> list[tuple[str, float]]
+db.search(query: Sequence[float], k: int) -> list[tuple[str, float]]
 ```
 
 ## Parameters
@@ -24,10 +24,7 @@ Database.search(query: Sequence[float], k: int) -> list[tuple[str, float]]
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity.
-
-- **OverflowError**
-  `k` is negative.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity. Also raised for a negative value.
 
 - **RuntimeError**
   An internal fault occurred.
@@ -43,7 +40,7 @@ Database.search(query: Sequence[float], k: int) -> list[tuple[str, float]]
 ```python
 import srvdb
 
-db = srvdb.open("./vectors", dimension=128)
+db = srvdb.create("./vectors", dimension=128)
 v = [1.0] + [0.0] * 127   # tiny 128-dimension vectors
 w = [0.0, 1.0] + [0.0] * 126
 db.add(["a", "b"], [v, w], ["{}", "{}"])
@@ -53,6 +50,6 @@ print(db.search(v, k=2))
 
 ## See also
 
-- [`srvdb.Database.search_batch`](/srvdb/reference/python/database-search-batch/): Run several searches in one call.
-- [`srvdb.Database.get`](/srvdb/reference/python/database-get/): Return the metadata stored for an id.
-- [`srvdb.Database.set_ef_search`](/srvdb/reference/python/database-set-ef-search/): Set HNSW's search candidate list size.
+- [`db.search_batch`](/srvdb/reference/python/db-search-batch/): Run several searches in one call.
+- [`db.get`](/srvdb/reference/python/db-get/): Return the metadata stored for an id.
+- [`db.set_ef_search`](/srvdb/reference/python/db-set-ef-search/): Set HNSW's search candidate list size.

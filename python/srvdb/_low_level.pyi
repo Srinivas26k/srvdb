@@ -2,10 +2,10 @@
 
 Keep in sync with crates/srvdb-py/src.
 
-Errors: invalid arguments (wrong dimension, NaN or infinity, k < 1, empty or
-duplicate ids, metadata that is not a JSON object) and calls that do not fit
-the current mode raise ValueError; operating-system I/O failures raise
-OSError, and opening a database that is already open elsewhere raises
+Errors: invalid arguments (wrong dimension, NaN or infinity, k < 1, negative
+counts, empty or duplicate ids, metadata that is not a JSON object) and
+calls that do not fit the current mode raise ValueError; operating-system I/O
+failures raise OSError, and opening a database that is already open elsewhere raises
 BlockingIOError (an OSError); anything unexpected raises RuntimeError.
 
 Threads: a Database is safe to share between threads. Every method releases
@@ -14,8 +14,9 @@ persist, compact) wait for each other and for running searches instead of
 failing.
 """
 
-from collections.abc import Sequence
-from typing import Literal
+from collections.abc import Mapping, Sequence
+from types import TracebackType
+from typing import Any, Literal
 
 __version__: str
 
@@ -32,7 +33,28 @@ Mode = Literal[
     "rabitq2",
     "rabitq4",
 ]
+Index = Literal["flat", "hnsw", "ivf", "sq8", "pq", "rabitq", "auto"]
 SwitchableMode = Literal["flat", "hnsw", "sq8", "scalar", "ivf", "auto"]
+
+def create(
+    path: str,
+    dimension: int,
+    index: Index = "hnsw",
+    exist_ok: bool = False,
+    options: Mapping[str, Any] | None = None,
+) -> Database:
+    """Create a new database (see ``srvdb.create``). Raises FileExistsError
+    if ``path`` is not new or empty, ValueError for bad options or, with
+    ``exist_ok``, an existing database with other settings."""
+
+def open(path: str) -> Database:  # noqa: A001
+    """Open an existing database with its recorded settings (see
+    ``srvdb.open``). Raises FileNotFoundError if there is none."""
+
+def delete(path: str) -> None:
+    """Delete a closed SrvDB database directory (see ``srvdb.delete``).
+    Raises ValueError for a directory with other files, BlockingIOError
+    while the database is open."""
 
 class Database:
     """An open SrvDB database; safe to share between threads.
@@ -42,9 +64,7 @@ class Database:
     garbage-collected.
     """
 
-    def __init__(
-        self, path: str, dimension: int = 1536, mode: Mode = "flat"
-    ) -> None:
+    def __init__(self, path: str, dimension: int = 1536, mode: Mode = "flat") -> None:
         """Open the database at ``path``, creating it if needed.
 
         ``dimension`` is 128 to 4096 and must match a stored database.
@@ -111,11 +131,25 @@ class Database:
     ) -> list[list[tuple[str, float]]]:
         """One search() result list per query, in query order."""
     def get(self, id: str) -> str | None:
-        """Stored metadata JSON (with ``"__id__"``); ValueError if unknown."""
+        """Stored metadata JSON (with ``"__id__"``), or None for an unknown id."""
     def count(self) -> int:
         """Number of searchable vectors; deleted ones are not counted."""
-    def persist(self) -> None:
+    def save(self) -> None:
         """Make every earlier write durable (crash-safe commit)."""
+    def persist(self) -> None:
+        """Alias of save()."""
+    def close(self) -> None:
+        """Release the database and its lock without saving; idempotent.
+        Other methods then raise ValueError."""
+    def __enter__(self) -> Database: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None = None,
+        traceback: TracebackType | None = None,
+    ) -> bool:
+        """Save and close on a clean exit; close without saving on an
+        exception."""
     def delete(self, ids: Sequence[str]) -> int:
         """Delete by id, ignoring unknown ids. Returns the count deleted."""
     def get_all_ids(self) -> list[str]:

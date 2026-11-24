@@ -1,12 +1,12 @@
 ---
-title: srvdb.Database.search_batch
+title: db.search_batch
 description: Run several searches in one call.
 ---
 
 Run several searches in one call.
 
 ```python
-Database.search_batch(queries: Sequence[Sequence[float]], k: int) -> list[list[tuple[str, float]]]
+db.search_batch(queries: Sequence[Sequence[float]], k: int) -> list[list[tuple[str, float]]]
 ```
 
 ## Parameters
@@ -24,10 +24,7 @@ Database.search_batch(queries: Sequence[Sequence[float]], k: int) -> list[list[t
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity.
-
-- **OverflowError**
-  `k` is negative.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity. Also raised for a negative value.
 
 - **RuntimeError**
   An internal fault occurred.
@@ -42,7 +39,7 @@ Database.search_batch(queries: Sequence[Sequence[float]], k: int) -> list[list[t
 ```python
 import srvdb
 
-db = srvdb.open("./vectors", dimension=128)
+db = srvdb.create("./vectors", dimension=128)
 v = [1.0] + [0.0] * 127   # tiny 128-dimension vectors
 w = [0.0, 1.0] + [0.0] * 126
 db.add(["a", "b"], [v, w], ["{}", "{}"])
@@ -52,4 +49,4 @@ print(db.search_batch([v, w], k=1))
 
 ## See also
 
-- [`srvdb.Database.search`](/srvdb/reference/python/database-search/): Find the k nearest vectors to a query.
+- [`db.search`](/srvdb/reference/python/db-search/): Find the k nearest vectors to a query.

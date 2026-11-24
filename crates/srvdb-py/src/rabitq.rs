@@ -1,7 +1,7 @@
 //! `Database` RaBitQ constructor and settings (ADR 0008)
 
 use crate::database::PyDatabase;
-use crate::errors::to_py;
+use crate::errors::{non_negative, to_py};
 use pyo3::prelude::*;
 
 /// Bit width named by a mode string ('rabitq1', 'rabitq2', 'rabitq4')
@@ -67,7 +67,8 @@ impl PyDatabase {
     ///
     /// Raises:
     ///     ValueError: not a RaBitQ database, or the factor is too large
-    fn set_rabitq_rerank(&self, py: Python<'_>, rerank: usize) -> PyResult<()> {
+    fn set_rabitq_rerank(&self, py: Python<'_>, rerank: i64) -> PyResult<()> {
+        let rerank = non_negative("rerank", rerank)?;
         self.write(py, |s| s.db.set_rabitq_rerank(rerank).map_err(to_py))
     }
 }

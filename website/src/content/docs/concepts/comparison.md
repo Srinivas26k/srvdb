@@ -80,11 +80,11 @@ rng = random.Random(7)
 vectors = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(500)]
 ids = [f"doc-{i}" for i in range(len(vectors))]
 
-for mode in ["flat", "hnsw", "sq8", "rabitq4"]:
-    db = srvdb.open(f"./db-{mode}", dimension=128, mode=mode)
+for index in ["flat", "hnsw", "sq8", "rabitq"]:
+    db = srvdb.create(f"./db-{index}", dimension=128, index=index)
     db.add(ids, vectors, ["{}"] * len(ids))
-    db.persist()
-    print(mode, db.search(vectors[42], k=1)[0][0])
+    db.save()
+    print(index, db.search(vectors[42], k=1)[0][0])
 ```
 
 [Choosing an index mode](/srvdb/guides/index-modes/) has a `recall_at_k`
@@ -113,7 +113,7 @@ codebooks). Flat, HNSW and RaBitQ need none.
 
 :::note[Related concepts]
 - [Flat](/srvdb/concepts/flat/), [HNSW](/srvdb/concepts/hnsw/), [IVF](/srvdb/concepts/ivf/), [SQ8](/srvdb/concepts/sq8/), [PQ](/srvdb/concepts/pq/), [RaBitQ](/srvdb/concepts/rabitq/).
-- Guides: [Choosing an index mode](/srvdb/guides/index-modes/), [Durability and persist()](/srvdb/guides/durability/).
+- Guides: [Choosing an index mode](/srvdb/guides/index-modes/), [Durability and save()](/srvdb/guides/durability/).
 - Reference: [Python API](/srvdb/reference/python/), [on-disk files](/srvdb/reference/files/).
 :::
 

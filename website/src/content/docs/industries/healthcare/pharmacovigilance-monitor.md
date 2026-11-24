@@ -27,7 +27,7 @@ A complete, runnable **Pharmacovigilance Monitor** reference implementation is i
 1. Known signals and past reports are embedded in separate databases.
 2. Each new report is matched to the closest signals and to similar reports.
 3. Reports far from every known signal are flagged for review.
-4. Continuous ingestion with `upsert` and periodic `persist()`.
+4. Continuous ingestion with `upsert` and periodic `save()`.
 
 ## What changes
 
@@ -50,7 +50,7 @@ A complete, runnable **Pharmacovigilance Monitor** reference implementation is i
 - **[Several databases](/srvdb/start/use-cases/)**: each database is a directory, so different data types or tenants stay separate.
 - **[True cosine scores](/srvdb/guides/index-modes/)**: scores in [-1, 1] mean the same in every mode, so thresholds are stable.
 - **[`upsert`](/srvdb/guides/delete-upsert-compact/)**: inserts new items and replaces changed ones, so the knowledge base stays current.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 
 ## Use cases
 
@@ -69,7 +69,7 @@ A complete, runnable **Pharmacovigilance Monitor** reference implementation is i
 import json
 import srvdb
 
-db = srvdb.open("./pharmacovigilance-monitor-db", dimension=768)
+db = srvdb.create("./pharmacovigilance-monitor-db", dimension=768, index="flat", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def match_report(report_text, k=5):
     hits = db.search(embed(report_text), k)
@@ -97,7 +97,7 @@ SrvDB keeps data local, but it is not a certified medical device or a compliance
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

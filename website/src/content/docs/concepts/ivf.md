@@ -5,7 +5,7 @@ head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Does IVF in SrvDB need training?","acceptedAnswer":{"@type":"Answer","text":"Yes. Call train_ivf() after adding data; it clusters up to the first 10000 stored vectors. Until then, IVF mode searches exactly, like flat."}},{"@type":"Question","name":"What do nlist and nprobe mean?","acceptedAnswer":{"@type":"Answer","text":"nlist is the number of partitions (centroids) and nprobe is how many of the closest partitions a search looks in. The defaults are 100 and 10."}},{"@type":"Question","name":"Is the trained IVF index saved?","acceptedAnswer":{"@type":"Answer","text":"Yes. persist() saves ivf.index and it is reloaded on open. If it does not cover the committed vectors, SrvDB retrains."}}]}'
+    content: '{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Does IVF in SrvDB need training?","acceptedAnswer":{"@type":"Answer","text":"Yes. Call train_ivf() after adding data; it clusters up to the first 10000 stored vectors. Until then, IVF mode searches exactly, like flat."}},{"@type":"Question","name":"What do nlist and nprobe mean?","acceptedAnswer":{"@type":"Answer","text":"nlist is the number of partitions (centroids) and nprobe is how many of the closest partitions a search looks in. The defaults are 100 and 10."}},{"@type":"Question","name":"Is the trained IVF index saved?","acceptedAnswer":{"@type":"Answer","text":"Yes. save() saves ivf.index and it is reloaded on open. If it does not cover the committed vectors, SrvDB retrains."}}]}'
 ---
 
 IVF (inverted file) splits the collection into `nlist` partitions around
@@ -52,7 +52,7 @@ is coarse (pick partitions) then fine (walk small graphs).
    top `nprobe` partitions are searched in parallel, and the results are
    merged into the top `k` with exact cosine scores.
 4. **Before training** IVF mode searches exactly, like flat.
-5. **Persist.** `persist()` saves `ivf.index`; it is reloaded on open and
+5. **Save.** `save()` saves `ivf.index`; it is reloaded on open and
    retrained if it does not cover the committed vectors. The vectors stay
    in `vectors.bin`, so the index can always be rebuilt.
 
@@ -66,11 +66,10 @@ rng = random.Random(7)
 vectors = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(2000)]
 ids = [f"doc-{i}" for i in range(len(vectors))]
 
-db = srvdb.open("./ivf-db", dimension=128, mode="ivf")
+db = srvdb.create("./ivf-db", dimension=128, index="ivf", nlist=20, nprobe=4)
 db.add(ids, vectors, ["{}"] * len(ids))
-db.configure_ivf(nlist=20, nprobe=4)
 db.train_ivf()
-db.persist()
+db.save()
 print(len(db.search(vectors[42], k=5)))
 # 5
 ```
@@ -111,7 +110,7 @@ the closest partitions a search looks in. The defaults are 100 and 10.
 
 ### Is the trained IVF index saved?
 
-Yes. `persist()` saves `ivf.index` and it is reloaded on open. If it does
+Yes. `save()` saves `ivf.index` and it is reloaded on open. If it does
 not cover the committed vectors, SrvDB retrains.
 
 ## Related concepts
@@ -120,7 +119,7 @@ not cover the committed vectors, SrvDB retrains.
 - [HNSW](/srvdb/concepts/hnsw/): the graph inside every partition.
 - [PQ](/srvdb/concepts/pq/): k-means again, applied to sub-vectors.
 - [Compare index modes](/srvdb/concepts/comparison/).
-- Reference: [`Database.configure_ivf`](/srvdb/reference/python/database-configure-ivf/), [`Database.train_ivf`](/srvdb/reference/python/database-train-ivf/).
+- Reference: [`srvdb.create`](/srvdb/reference/python/create/), [`db.configure_ivf`](/srvdb/reference/python/db-configure-ivf/), [`db.train_ivf`](/srvdb/reference/python/db-train-ivf/).
 :::
 
 **Next:** [What is SQ8 scalar quantization?](/srvdb/concepts/sq8/)

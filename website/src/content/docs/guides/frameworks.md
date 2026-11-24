@@ -4,7 +4,7 @@ description: Use SrvDB as the vector store in LangChain or LlamaIndex, fully off
 ---
 
 SrvDB ships optional vector-store adapters for LangChain and LlamaIndex.
-They are plain Python over `srvdb.Database`; the frameworks are extras, so
+They are plain Python over a SrvDB database; the frameworks are extras, so
 `import srvdb` never imports them.
 
 ```bash
@@ -18,7 +18,7 @@ the extra to install.
 Both adapters behave the same way:
 
 - **Scores** are cosine similarities, best first.
-- **Writes persist.** Every add or delete calls `persist()` before it
+- **Writes persist.** Every add or delete calls `save()` before it
   returns, so it survives a crash.
 - **Metadata filters** run on the search results: the adapter fetches
   more candidates until it has `k` matches or has seen every vector.
@@ -58,7 +58,7 @@ class HashEmbeddings(Embeddings):
         return [self.embed_query(t) for t in texts]
 
 
-db = srvdb.open(tempfile.mkdtemp(), dimension=DIM)
+db = srvdb.create(tempfile.mkdtemp(), dimension=DIM)
 store = SrvDBVectorStore(db, HashEmbeddings())
 store.add_texts(
     ["SrvDB runs inside your process", "Rust has no garbage collector"],
@@ -117,7 +117,7 @@ class HashEmbedding(BaseEmbedding):
         return hash_embed(query)
 
 
-store = SrvDBVectorStore(srvdb.open(tempfile.mkdtemp(), dimension=DIM))
+store = SrvDBVectorStore(srvdb.create(tempfile.mkdtemp(), dimension=DIM))
 index = VectorStoreIndex.from_documents(
     [
         Document(text="SrvDB runs inside your process", metadata={"topic": "db"}),

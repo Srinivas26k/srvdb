@@ -66,15 +66,13 @@ def test_delete_and_get_by_ids(store):
 
 
 def test_add_documents_keeps_ids_and_reopens(tmp_path):
-    store = SrvDBVectorStore(srvdb.open(str(tmp_path), dimension=DIM), FakeEmbeddings())
+    store = SrvDBVectorStore(srvdb.create(str(tmp_path), DIM), FakeEmbeddings())
     ids = store.add_documents(
         [Document(id="x", page_content="hello world", metadata={"n": 1})]
     )
     assert ids == ["x"]
     del store
-    reopened = SrvDBVectorStore(
-        srvdb.open(str(tmp_path), dimension=DIM), FakeEmbeddings()
-    )
+    reopened = SrvDBVectorStore(srvdb.open(str(tmp_path)), FakeEmbeddings())
     assert reopened.get_by_ids(["x"])[0].metadata == {"n": 1}
 
 

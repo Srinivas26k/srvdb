@@ -5,7 +5,9 @@ description: Which exception SrvDB raises, and when.
 
 | Exception | When |
 |-----------|------|
-| `ValueError` | Invalid input: wrong dimension, NaN or infinity, `k < 1`, empty or duplicate ids, metadata that is not a JSON object, unknown mode, a call that does not fit the current mode |
+| `ValueError` | Invalid input: wrong dimension, NaN or infinity, `k < 1`, empty or duplicate ids, metadata that is not a JSON object, unknown index or an option that does not apply to it, `create(exist_ok=True)` on a database with other settings, a call that does not fit the current mode, use after `close()` |
+| `FileNotFoundError` | `srvdb.open` or `srvdb.delete` found no database at the path |
+| `FileExistsError` | `srvdb.create` found a database or other files at the path |
 | `BlockingIOError` | The database is already open elsewhere |
 | `OSError` | The operating system reported an I/O failure (disk full, permissions, ...) |
 | `RuntimeError` | An internal fault, including a corrupt database file or data that fails its checksum (restore from a backup) |

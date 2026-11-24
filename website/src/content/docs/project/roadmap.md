@@ -8,7 +8,7 @@ performance work, a reproducible benchmark.
 
 ## 0.3: Trustworthy storage ✅
 
-Crash-safe `persist()`, delete/upsert/compact, validated input, typed errors,
+Crash-safe `save()`, delete/upsert/compact, validated input, typed errors,
 thread safety, correctness fixes, Apache-2.0.
 
 ## 0.4: Retrieval
