@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Questions and ideas
-    url: https://github.com/Srinivas26k/srvdb/discussions
-    about: Ask how to use SrvDB or discuss ideas
+    url: https://github.com/Srinivas26k/srvdb/discussions/categories/support-help
+    about: Questions go to Discussions, not issues
   - name: Documentation
     url: https://srinivas26k.github.io/srvdb/
     about: Guides and API reference
