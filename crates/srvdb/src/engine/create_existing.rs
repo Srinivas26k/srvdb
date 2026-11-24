@@ -56,6 +56,16 @@ impl SrvDB {
         }
         let index = options.index();
         let kind = db.current_settings().kind;
+        if let Some(wanted) = options.get("memory_mb") {
+            // A budgeted database records the mode in use, not "auto"
+            if db.memory_budget != Some(wanted) {
+                return Err(Error::SettingsMismatch(format!(
+                    "{path} was not created with memory_mb = {wanted}; open it with \
+                     open_existing (srvdb.open in Python) or delete it first"
+                )));
+            }
+            return Ok(db);
+        }
         let stored = kind.name();
         let pq_with_graph = stored == "hnsw+pq" && index.name() == "pq";
         if stored != index.name() && !pq_with_graph {

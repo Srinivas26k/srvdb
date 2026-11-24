@@ -96,6 +96,7 @@ impl SrvDB {
             rabitq: None,
             rabitq_config: None,
             stored_settings: None,
+            memory_budget: None,
             current_mode,
             dimension,
             deleted: Default::default(),

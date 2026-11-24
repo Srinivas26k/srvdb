@@ -83,6 +83,7 @@ impl SrvDB {
     pub(super) fn insert_one(&mut self, vec: &Vector, meta: &str) -> Result<u64> {
         validate::vector(&vec.data, self.dimension)?;
         validate::metadata(meta)?;
+        self.fit_budget(1)?;
         self.ensure_quantized_storage(std::slice::from_ref(&vec.data))?;
 
         let id = if let Some(ref mut scalar) = self.scalar_storage {
@@ -114,6 +115,7 @@ impl SrvDB {
         if vecs.is_empty() {
             return Ok(Vec::new());
         }
+        self.fit_budget(vecs.len())?;
 
         // Convert all vectors to Vec<f32>
         let embedded: Vec<Vec<f32>> = vecs.iter().map(|v| v.data.clone()).collect();

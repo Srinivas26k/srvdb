@@ -64,9 +64,36 @@ pub(crate) fn encode<T: Serialize>(kind: [u8; 4], value: &T) -> Result<Vec<u8>> 
     Ok(out)
 }
 
-/// Check the envelope and deserialize its payload
+/// Check the envelope and deserialize its payload (trailing payload bytes
+/// are ignored; see [`decode_exact`])
 pub(crate) fn decode<T: DeserializeOwned>(kind: [u8; 4], bytes: &[u8]) -> Result<T> {
-    let corrupt = |why: String| Error::Corrupt(format!("{} file: {why}", name(kind)));
+    let payload = checked_payload(kind, bytes)?;
+    postcard::from_bytes(payload).map_err(|e| corrupt(kind, e.to_string()).into())
+}
+
+/// As [`decode`], but the value must use the whole payload: a payload
+/// with bytes after it is `Corrupt`
+pub(crate) fn decode_exact<T: DeserializeOwned>(kind: [u8; 4], bytes: &[u8]) -> Result<T> {
+    let payload = checked_payload(kind, bytes)?;
+    let (value, rest) =
+        postcard::take_from_bytes(payload).map_err(|e| corrupt(kind, e.to_string()))?;
+    if !rest.is_empty() {
+        return Err(corrupt(
+            kind,
+            format!("{} unexpected bytes after the payload", rest.len()),
+        )
+        .into());
+    }
+    Ok(value)
+}
+
+fn corrupt(kind: [u8; 4], why: String) -> Error {
+    Error::Corrupt(format!("{} file: {why}", name(kind)))
+}
+
+/// The payload of a valid envelope of `kind`
+fn checked_payload(kind: [u8; 4], bytes: &[u8]) -> Result<&[u8]> {
+    let corrupt = |why: String| corrupt(kind, why);
     if bytes.len() < HEADER || !is_enveloped(bytes) {
         return Err(corrupt("not a SrvDB file or truncated header".into()).into());
     }
@@ -98,7 +125,7 @@ pub(crate) fn decode<T: DeserializeOwned>(kind: [u8; 4], bytes: &[u8]) -> Result
         ))
         .into());
     }
-    postcard::from_bytes(payload).map_err(|e| corrupt(e.to_string()).into())
+    Ok(payload)
 }
 
 /// Whether `bytes` start with the envelope magic (files from v0.2 do not)

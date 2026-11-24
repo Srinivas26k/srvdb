@@ -138,6 +138,7 @@ impl SrvDB {
         IndexSettings {
             dimension: self.dimension,
             kind,
+            memory_mb: self.memory_budget,
         }
     }
 
@@ -155,14 +156,19 @@ impl SrvDB {
 
     /// End of every constructor: remember the stored settings, or record
     /// them now when the database is new or was opened with an explicit
-    /// mode (the 0.3 / early 0.4 migration path).
+    /// mode (the 0.3 / early 0.4 migration path). A recorded memory budget
+    /// is applied whichever constructor opened the database (ADR 0018),
+    /// so the next `persist()` keeps it.
     pub(super) fn finish_settings(
         &mut self,
         stored: Option<IndexSettings>,
         record_now: bool,
     ) -> Result<()> {
         match stored {
-            Some(settings) => self.stored_settings = Some(settings),
+            Some(settings) => {
+                self.memory_budget = settings.memory_mb;
+                self.stored_settings = Some(settings);
+            }
             None if record_now => self.record_settings()?,
             None => {}
         }

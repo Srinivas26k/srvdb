@@ -67,6 +67,13 @@ pub enum Error {
     #[error("already exists: {0}")]
     AlreadyExists(String),
 
+    /// A write to a database created with a memory budget would need more
+    /// resident memory than the budget allows, even at 1 bit per dimension
+    /// (ADR 0018). Nothing was written. Create the database with a larger
+    /// `memory_mb`, `compact()` after deletes, or use a fixed index mode.
+    #[error("memory budget exceeded: {0}")]
+    MemoryBudget(String),
+
     /// The operating system reported an I/O failure.
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),

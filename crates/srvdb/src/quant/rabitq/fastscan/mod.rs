@@ -20,6 +20,7 @@ mod scalar;
 pub(crate) use lut::QueryLut;
 
 use crate::error::{Error, Result};
+use std::collections::TryReserveError;
 
 /// Vectors per interleaved block
 pub(crate) const BLOCK: usize = 32;
@@ -88,6 +89,18 @@ impl Kernel {
             Inner::Neon => unsafe { neon::block_sums(block, luts, code_bytes) },
         }
     }
+}
+
+/// Make room for `extra` more items, growing by at least 25 % so appends
+/// stay amortised O(1) while capacity never exceeds 1.25x the length
+/// (`Vec`'s own doubling could leave twice the memory budget, ADR 0018)
+fn grow<T>(v: &mut Vec<T>, extra: usize) -> std::result::Result<(), TryReserveError> {
+    let needed = v.len().saturating_add(extra);
+    if needed <= v.capacity() {
+        return Ok(());
+    }
+    let target = needed.max(v.len() + v.len() / 4);
+    v.try_reserve_exact(target - v.len())
 }
 
 /// Interleaved codes and correction factors of every stored vector
@@ -178,11 +191,11 @@ impl FastScanCodes {
             .checked_add(new)
             .and_then(|n| n.div_ceil(BLOCK).checked_mul(self.block_bytes()));
         let reserved = total.is_some_and(|bytes| {
-            self.blocks
-                .try_reserve(bytes.saturating_sub(self.blocks.len()))
-                .and_then(|()| self.factors.try_reserve(new))
+            let extra = bytes.saturating_sub(self.blocks.len());
+            grow(&mut self.blocks, extra)
+                .and_then(|()| grow(&mut self.factors, new))
                 .and_then(|()| match self.grid {
-                    Some(_) => self.widths.try_reserve(new),
+                    Some(_) => grow(&mut self.widths, new),
                     None => Ok(()),
                 })
                 .is_ok()

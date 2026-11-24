@@ -15,6 +15,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extension from source. CI builds and tests the aarch64 wheel on pull
   requests into release branches. WebAssembly is a documented no-go for
   now.
+- Memory budget (#86, ADR 0018). `srvdb.create(path, dim, index="auto",
+  memory_mb=50)` (Rust: `CreateOptions::set("memory_mb", 50)` with
+  `IndexChoice::Auto`) starts flat and, when an add would exceed 80 % of
+  the budget, re-encodes to RaBitQ 4, 2 then 1 bits before appending;
+  past 1 bit the add fails with the new `Error::MemoryBudget` (Python
+  `ValueError`) and writes nothing. `SrvDB::memory_report()` /
+  `db.memory_report()` estimate resident memory per part for every mode
+  and report the budget and remaining capacity. The budget is recorded in
+  `index_settings.bin` payload format 2; databases without a budget are
+  still written as format 1. The in-memory RaBitQ scan copy now grows by
+  25 % at a time instead of doubling, so it never holds more than 25 %
+  unused capacity.
+- Theorem-proving premise-retrieval example (#44) in
+  `examples/theorem_proving/`. It ranks a bundled sample of 207 Lean
+  mathlib lemma statements (Apache-2.0, attributed in `NOTICE`) for a given
+  proof state, using vector, keyword (BM25) and hybrid search, `uses`
+  dependency links with `expand=`, and a `where=` filter. It prints recall@k
+  on 45 labelled proof steps together with the hardware and versions, and
+  runs offline with TF-IDF + TruncatedSVD embeddings. The README shows how
+  to swap in a local embedding model and how to evaluate on LeanDojo
+  Benchmark 4 after downloading it yourself (`leandojo_to_tsv.py`).
+  Example dependencies are in `examples/theorem_proving/requirements.txt`,
+  not in the package. New guide: "Premise retrieval for theorem proving".
 - Typed, directed links between records and k-hop search expansion (#80,
   ADR 0016). Rust: `SrvDB::link`, `unlink`, `neighbors`, `link_count`,
   `move_links` and `search_expand` with `Expansion` (1 to 3 hops, at most
@@ -65,6 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ChecksumMismatch` (`RuntimeError` in Python) and nothing is rewritten.
 
 ### Changed
+- The in-memory RaBitQ scan copy now grows by 25 % at a time instead of
+  doubling, so it holds at most 25 % more memory than it uses (ADR 0018).
 - The Python API is a few verbs (#57, ADR 0013):
   `srvdb.create(path, dimension, index="hnsw", *, exist_ok=False, **options)`
   makes a new database (`FileExistsError` if one exists; `exist_ok=True`
@@ -104,6 +129,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Candidate scores before rerank carry a small, bounded extra error from
   the u8 tables; reranked scores are unchanged. The on-disk format is
   unchanged. Resident memory grows by one copy of the codes (#24).
+
+### Fixed
+- Dropping a database now releases its lock explicitly. Before, a child
+  process forked by another thread of the host (for example
+  `subprocess` or `std::process::Command`) briefly shared the lock, so a
+  reopen right after drop, including the one inside `create`, could fail
+  with `Locked` (#82, ADR 0005).
 
 ### Added
 - Filtered search from Python (#46, ADR 0014): `db.search(query, k,

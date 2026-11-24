@@ -61,6 +61,10 @@ def create(
             sq8, pq: ``training``, sample vectors the quantizer is trained
             on (otherwise the first batch added).
             rabitq: ``bits`` (1, 2 or 4; default 4), ``rerank``, ``seed``.
+            auto: ``memory_mb``, a resident-memory budget in MiB (1 to
+            1048576). The database starts flat and re-encodes to RaBitQ
+            4, 2 then 1 bits as it grows; past that, adds raise
+            ValueError. See ``Database.memory_report()``.
 
     Returns:
         The open database.

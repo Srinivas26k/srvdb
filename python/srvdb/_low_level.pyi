@@ -295,3 +295,6 @@ class Database:
         """Train IVF on the stored vectors; ValueError unless in "ivf" mode."""
     def info(self) -> str:
         """One-line summary: dimension, mode and vector count."""
+    def memory_report(self) -> dict[str, Any]:
+        """Estimated resident memory per part and the memory budget; keys
+        in the db.memory_report reference (None fields without a budget)."""

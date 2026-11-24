@@ -129,12 +129,17 @@ fn from_record(r: Record) -> Result<InvertedIndex> {
         ));
     }
     let total_len = lengths.values().map(|&n| u64::from(n)).sum();
+    let pairs: u64 = postings
+        .values()
+        .map(|ids: &BTreeMap<u64, u32>| ids.len() as u64)
+        .sum();
     Ok(InvertedIndex {
         field: r.field,
         covered: r.covered,
         postings,
         lengths,
         total_len,
+        pairs,
         forward,
     })
 }
@@ -158,6 +163,7 @@ mod tests {
         assert_eq!(back.covered, 3);
         assert_eq!(back.postings, index.postings);
         assert_eq!(back.lengths, index.lengths);
+        assert_eq!((back.pairs, index.pairs), (5, 5));
         assert_eq!(back.total_len, index.total_len);
         assert_eq!(back.search(&fox, 5, None), index.search(&fox, 5, None));
     }
