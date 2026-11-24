@@ -66,7 +66,7 @@ def _match(meta: dict[str, Any], filters: MetadataFilters) -> bool:
                 f"supported: {', '.join(o.value for o in _OPS)}"
             )
         if f.key not in meta:
-            results.append(f.operator == FilterOperator.NE)
+            results.append(f.operator in (FilterOperator.NE, FilterOperator.NIN))
             continue
         try:
             results.append(bool(op(meta[f.key], f.value)))
@@ -79,14 +79,58 @@ def _match(meta: dict[str, Any], filters: MetadataFilters) -> bool:
     return all(results)
 
 
+_NATIVE = {
+    FilterOperator.EQ: "$eq",
+    FilterOperator.NE: "$ne",
+    FilterOperator.GT: "$gt",
+    FilterOperator.GTE: "$gte",
+    FilterOperator.LT: "$lt",
+    FilterOperator.LTE: "$lte",
+    FilterOperator.IN: "$in",
+    FilterOperator.NIN: "$nin",
+}
+
+
+def _where(filters: MetadataFilters) -> dict[str, Any] | None:
+    """``filters`` as a native SrvDB filter, or None if a key contains a
+    dot (SrvDB reads dots as nesting), so the caller filters in Python.
+
+    Raises NotImplementedError for an unsupported operator.
+    """
+    parts: list[dict[str, Any]] = []
+    for f in filters.filters:
+        if isinstance(f, MetadataFilters):
+            sub = _where(f)
+            if sub is None:
+                return None
+            parts.append(sub)
+            continue
+        op = _NATIVE.get(f.operator)
+        if op is None:
+            raise NotImplementedError(
+                f"SrvDB does not support the {f.operator} filter operator; "
+                f"supported: {', '.join(o.value for o in _OPS)}"
+            )
+        if "." in f.key:
+            return None
+        parts.append({f"{_common.META_KEY}.{f.key}": {op: f.value}})
+    if filters.condition == FilterCondition.OR:
+        return {"$or": parts}
+    if filters.condition == FilterCondition.NOT:
+        return {"$not": {"$or": parts}}
+    return {"$and": parts}
+
+
 class SrvDBVectorStore(BasePydanticVectorStore):
     """LlamaIndex vector store over a SrvDB database.
 
     Supports ``add``, ``delete`` (by ``ref_doc_id``), ``delete_nodes`` and
     default (dense) queries with ``MetadataFilters`` (EQ, NE, GT, GTE, LT,
-    LTE, IN, NIN; AND/OR/NOT). Filters run on search results, over-fetching
-    until ``similarity_top_k`` matches are found. ``delete`` by document id
-    scans all stored records, O(n).
+    LTE, IN, NIN; AND/OR/NOT). Query filters, ``node_ids`` and ``doc_ids``
+    run inside SrvDB, so a query returns ``similarity_top_k`` nodes whenever
+    that many match; a key containing a dot falls back to filtering the
+    search results in Python. A missing key matches only NE and NIN.
+    ``delete`` by document id scans all stored records, O(n).
     """
 
     stores_text: bool = True
@@ -161,24 +205,26 @@ class SrvDBVectorStore(BasePydanticVectorStore):
         if query.query_embedding is None:
             raise ValueError("SrvDBVectorStore needs query.query_embedding")
         filters = query.filters
+        conditions: list[dict[str, Any]] = []
         # LlamaIndex passes an empty list to mean "no restriction".
-        allowed = set(query.node_ids) if query.node_ids else None
-        docs = set(query.doc_ids) if query.doc_ids else None
+        if query.node_ids:
+            conditions.append({"__id__": {"$in": list(query.node_ids)}})
+        if query.doc_ids:
+            key = f"{_common.META_KEY}.ref_doc_id"
+            conditions.append({key: {"$in": list(query.doc_ids)}})
+        keep = None
+        if filters is not None and filters.filters:
+            native = _where(filters)
+            if native is not None:
+                conditions.append(native)
+            else:
 
-        def keep(id_: str, rec: dict[str, Any]) -> bool:
-            meta = rec.get(_common.META_KEY, {})
-            if allowed is not None and id_ not in allowed:
-                return False
-            if docs is not None and meta.get("ref_doc_id") not in docs:
-                return False
-            return filters is None or _match(meta, filters)
+                def keep(_id: str, rec: dict[str, Any]) -> bool:
+                    return _match(rec.get(_common.META_KEY, {}), filters)
 
-        use_keep = filters is not None or allowed is not None or docs is not None
+        where = {"$and": conditions} if conditions else None
         hits = _common.search(
-            self._db,
-            query.query_embedding,
-            query.similarity_top_k,
-            keep if use_keep else None,
+            self._db, query.query_embedding, query.similarity_top_k, keep, where
         )
         nodes, sims, ids = [], [], []
         for id_, score, record in hits:

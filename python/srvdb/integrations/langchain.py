@@ -35,21 +35,20 @@ Filter = Union[dict[str, Any], Callable[[dict[str, Any]], bool]]
 
 
 def _keep(filter: Filter | None) -> Callable[[str, dict[str, Any]], bool] | None:
-    """Turn a LangChain filter (equality dict or predicate) into a test."""
-    if filter is None:
+    """A Python test for a callable filter; dict filters run natively."""
+    if filter is None or isinstance(filter, dict):
         return None
     if callable(filter):
         pred = filter
         return lambda _id, rec: bool(pred(rec.get(_common.META_KEY, {})))
-    if not isinstance(filter, dict):
-        raise ValueError("filter must be a dict of metadata values or a callable")
-    wanted = dict(filter)
+    raise ValueError("filter must be a dict of metadata conditions or a callable")
 
-    def keep(_id: str, rec: dict[str, Any]) -> bool:
-        meta = rec.get(_common.META_KEY, {})
-        return all(k in meta and meta[k] == v for k, v in wanted.items())
 
-    return keep
+def _where(filter: Filter | None) -> dict[str, Any] | None:
+    """A dict filter as a native SrvDB ``where`` over the stored metadata."""
+    if isinstance(filter, dict) and filter:
+        return _common.nested(filter)
+    return None
 
 
 def _doc(id_: str, record: dict[str, Any]) -> Document:
@@ -68,9 +67,13 @@ class SrvDBVectorStore(VectorStore):
             whose dimension matches the embedding model.
         embedding: the LangChain ``Embeddings`` used for texts and queries.
 
-    Filters: ``filter`` is either a dict (every key must equal the stored
-    metadata value) or a callable taking the metadata dict. Filtering runs
-    on the search results, over-fetching until ``k`` matches are found.
+    Filters: ``filter`` is either a dict or a callable taking the metadata
+    dict. A dict runs inside SrvDB and always yields ``k`` documents when
+    ``k`` match: ``{"genre": "jazz"}`` (equality), operator dicts such as
+    ``{"year": {"$gte": 1950}}`` (``$eq``, ``$ne``, ``$gt``, ``$gte``,
+    ``$lt``, ``$lte``, ``$in``, ``$nin``) and ``$and`` / ``$or`` / ``$not``.
+    A callable runs on the search results, over-fetching until ``k``
+    matches are found.
     """
 
     def __init__(self, database: Database, embedding: Embeddings) -> None:
@@ -149,9 +152,10 @@ class SrvDBVectorStore(VectorStore):
         """Return ``(document, cosine score)`` pairs, best first.
 
         Raises ValueError if ``k`` is below 1, ``filter`` is neither a dict
-        nor a callable, or ``embedding`` has the wrong dimension.
+        nor a callable or uses an unknown operator, or ``embedding`` has the
+        wrong dimension.
         """
-        hits = _common.search(self._db, embedding, k, _keep(filter))
+        hits = _common.search(self._db, embedding, k, _keep(filter), _where(filter))
         return [(_doc(id_, rec), score) for id_, score, rec in hits]
 
     def similarity_search_with_score(

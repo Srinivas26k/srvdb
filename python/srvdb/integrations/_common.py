@@ -60,27 +60,51 @@ def remove(db: Database, ids: Sequence[str]) -> int:
     return removed
 
 
+def nested(where: dict[str, Any]) -> dict[str, Any]:
+    """Point the field names of a ``where`` filter at the user metadata.
+
+    The adapters store user metadata under ``META_KEY``, so ``{"a": 1}``
+    becomes ``{"metadata.a": 1}``; ``$and``, ``$or`` and ``$not`` are
+    rewritten recursively.
+    """
+    out: dict[str, Any] = {}
+    for key, value in where.items():
+        if key in ("$and", "$or") and isinstance(value, list):
+            out[key] = [nested(v) if isinstance(v, dict) else v for v in value]
+        elif key == "$not" and isinstance(value, dict):
+            out[key] = nested(value)
+        elif key.startswith("$"):
+            out[key] = value  # the core rejects it with a clear message
+        else:
+            out[f"{META_KEY}.{key}"] = value
+    return out
+
+
 def search(
     db: Database,
     query: Sequence[float],
     k: int,
     keep: Callable[[str, dict[str, Any]], bool] | None = None,
+    where: dict[str, Any] | None = None,
 ) -> list[tuple[str, float, dict[str, Any]]]:
     """Return up to ``k`` ``(id, cosine score, record)`` hits, best first.
 
-    SrvDB has no native metadata filter, so when ``keep`` is given the
-    search over-fetches and drops hits ``keep(id, record)`` rejects, doubling the
-    candidate count until ``k`` hits are found or every vector was seen.
+    ``where`` is a native SrvDB filter over the stored record and is
+    evaluated by the database, which returns ``k`` hits whenever ``k``
+    records match. ``keep(id, record)`` is a Python predicate for filters
+    SrvDB cannot express; the search then over-fetches, doubling the
+    candidate count until ``k`` kept hits are found or every vector was seen.
     """
     if k < 1:
         raise ValueError(f"k must be at least 1, got {k}")
     total = db.count()
     if total == 0:
         return []
+    vector = [float(x) for x in query]
     fetch = min(total, k if keep is None else k * 4)
     while True:
         hits = []
-        for id_, score in db.search([float(x) for x in query], fetch):
+        for id_, score in db.search(vector, fetch, where=where):
             record = load(db, id_)
             if record is None or (keep is not None and not keep(id_, record)):
                 continue
