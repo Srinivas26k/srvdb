@@ -54,8 +54,39 @@ not duplicated: the trained `codebooks.bin` already holds them, checksummed.
 Validation on load: envelope magic, kind, version and CRC32C (damage is
 `ChecksumMismatch`, anything else `Corrupt`); payload format; known kind
 (an unknown one is `Corrupt`, "written by a newer SrvDB? upgrade SrvDB");
-every parameter in range (`nprobe <= nlist`, RaBitQ settings through
-`RabitqConfig::validate`); no stray fields.
+every parameter in range; no stray fields.
+
+### Parameter caps (shared with the public API)
+
+A settings file is input: a crafted one must not make open allocate
+without bound (a million IVF partitions, `m = 4096` graphs). The bounds
+live in one place, `index::limits`, and are used by the settings loader
+(`Corrupt`), `ivf.index` loading (`Corrupt`), `HNSWConfig::validate`,
+`IVFConfig::validate`, `configure_ivf`, `set_ef_search` and the HNSW
+constructors (`InvalidInput`, issue #48):
+
+| Parameter | Range |
+|-----------|-------|
+| dimension | 1..=4096 (vector header and `DatabaseConfig` limit) |
+| HNSW `m` | 2..=256 |
+| HNSW `ef_construction`, `ef_search` | 1..=10000 |
+| IVF `nlist`, `nprobe` | 1..=65536 (`nprobe > nlist` probes every partition) |
+| IVF k-means `max_iterations` | 1..=1000 |
+| RaBitQ | `RabitqConfig::validate` (bits 1, 2, 4; rerank <= 1000000) |
+
+IVF partitions are also allocated lazily: `IVFIndex::new` creates none,
+and training creates one per centroid with at most
+`min(nlist, training vectors)` centroids, which also bounds the
+`k * dim` floats k-means allocates. An untrained `ivf.index` written
+before this change (nlist empty graphs, no centroids) still loads.
+
+`open_existing` checks the stored dimension against the same 4096 bound.
+It does not call `DatabaseConfig::new`/`validate`: the 128 floor would
+lock out databases the core creates with smaller dimensions, and
+`validate` checks the default PQ `m` (192), not the codebooks' `m`.
+
+The settings are read with the database lock held, so opening a database
+that is open elsewhere reports `Locked`, not stale settings.
 
 ### When it is written, and the guarantee
 
