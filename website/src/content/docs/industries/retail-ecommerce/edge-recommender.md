@@ -48,7 +48,7 @@ A complete, runnable **Edge Recommender** reference implementation is in progres
 ## SrvDB features it uses
 
 - **[SQ8 compression (`sq8`)](/srvdb/guides/index-modes/)**: stores each value in one byte, 4× smaller than full precision.
-- **[`search_batch`](/srvdb/reference/python-api/)**: runs many queries at once, in parallel inside Rust.
+- **[`search_batch`](/srvdb/reference/python/)**: runs many queries at once, in parallel inside Rust.
 - **[Rust API](/srvdb/guides/rust/)**: embed SrvDB directly in Rust services and devices.
 - **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 
