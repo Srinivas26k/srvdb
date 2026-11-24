@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Typed, directed links between records and k-hop search expansion (#80,
+  ADR 0016). Rust: `SrvDB::link`, `unlink`, `neighbors`, `link_count`,
+  `move_links` and `search_expand` with `Expansion` (1 to 3 hops, at most
+  1,000 linked records) returning `ExpandedResult` with a hop distance.
+  Python: `db.link(a, "cites", b)`, `db.unlink`, `db.neighbors(id,
+  type=None)` and `db.search(q, k, expand=("cites", 2))`, which returns
+  `(id, score, hop)` tuples. Links are stored in `metadata.db` and
+  committed in the same transaction as records by `persist()`/`save()`;
+  deleting a record removes its links, replace/upsert keep them, and
+  compaction renumbers them. Databases without links open unchanged.
 - `SrvDB::rebuild_checksums(path)` / `srvdb.rebuild_checksums(path)`
   recomputes missing or damaged `.crc` checksum files of a closed database
   so it opens again (#33, ADR 0007). It never runs implicitly; an intact

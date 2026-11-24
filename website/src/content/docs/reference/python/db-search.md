@@ -6,7 +6,7 @@ description: Find the k nearest vectors to a query.
 Find the k nearest vectors to a query.
 
 ```python
-db.search(query: Sequence[float], k: int, *, where: dict | None = None) -> list[tuple[str, float]]
+db.search(query: Sequence[float], k: int, *, where: dict | None = None, expand: tuple | None = None) -> list[tuple[str, float]] | list[tuple[str, float, int]]
 ```
 
 ## Parameters
@@ -20,14 +20,19 @@ db.search(query: Sequence[float], k: int, *, where: dict | None = None) -> list[
 - **where** : *dict, optional, keyword-only*
   Metadata filter, for example `{"genre": "jazz"}` or `{"year": {"$gte": 1950}}`. Operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$and`, `$or`, `$not`; `"a.b"` names a nested field. See [Filtered search](/srvdb/guides/filtered-search/). Default `None` searches every vector.
 
+- **expand** : *tuple, optional, keyword-only*
+  `(link_type, hops)` or `(link_type, hops, max_results)`: after the `k` hits, follow outgoing links of `link_type` for 1 to 3 hops, adding at most `max_results` linked records (default 100, at most 1,000). Cannot be combined with `where`. See [Links between records](/srvdb/guides/links/).
+
 ## Returns
 
 `list[tuple[str, float]]`: up to `k` `(id, score)` pairs, best first. Scores are cosine similarities computed in float32, so an identical vector scores about 0.99999994 rather than exactly 1.0. With `where`, only matching vectors are returned, and `k` of them whenever at least `k` match. Fewer than `k` pairs come back when fewer vectors (or matches) exist; an empty database returns `[]`.
 
+With `expand`, `list[tuple[str, float, int]]`: `(id, score, hop)` tuples, the hits with hop 0 and then the linked records ordered by hop. A linked record carries the score of the record it was reached from.
+
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`, or an `expand` that is malformed, out of bounds or combined with `where`.
 
 - **RuntimeError**
   An internal fault occurred.
