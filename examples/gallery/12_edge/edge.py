@@ -114,6 +114,9 @@ def main() -> None:
             fontsize=8,
         )
     ax.set_xscale("log")
+    mibs = [r[1] / 2**20 for r in rows]
+    ax.set_xticks(mibs, [f"{m:.2g}" for m in mibs])
+    ax.minorticks_off()
     ax.set_xlabel("estimated resident memory (MiB, log scale)")
     ax.set_ylabel(f"recall@{K}")
     ax.set_ylim(0, 1.05)

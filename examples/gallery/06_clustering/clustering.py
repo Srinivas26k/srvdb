@@ -90,7 +90,7 @@ def main() -> None:
     )
     ax.set_xlabel("PC 1")
     ax.set_ylabel("PC 2")
-    ax.legend(fontsize=7, ncols=2, loc="best")
+    ax.legend(fontsize=7, loc="center left", bbox_to_anchor=(1.01, 0.5))
     ax.set_title(f"Digits: KMeans clusters on PCA axes (ARI {ari:.2f}, this run)")
     _common.save_chart(fig, args.out, "06_clustering.png")
 

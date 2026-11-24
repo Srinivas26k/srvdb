@@ -94,8 +94,11 @@ def main() -> None:
 
     plt = _common.pyplot()
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.bar(list(rates), list(rates.values()), color=["#999999", "#111111"], width=0.5)
-    ax.set_ylim(0, 1.05)
+    bars = ax.bar(
+        list(rates), list(rates.values()), color=["#999999", "#111111"], width=0.5
+    )
+    _common.label_bars(ax, bars, "{:.0%}")
+    ax.set_ylim(0, 1.12)
     ax.set_ylabel("share of queries whose answer chunk is returned")
     ax.grid(axis="x", visible=False)
     ax.set_title(f"Following links, {n} heading/body pairs (this run)")

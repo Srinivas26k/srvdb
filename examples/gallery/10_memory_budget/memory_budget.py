@@ -87,6 +87,7 @@ def main() -> None:
     fig, (a1, a2) = plt.subplots(2, 1, sharex=True, figsize=(7, 5.5))
     counts = [r[0] for r in rows]
     a1.plot(counts, [r[1] / 2**20 for r in rows], marker=".")
+    a1.set_ylim(bottom=0)
     a1.axhline(limit / 2**20, color="#888888", ls="--", lw=1, label="80 % of memory_mb")
     a1.set_ylabel("estimated memory (MiB)")
     a1.legend(loc="lower right")

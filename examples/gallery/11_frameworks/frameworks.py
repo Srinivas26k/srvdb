@@ -164,7 +164,9 @@ def main() -> None:
         print(f"{name:<20} {ms:.3f} ms/query")
     plt = _common.pyplot()
     fig, ax = plt.subplots(figsize=(6.5, 3.8))
-    ax.bar(list(latency), list(latency.values()), color="#333333", width=0.5)
+    # Every path is timed the same way: one query per call.
+    bars = ax.bar(list(latency), list(latency.values()), color="#333333", width=0.5)
+    _common.label_bars(ax, bars)
     ax.set_ylabel("mean latency per query (ms)")
     ax.grid(axis="x", visible=False)
     ax.set_title(f"Adapter overhead, {n} records, k={K} (this machine)")

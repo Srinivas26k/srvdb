@@ -25,5 +25,10 @@ Output: one line per encoding, the certify and deadline results, the
 repair steps, and `output/12_edge.png`: recall@10 against estimated memory
 (log scale), one labelled point per encoding.
 
+Fewer bits does not always mean lower recall: each width uses a
+different default rerank factor (40, 20 and 10 candidates per result for
+1, 2 and 4 bits), so 1 bit can rescore more candidates than 2 bits. Set
+`rerank=` to compare widths at equal rerank work.
+
 RaBitQ keeps the full vectors on disk for reranking, so it saves RAM, not
 disk. See the [RaBitQ guide](https://srinivas26k.github.io/srvdb/guides/rabitq/).

@@ -85,6 +85,7 @@ def main() -> None:
         label="mean latency (ms)",
     )
     twin.set_ylabel("mean latency per query (ms)")
+    twin.set_ylim(bottom=0)
     twin.grid(False)
     lines = ax.get_lines() + twin.get_lines()
     ax.legend(lines, [line.get_label() for line in lines], loc="lower right")

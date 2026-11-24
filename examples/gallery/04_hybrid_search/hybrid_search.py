@@ -118,9 +118,10 @@ def main() -> None:
     x = np.arange(2)
     shades = {"vector": "#bbbbbb", "keyword": "#777777", "hybrid": "#111111"}
     for j, (mode, vals) in enumerate(results.items()):
-        ax.bar(x + (j - 1) * 0.26, vals, 0.26, label=mode, color=shades[mode])
+        bars = ax.bar(x + (j - 1) * 0.26, vals, 0.26, label=mode, color=shades[mode])
+        _common.label_bars(ax, bars, "{:.2f}")
     ax.set_xticks(x, [f"topic queries\nprecision@{K}", f"code queries\nhit@{K}"])
-    ax.set_ylim(0, 1.05)
+    ax.set_ylim(0, 1.2)
     ax.grid(axis="x", visible=False)
     ax.legend(ncols=3, loc="upper center")
     ax.set_title(f"Vector vs keyword vs hybrid, {n} articles (this run)")
