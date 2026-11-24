@@ -3,6 +3,7 @@
 //! Only type conversion and error mapping live here; database logic is in
 //! the `srvdb` crate.
 
+mod constructors;
 mod database;
 mod errors;
 mod operations;

@@ -78,6 +78,7 @@ class SrvDBVectorStore(VectorStore):
 
     @property
     def embeddings(self) -> Embeddings:
+        """The ``Embeddings`` model passed to the constructor."""
         return self._embedding
 
     @property
@@ -144,13 +145,18 @@ class SrvDBVectorStore(VectorStore):
     def similarity_search_with_score_by_vector(
         self, embedding: list[float], k: int = 4, filter: Filter | None = None
     ) -> list[tuple[Document, float]]:
-        """Return ``(document, cosine score)`` pairs, best first."""
+        """Return ``(document, cosine score)`` pairs, best first.
+
+        Raises ValueError if ``k`` is below 1, ``filter`` is neither a dict
+        nor a callable, or ``embedding`` has the wrong dimension.
+        """
         hits = _common.search(self._db, embedding, k, _keep(filter))
         return [(_doc(id_, rec), score) for id_, score, rec in hits]
 
     def similarity_search_with_score(
         self, query: str, k: int = 4, filter: Filter | None = None, **kwargs: Any
     ) -> list[tuple[Document, float]]:
+        """Embed ``query`` and return ``(document, cosine score)`` pairs."""
         vector = self._embedding.embed_query(query)
         return self.similarity_search_with_score_by_vector(vector, k, filter)
 
@@ -161,12 +167,14 @@ class SrvDBVectorStore(VectorStore):
         filter: Filter | None = None,
         **kwargs: Any,
     ) -> list[Document]:
+        """Return the ``k`` documents closest to ``embedding``."""
         pairs = self.similarity_search_with_score_by_vector(embedding, k, filter)
         return [doc for doc, _ in pairs]
 
     def similarity_search(
         self, query: str, k: int = 4, filter: Filter | None = None, **kwargs: Any
     ) -> list[Document]:
+        """Embed ``query`` and return the ``k`` closest documents."""
         pairs = self.similarity_search_with_score(query, k, filter)
         return [doc for doc, _ in pairs]
 
@@ -189,7 +197,9 @@ class SrvDBVectorStore(VectorStore):
         """Create (or open) a database at ``path`` and add ``texts``.
 
         The dimension is taken from the embedding of the first text.
-        Raises ValueError if ``path`` is missing or ``texts`` is empty.
+        ``mode`` is passed to ``srvdb.Database``.
+        Raises ValueError if ``path`` is missing or ``texts`` is empty, and
+        whatever ``srvdb.Database`` raises (e.g. a dimension below 128).
         """
         if path is None:
             raise ValueError("from_texts needs path= for the database directory")

@@ -98,3 +98,10 @@ def test_set_ef_search(tmp_path):
     db.set_ef_search(200)
     with pytest.raises(ValueError, match="at least 1"):
         db.set_ef_search(0)
+
+
+def test_unknown_mode_message_lists_every_mode(tmp_path):
+    with pytest.raises(ValueError, match="Invalid mode 'nope'") as err:
+        srvdb.Database(str(tmp_path), dimension=DIM, mode="nope")
+    for mode in ("flat", "hnsw", "sq8", "scalar", "pq", "product", "ivf", "auto"):
+        assert f"'{mode}'" in str(err.value)
