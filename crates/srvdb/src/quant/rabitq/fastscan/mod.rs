@@ -96,6 +96,10 @@ pub(crate) struct FastScanCodes {
     code_bytes: usize,
     blocks: Vec<u8>,
     factors: Vec<f32>,
+    /// `(dim, bits)` when the per-vector error widths are kept
+    grid: Option<(usize, u8)>,
+    /// Unit error width of each vector (ADR 0017), empty without `grid`
+    widths: Vec<f32>,
 }
 
 impl FastScanCodes {
@@ -104,7 +108,27 @@ impl FastScanCodes {
             code_bytes,
             blocks: Vec::new(),
             factors: Vec::new(),
+            grid: None,
+            widths: Vec::new(),
         }
+    }
+
+    /// Codes of `dim` dimensions at `bits` that also keep the per-vector
+    /// error widths certified search needs (ADR 0017)
+    pub(crate) fn with_widths(dim: usize, bits: u8) -> Self {
+        let mut codes = Self::new(super::record_size(dim, bits) - super::FACTOR_BYTES);
+        codes.grid = Some((dim, bits));
+        codes
+    }
+
+    /// Correction factor of vector `i`
+    pub(crate) fn factor(&self, i: usize) -> f32 {
+        self.factors[i]
+    }
+
+    /// Unit error width of vector `i`, `None` if widths are not kept
+    pub(crate) fn width(&self, i: usize) -> Option<f32> {
+        self.widths.get(i).copied()
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -137,9 +161,12 @@ impl FastScanCodes {
             for (j, &b) in codes.iter().enumerate().take(self.code_bytes) {
                 block[j * BLOCK + slot] = b;
             }
-            self.factors.push(f32::from_le_bytes([
-                factor[0], factor[1], factor[2], factor[3],
-            ]));
+            let factor = f32::from_le_bytes([factor[0], factor[1], factor[2], factor[3]]);
+            self.factors.push(factor);
+            if let Some((dim, bits)) = self.grid {
+                self.widths
+                    .push(super::certify::unit_width(factor, codes, dim, bits));
+            }
         }
         Ok(())
     }
@@ -154,6 +181,10 @@ impl FastScanCodes {
             self.blocks
                 .try_reserve(bytes.saturating_sub(self.blocks.len()))
                 .and_then(|()| self.factors.try_reserve(new))
+                .and_then(|()| match self.grid {
+                    Some(_) => self.widths.try_reserve(new),
+                    None => Ok(()),
+                })
                 .is_ok()
         });
         if !reserved {
@@ -175,6 +206,7 @@ impl FastScanCodes {
             return;
         }
         self.factors.truncate(n);
+        self.widths.truncate(n);
         self.blocks.truncate(n.div_ceil(BLOCK) * self.block_bytes());
         let slot = n % BLOCK;
         if slot != 0 {

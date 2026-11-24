@@ -18,6 +18,7 @@ use pyo3::prelude::*;
 #[pymodule]
 fn _low_level(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDatabase>()?;
+    m.add_class::<rabitq::PySearchOutcome>()?;
     m.add_function(wrap_pyfunction!(lifecycle::create, m)?)?;
     m.add_function(wrap_pyfunction!(lifecycle::open, m)?)?;
     m.add_function(wrap_pyfunction!(lifecycle::delete, m)?)?;

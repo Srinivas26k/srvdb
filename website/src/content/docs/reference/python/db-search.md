@@ -6,7 +6,10 @@ description: Find the k nearest vectors to a query.
 Find the k nearest vectors to a query.
 
 ```python
-db.search(query: Sequence[float] | None, k: int, *, text: str | None = None, where: dict | None = None) -> list[tuple[str, float]]
+db.search(query: Sequence[float] | None, k: int, *, text: str | None = None,
+          where: dict | None = None, certify: bool = False,
+          deadline_ms: float | None = None)
+    -> list[tuple[str, float]] | SearchOutcome
 ```
 
 ## Parameters
@@ -23,14 +26,26 @@ db.search(query: Sequence[float] | None, k: int, *, text: str | None = None, whe
 - **where** : *dict, optional, keyword-only*
   Metadata filter, for example `{"genre": "jazz"}` or `{"year": {"$gte": 1950}}`. Operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$and`, `$or`, `$not`; `"a.b"` names a nested field. See [Filtered search](/srvdb/guides/filtered-search/). Default `None` searches every vector.
 
+- **certify** : *bool, keyword-only, RaBitQ modes only*
+  Plain vector search only (not with `text` or `where`). Use the RaBitQ error bounds: certify results whose interval clears the k-th lower bound and rescore only the uncertain candidates on the full vectors. See [RaBitQ, step 5](/srvdb/concepts/rabitq/#5-certified-and-deadline-search-optional). Default `False`.
+
+- **deadline_ms** : *float, optional, keyword-only, RaBitQ modes only*
+  Stop after this many milliseconds and return the best results found. The clock is checked between 32-vector scan blocks and between 256-vector rescoring batches. Default `None`, no deadline.
+
 ## Returns
 
 `list[tuple[str, float]]`: up to `k` `(id, score)` pairs, best first. Scores are cosine similarities computed in float32, so an identical vector scores about 0.99999994 rather than exactly 1.0. With `text` and no query, scores are BM25 scores; with both, they are fused rank scores that only order the results. With `where`, only matching vectors are returned, and `k` of them whenever at least `k` match. Fewer than `k` pairs come back when fewer vectors (or matches) exist; an empty database returns `[]`.
 
+With `certify=True` or `deadline_ms`, a `SearchOutcome`. It iterates, indexes (integers and slices) and has a `len()` like the list above (`out.results` returns that plain list), and also has these attributes:
+
+- `completeness` (float): fraction of live vectors scanned, 1.0 unless the deadline passed.
+- `confidence` (float or None): with `certify=True`, 0.99, a nominal and approximate lower bound on the probability, over a hypothetical random rotation seed, that the results are exactly the top k of the scanned vectors. It is not a per-query guarantee, not a long-run rate for this database's fixed seed, and not joint across queries. `None` without `certify`, and when the rerank cap (`max(k × rerank, 1000)` candidates) or the deadline cut the rescoring short; `certified` is then 0.
+- `certified`, `reranked`, `scanned` (int): results certified without rescoring, candidates rescored, and vectors scanned.
+
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`, when both `query` and `text` are `None`, when `text` has no letters or digits, is over 64 KiB or has more than 1,024 distinct words, and when `text` is given before `enable_keyword_search()`.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`, when both `query` and `text` are `None`, when `text` has no letters or digits, is over 64 KiB or has more than 1,024 distinct words, and when `text` is given before `enable_keyword_search()`. Also raised for `certify` or `deadline_ms` on a database that is not in a RaBitQ mode, without a query vector, or combined with `text` or `where`, and for a negative or non-finite `deadline_ms`.
 
 - **RuntimeError**
   An internal fault occurred, or the keyword index file is damaged (call `enable_keyword_search()` to rebuild it).
@@ -57,6 +72,21 @@ print(db.search(v, k=2))
 db.add(["c"], [w], ['{"kind": "note"}'])
 print(db.search(v, k=2, where={"kind": "note"}))
 # [('c', 0.0)]
+```
+
+With a RaBitQ database:
+
+```python
+import random
+import srvdb
+
+rng = random.Random(3)
+vecs = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(1000)]
+db = srvdb.create("./rq", dimension=128, index="rabitq")
+db.add([f"d{i}" for i in range(1000)], vecs, ["{}"] * 1000)
+out = db.search(vecs[5], k=1, certify=True, deadline_ms=10_000)
+print(out[0][0], out.completeness, out.confidence)
+# d5 1.0 0.99
 ```
 
 ## See also

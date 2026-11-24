@@ -72,3 +72,105 @@ impl PyDatabase {
         self.write(py, |s| s.db.set_rabitq_rerank(rerank).map_err(to_py))
     }
 }
+
+/// Results of a certified or deadline search (ADR 0017): the usual
+/// `(id, score)` tuples plus how the search went
+#[pyclass(name = "SearchOutcome", module = "srvdb._low_level", frozen)]
+pub(crate) struct PySearchOutcome {
+    results: Vec<(String, f32)>,
+    /// Fraction of live vectors scanned, 0.0 to 1.0
+    #[pyo3(get)]
+    completeness: f64,
+    /// Certified search: nominal, approximate lower bound on the
+    /// probability over a hypothetical random rotation seed that the
+    /// results are the top k of the scanned vectors (not a per-query
+    /// guarantee); None when not certified or the rerank was cut short
+    #[pyo3(get)]
+    confidence: Option<f64>,
+    /// Results certified without rescoring
+    #[pyo3(get)]
+    certified: usize,
+    /// Candidates rescored on full vectors
+    #[pyo3(get)]
+    reranked: usize,
+    /// Live vectors scanned
+    #[pyo3(get)]
+    scanned: usize,
+}
+
+#[pymethods]
+impl PySearchOutcome {
+    /// The (id, score) tuples, best first
+    #[getter]
+    fn results(&self) -> Vec<(String, f32)> {
+        self.results.clone()
+    }
+
+    fn __len__(&self) -> usize {
+        self.results.len()
+    }
+
+    /// An index or a slice, exactly as on the plain list in `results`
+    fn __getitem__<'py>(
+        &self,
+        py: Python<'py>,
+        index: Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        pyo3::types::PyList::new(py, self.results.clone())?
+            .as_any()
+            .get_item(index)
+    }
+
+    fn __iter__(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let list = pyo3::types::PyList::new(py, self.results.clone())?;
+        Ok(list.try_iter()?.into_any().unbind())
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "SearchOutcome({} results, completeness={}, confidence={:?})",
+            self.results.len(),
+            self.completeness,
+            self.confidence
+        )
+    }
+}
+
+impl PyDatabase {
+    /// `search(..., certify=, deadline_ms=)`: argument conversion only
+    pub(crate) fn search_rabitq(
+        &self,
+        py: Python<'_>,
+        query: Vec<f32>,
+        k: i64,
+        certify: bool,
+        deadline_ms: Option<f64>,
+    ) -> PyResult<PySearchOutcome> {
+        let k = non_negative("k", k)?;
+        let mut options = srvdb::RabitqSearch::new().with_certify(certify);
+        if let Some(ms) = deadline_ms {
+            if !(ms.is_finite() && ms >= 0.0) {
+                return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                    "deadline_ms must be a finite number >= 0, got {ms}"
+                )));
+            }
+            let deadline = std::time::Duration::try_from_secs_f64(ms / 1000.0)
+                .unwrap_or(std::time::Duration::MAX);
+            options = options.with_deadline(deadline);
+        }
+        let query = srvdb::Vector::new(query);
+        self.read(py, |s| {
+            let out =
+                s.db.search_rabitq_with(&query, k, &options)
+                    .map_err(to_py)?;
+            Ok(PySearchOutcome {
+                results: crate::operations::named(s, out.results),
+                completeness: out.stats.completeness,
+                confidence: out.stats.confidence,
+                certified: out.stats.certified,
+                reranked: out.stats.reranked,
+                scanned: out.stats.scanned,
+            })
+        })
+    }
+}

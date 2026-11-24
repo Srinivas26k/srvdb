@@ -14,9 +14,9 @@ persist, compact) wait for each other and for running searches instead of
 failing.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from types import TracebackType
-from typing import Any, Literal
+from typing import Any, Literal, overload
 
 __version__: str
 
@@ -60,6 +60,41 @@ def rebuild_checksums(path: str) -> list[str]:
     """Recompute missing or damaged checksum files of a closed database
     (see ``srvdb.rebuild_checksums``). Returns the rewritten file names.
     Raises RuntimeError if the data itself is damaged."""
+
+class SearchOutcome:
+    """Results of ``search(..., certify=True)`` or ``search(...,
+    deadline_ms=...)`` on a RaBitQ database (ADR 0017). Behaves like the
+    usual list of ``(id, score)`` tuples and adds statistics."""
+
+    @property
+    def results(self) -> list[tuple[str, float]]:
+        """The ``(id, score)`` tuples, best first, as a plain list (a copy)."""
+    @property
+    def completeness(self) -> float:
+        """Fraction of live vectors scanned before the deadline, 0.0 to 1.0."""
+    @property
+    def confidence(self) -> float | None:
+        """Certified search: nominal lower bound (approximate) on the
+        probability, over a hypothetical random rotation seed, that the
+        results are exactly the top k of the scanned vectors. Not a
+        guarantee for this query, not a long-run rate for this database's
+        fixed seed, not joint across queries. None when not certified,
+        including when the rerank cap or deadline cut the rescoring short."""
+    @property
+    def certified(self) -> int:
+        """Results certified without rescoring."""
+    @property
+    def reranked(self) -> int:
+        """Candidates rescored on the full vectors."""
+    @property
+    def scanned(self) -> int:
+        """Live vectors scanned."""
+    def __len__(self) -> int: ...
+    @overload
+    def __getitem__(self, index: int) -> tuple[str, float]: ...
+    @overload
+    def __getitem__(self, index: slice) -> list[tuple[str, float]]: ...
+    def __iter__(self) -> Iterator[tuple[str, float]]: ...
 
 class Database:
     """An open SrvDB database; safe to share between threads.
@@ -129,6 +164,7 @@ class Database:
         metadatas: Sequence[str],
     ) -> int:
         """Add vectors, replacing existing ids. Returns the count written."""
+    @overload
     def search(
         self,
         query: Sequence[float] | None,
@@ -136,7 +172,28 @@ class Database:
         *,
         text: str | None = None,
         where: Mapping[str, Any] | None = None,
-    ) -> list[tuple[str, float]]:
+        certify: Literal[False] = False,
+        deadline_ms: None = None,
+    ) -> list[tuple[str, float]]: ...
+    @overload
+    def search(
+        self,
+        query: Sequence[float],
+        k: int,
+        *,
+        certify: bool = False,
+        deadline_ms: float | None = None,
+    ) -> SearchOutcome: ...
+    def search(
+        self,
+        query: Sequence[float] | None,
+        k: int,
+        *,
+        text: str | None = None,
+        where: Mapping[str, Any] | None = None,
+        certify: bool = False,
+        deadline_ms: float | None = None,
+    ) -> list[tuple[str, float]] | SearchOutcome:
         """Up to ``k`` ``(id, score)`` pairs, best first.
 
         Scores are cosine similarities for a vector ``query``. ``text``
@@ -145,6 +202,12 @@ class Database:
         (Reciprocal Rank Fusion, fused scores), with ``query=None`` the
         search is keyword-only (BM25 scores). ValueError if both are None,
         ``text`` has no letters or digits, or keyword search is not enabled.
+
+        RaBitQ modes only: ``certify=True`` uses the RaBitQ error bounds
+        and rescores only uncertain candidates; ``deadline_ms`` stops the
+        code scan after that many milliseconds. Either returns a
+        ``SearchOutcome``. ValueError on other modes, without a query
+        vector, or combined with ``text`` or ``where``.
 
         ``where`` keeps only vectors whose metadata matches, e.g.
         ``{"genre": "jazz", "year": {"$gte": 1950}}``. Operators: ``$eq``,

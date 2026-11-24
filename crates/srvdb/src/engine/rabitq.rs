@@ -164,26 +164,6 @@ impl SrvDB {
 
     /// Code scan, then exact rescoring of the candidates
     pub(super) fn search_rabitq(&self, query: &[f32], k: usize) -> Result<Vec<(u64, f32)>> {
-        let (Some(codes), Some(config), Some(vectors)) =
-            (&self.rabitq, &self.rabitq_config, &self.vector_storage)
-        else {
-            return Err(Error::invalid_state("RaBitQ storage not initialized"));
-        };
-        if config.rerank == 0 {
-            return Ok(codes.search(query, k, &self.deleted)?);
-        }
-        let candidates = codes.search(query, k.saturating_mul(config.rerank), &self.deleted)?;
-        // sync_rabitq keeps codes.count() == vectors.count(), so every
-        // candidate id has a vector; a miss is an internal fault
-        let rescored = candidates
-            .into_iter()
-            .map(|(id, _)| {
-                let v = vectors.get(id).ok_or_else(|| {
-                    Error::Internal(format!("RaBitQ candidate {id} has no stored vector"))
-                })?;
-                Ok((id, search::cosine_similarity(query, v)))
-            })
-            .collect::<Result<Vec<_>>>()?;
-        Ok(search::select_top_k(rescored, k))
+        Ok(self.rabitq_top(query, k, None)?.0)
     }
 }

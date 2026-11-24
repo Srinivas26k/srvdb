@@ -18,11 +18,16 @@
 //! is `4 / b` dimensions), so every bit width shares the fast-scan kernel
 //! in [`fastscan`] (ADR 0012).
 
+pub(crate) mod certify;
 mod config;
 pub(crate) mod fastscan;
+mod outcome;
 mod rotation;
+pub(crate) mod scan;
 
+pub use certify::CERTIFIED_CONFIDENCE;
 pub use config::{default_rerank, RabitqConfig, DEFAULT_SEED, MAX_DIMENSION, SUPPORTED_BITS};
+pub use outcome::{RabitqSearch, SearchOutcome, SearchStats, DEFAULT_MAX_RERANK};
 pub(crate) use rotation::Rotation;
 
 /// Bytes before the packed codes in a record (the f32 factor)
@@ -62,6 +67,14 @@ impl RabitqQuantizer {
             bits,
             rotation: Rotation::new(dim, seed),
         }
+    }
+
+    pub(crate) fn dim(&self) -> usize {
+        self.dim
+    }
+
+    pub(crate) fn bits(&self) -> u8 {
+        self.bits
     }
 
     pub(crate) fn rotation_fingerprint(&self) -> u32 {

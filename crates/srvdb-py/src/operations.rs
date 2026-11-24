@@ -11,7 +11,7 @@ use pyo3::prelude::*;
 use srvdb::{SearchResult, VectorEngine};
 
 /// Translate internal ids to string ids, dropping entries without one
-fn named(state: &State, results: Vec<SearchResult>) -> Vec<(String, f32)> {
+pub(crate) fn named(state: &State, results: Vec<SearchResult>) -> Vec<(String, f32)> {
     results
         .into_iter()
         .filter_map(|r| {
@@ -39,22 +39,35 @@ impl PyDatabase {
     ///         $lt, $lte, $in, $nin, $and, $or, $not; "a.b" names a nested
     ///         field. Only matching records are returned.
     ///
+    ///     certify: RaBitQ modes only. Use the RaBitQ error bounds to
+    ///         certify results and rescore only uncertain candidates
+    ///         (ADR 0017).
+    ///     deadline_ms: RaBitQ modes only. Stop scanning codes after this
+    ///         many milliseconds and return the best results found.
+    ///
     /// Returns:
     ///     Up to k (id, score) tuples, best first. Scores are cosine
     ///     similarities (approximate in "pq" mode) for vector search, BM25
     ///     scores for keyword-only search and fused RRF scores for hybrid.
+    ///     With certify or deadline_ms, a SearchOutcome: the same tuples
+    ///     (iterable, indexable, sliceable, len()) plus completeness,
+    ///     confidence, certified, reranked and scanned.
     ///
     /// Raises:
     ///     ValueError: k is 0 or negative, the query has the wrong
     ///         dimension or a NaN or infinite value, `where` is not a valid
     ///         filter, both query and text are None, text has no letters or
-    ///         digits, or text is given before enable_keyword_search().
+    ///         digits, or text is given before enable_keyword_search();
+    ///         certify or deadline_ms on a non-RaBitQ database, without a
+    ///         query vector, combined with text or where, or a negative or
+    ///         non-finite deadline_ms.
     ///     RuntimeError: an internal fault occurred (including a damaged
     ///         keyword index; enable_keyword_search() rebuilds it).
     ///
     /// A filter reads every metadata record once per call (O(n)). Releases
     /// the GIL; vector searches from several threads run in parallel.
-    #[pyo3(signature = (query, k, *, text=None, r#where=None))]
+    #[pyo3(signature = (query, k, *, text=None, r#where=None, certify=false, deadline_ms=None))]
+    #[allow(clippy::too_many_arguments)]
     fn search(
         &self,
         py: Python<'_>,
@@ -62,7 +75,31 @@ impl PyDatabase {
         k: i64,
         text: Option<String>,
         r#where: Option<Bound<'_, PyAny>>,
-    ) -> PyResult<Vec<(String, f32)>> {
+        certify: bool,
+        deadline_ms: Option<f64>,
+    ) -> PyResult<Py<PyAny>> {
+        if certify || deadline_ms.is_some() {
+            let unsupported = if text.is_some() {
+                Some("text (keyword and hybrid search)")
+            } else if r#where.is_some() {
+                Some("where (filtered search)")
+            } else {
+                None
+            };
+            if let Some(what) = unsupported {
+                return Err(PyValueError::new_err(format!(
+                    "certify and deadline_ms work only for a plain vector search; \
+                     they cannot be combined with {what}"
+                )));
+            }
+            let Some(query) = query else {
+                return Err(PyValueError::new_err(
+                    "certify and deadline_ms need a query vector",
+                ));
+            };
+            let outcome = self.search_rabitq(py, query, k, certify, deadline_ms)?;
+            return Ok(Py::new(py, outcome)?.into_any());
+        }
         let k = non_negative("k", k)?;
         let filter = r#where.map(|w| to_filter(py, &w)).transpose()?;
         let query = query.map(srvdb::Vector::new);
@@ -79,6 +116,7 @@ impl PyDatabase {
             .map_err(to_py)?;
             Ok(named(s, results))
         })
+        .and_then(|r| Ok(r.into_pyobject(py)?.into_any().unbind()))
     }
 
     /// Index the string metadata field `field` for keyword (BM25) search
