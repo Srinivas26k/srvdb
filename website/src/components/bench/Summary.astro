@@ -1,0 +1,41 @@
+---
+// Table of each index's fastest setting at a recall target, plus build and
+// memory, and plain-words verdicts. All values read from the JSON.
+import { type Run, forThreads, failures, label, isSrvdb, fmt, bestAt, maxRecall, verdict } from './lib';
+
+interface Props { run: Run; threads: number; target: number }
+const { run, threads, target } = Astro.props;
+const rows = forThreads(run, threads).map((r) => {
+	const p = bestAt(r, target);
+	return { r, p, reached: !!p, q: p ?? maxRecall(r)! };
+}).sort((a, b) => Number(b.reached) - Number(a.reached) || b.q.qps - a.q.qps);
+const words = verdict(run, threads, target);
+const failed = failures(run).filter((r) => r.threads === threads);
+---
+<ul>{words.map((w) => <li>{w}</li>)}</ul>
+<table>
+	<thead>
+		<tr><th>Index</th><th>Setting</th><th>recall@{run.dataset.k}</th><th>QPS</th><th>p50 ms</th><th>p99 ms</th><th>batch QPS</th><th>build s</th><th>peak RSS MiB</th></tr>
+	</thead>
+	<tbody>
+		{rows.map(({ r, q, reached }) => (
+			<tr class={isSrvdb(r) ? 'srv' : ''}>
+				<td>{label(r)}</td>
+				<td>{q.param ? `${q.param}=${q.value}` : 'n/a'}{reached ? '' : ' (target not reached)'}</td>
+				<td>{fmt(q.recall_at_k)}</td>
+				<td>{fmt(q.qps)}</td>
+				<td>{fmt(q.p50_ms)}</td>
+				<td>{fmt(q.p99_ms)}</td>
+				<td>{fmt(q.batch_qps)}</td>
+				<td>{fmt(r.build_secs!)}</td>
+				<td>{fmt(r.peak_rss_mib!)}</td>
+			</tr>
+		))}
+	</tbody>
+</table>
+{failed.length > 0 && <p>Failed runs: {failed.map((r) => `${r.name}: ${r.error}`).join('; ')}</p>}
+
+<style>
+	tr.srv td { color: var(--sl-color-accent); font-weight: 600; }
+	table { font-size: var(--sl-text-sm); }
+</style>

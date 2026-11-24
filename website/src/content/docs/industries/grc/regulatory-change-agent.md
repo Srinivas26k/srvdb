@@ -48,7 +48,7 @@ A complete, runnable **Regulatory Change Agent** reference implementation is in 
 ## SrvDB features it uses
 
 - **[Several databases](/srvdb/start/use-cases/)**: each database is a directory, so different data types or tenants stay separate.
-- **[`search_batch`](/srvdb/reference/python-api/)**: runs many queries at once, in parallel inside Rust.
+- **[`search_batch`](/srvdb/reference/python/)**: runs many queries at once, in parallel inside Rust.
 - **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 - **[`upsert`](/srvdb/guides/delete-upsert-compact/)**: inserts new items and replaces changed ones, so the knowledge base stays current.
 

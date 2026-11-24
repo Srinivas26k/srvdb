@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Python API reference on the documentation site: an index of every public
+  object and one page per function, method and adapter class, with
+  parameters, return values, exact exceptions, durability and thread-safety
+  notes and runnable examples (checked by `website/scripts/check_examples.py`)
+  (#42).
 - LangChain and LlamaIndex vector-store adapters,
   `srvdb.integrations.langchain.SrvDBVectorStore` and
   `srvdb.integrations.llamaindex.SrvDBVectorStore`, over `srvdb.Database`:
@@ -67,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unchanged (#26).
 
 ### Fixed
+- The `ValueError` for an unknown mode now lists every accepted mode; `ivf`
+  and the `scalar` and `product` aliases were missing.
 - HNSW recall on clustered data (#28). The graph kept only the M nearest
   neighbours per node, which dropped every link between clusters, so a search
   could only reach the entry point's cluster (recall@10 about 0.70 on 5000

@@ -48,7 +48,7 @@ A complete, runnable **Trial Matcher** reference implementation is in progress. 
 ## SrvDB features it uses
 
 - **[Exact search (`flat`)](/srvdb/guides/index-modes/)**: every query compares against every stored vector, so results are exact and explainable.
-- **[`search_batch`](/srvdb/reference/python-api/)**: runs many queries at once, in parallel inside Rust.
+- **[`search_batch`](/srvdb/reference/python/)**: runs many queries at once, in parallel inside Rust.
 - **[`delete` and `compact()`](/srvdb/guides/delete-upsert-compact/)**: remove items immediately from search, then reclaim disk space.
 - **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 

@@ -13,14 +13,23 @@ impl PyDatabase {
     ///
     /// Args:
     ///     ids: unique, non-empty string ids (none may exist already)
-    ///     embeddings: vectors matching the database dimension
+    ///     embeddings: vectors matching the database dimension, finite values
     ///     metadatas: one JSON object string per vector
     ///
     /// Returns:
     ///     Number of vectors added
     ///
-    /// Releases the GIL. Safe to call from several threads; concurrent
-    /// calls on the same Database wait for each other.
+    /// Raises:
+    ///     ValueError: lengths differ, an id is empty, repeated in the batch
+    ///         or already stored, a vector has the wrong dimension or a NaN
+    ///         or infinite value, or a metadata string is not a JSON object.
+    ///         Nothing is written when validation fails.
+    ///     OSError: writing the files failed.
+    ///     RuntimeError: an internal fault occurred.
+    ///
+    /// Visible to search on return; durable only after persist(). Releases
+    /// the GIL. Safe to call from several threads; concurrent calls on the
+    /// same Database wait for each other.
     fn add(
         &self,
         py: Python<'_>,
@@ -47,6 +56,13 @@ impl PyDatabase {
     ///
     /// Returns:
     ///     Number of vectors written
+    ///
+    /// Raises:
+    ///     ValueError: as for add(), except that existing ids are allowed.
+    ///     OSError: writing the files failed.
+    ///     RuntimeError: an internal fault occurred.
+    ///
+    /// Durable only after persist().
     fn upsert(
         &self,
         py: Python<'_>,
@@ -64,6 +80,10 @@ impl PyDatabase {
     ///
     /// Returns:
     ///     Number of vectors deleted
+    ///
+    /// Raises:
+    ///     OSError: writing the files failed.
+    ///     RuntimeError: an internal fault occurred.
     fn delete(&self, py: Python<'_>, ids: Vec<String>) -> PyResult<usize> {
         self.write(py, |s| {
             let mut deleted = 0;
@@ -85,7 +105,11 @@ impl PyDatabase {
     /// proportional to the data.
     ///
     /// Returns:
-    ///     Number of vectors removed
+    ///     Number of vectors removed (deleted and replaced ones)
+    ///
+    /// Raises:
+    ///     OSError: writing the files failed.
+    ///     RuntimeError: an internal fault occurred.
     fn compact(&self, py: Python<'_>) -> PyResult<u64> {
         self.write(py, |s| {
             let removed = s.db.compact().map_err(to_py)?;
