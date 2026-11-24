@@ -23,7 +23,9 @@ pub enum IndexChoice {
     Pq,
     /// Full vectors searched through RaBitQ codes with exact rerank
     Rabitq,
-    /// Mode chosen from the hardware and data size
+    /// Mode chosen from the hardware and data size; with the `memory_mb`
+    /// option, the bit width that keeps resident memory within that
+    /// budget (ADR 0018)
     Auto,
 }
 
@@ -42,6 +44,7 @@ const HNSW: &[&str] = &["m", "ef_construction", "ef_search"];
 const IVF: &[&str] = &["nlist", "nprobe", "m", "ef_construction", "ef_search"];
 const TRAINED: &[&str] = &["training"];
 const RABITQ: &[&str] = &["bits", "rerank", "seed"];
+const AUTO: &[&str] = &["memory_mb"];
 
 impl IndexChoice {
     /// The lowercase name used by `FromStr` and in messages
@@ -52,14 +55,15 @@ impl IndexChoice {
             .map_or("unknown", |(name, _)| name)
     }
 
-    /// The option names this index accepts (empty for flat and auto)
+    /// The option names this index accepts (empty for flat)
     pub fn options(self) -> &'static [&'static str] {
         match self {
             Self::Hnsw => HNSW,
             Self::Ivf => IVF,
             Self::Sq8 | Self::Pq => TRAINED,
             Self::Rabitq => RABITQ,
-            Self::Flat | Self::Auto => &[],
+            Self::Auto => AUTO,
+            Self::Flat => &[],
         }
     }
 }

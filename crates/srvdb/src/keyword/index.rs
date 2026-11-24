@@ -22,6 +22,9 @@ pub(crate) struct InvertedIndex {
     pub(crate) lengths: BTreeMap<u64, u32>,
     /// Sum of `lengths`
     pub(crate) total_len: u64,
+    /// Number of (term, id) postings, kept up to date so the memory
+    /// estimate (ADR 0018) does not walk every posting list
+    pub(crate) pairs: u64,
     /// id -> its distinct terms (in memory only, derived from `postings`)
     pub(crate) forward: HashMap<u64, Vec<String>>,
 }
@@ -54,6 +57,7 @@ impl InvertedIndex {
         let mut distinct = Vec::with_capacity(tf.len());
         for (term, n) in tf {
             self.postings.entry(term.clone()).or_default().insert(id, n);
+            self.pairs += 1;
             distinct.push(term);
         }
         self.forward.insert(id, distinct);
@@ -71,7 +75,9 @@ impl InvertedIndex {
         self.total_len -= u64::from(len);
         for term in self.forward.remove(&id).unwrap_or_default() {
             if let Some(ids) = self.postings.get_mut(&term) {
-                ids.remove(&id);
+                if ids.remove(&id).is_some() {
+                    self.pairs -= 1;
+                }
                 if ids.is_empty() {
                     self.postings.remove(&term);
                 }
@@ -137,6 +143,22 @@ mod tests {
         assert_eq!(index.postings, before.postings);
         assert_eq!(index.lengths, before.lengths);
         assert_eq!(index.total_len, before.total_len);
+    }
+
+    /// The running posting count always equals a full recount
+    #[test]
+    fn pair_count_tracks_adds_removes_and_replacements() {
+        let recount =
+            |ix: &InvertedIndex| -> u64 { ix.postings.values().map(|ids| ids.len() as u64).sum() };
+        let mut index = InvertedIndex::new("t");
+        index.add(0, "red fox red");
+        index.add(1, "red hen");
+        assert_eq!((index.pairs, recount(&index)), (4, 4));
+        index.add(0, "blue");
+        assert_eq!(index.pairs, recount(&index));
+        index.remove(1);
+        index.remove(7);
+        assert_eq!((index.pairs, recount(&index)), (1, 1));
     }
 
     #[test]

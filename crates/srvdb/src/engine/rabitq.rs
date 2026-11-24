@@ -65,6 +65,7 @@ impl SrvDB {
             rabitq: None,
             rabitq_config: None,
             stored_settings: None,
+            memory_budget: None,
             current_mode: IndexMode::Flat,
             deleted: Default::default(),
             pending_deletes: Default::default(),
@@ -103,12 +104,43 @@ impl SrvDB {
         Ok(())
     }
 
-    /// Open the codes for `config`, or rebuild them from the vectors
+    /// Open the codes for `config`, or rebuild them from the vectors.
+    ///
+    /// The new codes are built, synced and flushed before they replace
+    /// the current ones. On failure the previous settings are restored:
+    /// their codes are reopened (or rebuilt) if possible; if that fails
+    /// too, searches use the full vectors until the next open rebuilds
+    /// the codes, and the recorded mode does not change.
     pub(crate) fn attach_rabitq(&mut self, config: RabitqConfig) -> Result<()> {
+        let previous = self.rabitq_config;
         // Closed first: on Windows mapped files cannot be removed
         self.rabitq = None;
-        self.rabitq_config = Some(config);
-        let storage = match RabitqStorage::open(&self.path, self.dimension, &config) {
+        match self.build_rabitq(&config) {
+            Ok(storage) => {
+                self.rabitq = Some(storage);
+                self.rabitq_config = Some(config);
+                Ok(())
+            }
+            Err(e) => {
+                self.rabitq_config = previous;
+                if let Some(old) = previous {
+                    match self.build_rabitq(&old) {
+                        Ok(storage) => self.rabitq = Some(storage),
+                        Err(again) => log::warn!(
+                            "could not restore {}-bit RaBitQ codes ({again}); searching \
+                             full vectors until the next open rebuilds them",
+                            old.bits
+                        ),
+                    }
+                }
+                Err(e)
+            }
+        }
+    }
+
+    /// Codes for `config` covering every stored vector, flushed
+    fn build_rabitq(&self, config: &RabitqConfig) -> Result<RabitqStorage> {
+        let mut storage = match RabitqStorage::open(&self.path, self.dimension, config) {
             Ok(storage) => storage,
             Err(e) => {
                 match Error::from(e) {
@@ -124,47 +156,50 @@ impl SrvDB {
                     // I/O and other faults are not proof the codes are bad
                     other => return Err(other),
                 }
-                RabitqStorage::create(&self.path, self.dimension, &config)?
+                RabitqStorage::create(&self.path, self.dimension, config)?
             }
         };
-        self.rabitq = Some(storage);
-        self.sync_rabitq()?;
+        if let Some(ref vectors) = self.vector_storage {
+            sync_codes(&mut storage, vectors)?;
+        }
         // Codes now cover exactly the committed vectors (recover() ran
         // first): make them durable so the next open does not re-encode
-        if let Some(ref mut codes) = self.rabitq {
-            codes.flush()?;
-        }
-        Ok(())
+        storage.flush()?;
+        Ok(storage)
     }
 
-    /// Make the codes cover exactly the stored vectors: drop codes beyond
-    /// the vector count, encode vectors that have none. Idempotent.
+    /// Make the codes cover exactly the stored vectors. Idempotent.
     pub(super) fn sync_rabitq(&mut self) -> Result<()> {
-        let (Some(codes), Some(vectors)) = (&mut self.rabitq, &self.vector_storage) else {
-            return Ok(());
-        };
-        let count = vectors.count();
-        if codes.count() > count {
-            codes.truncate_to(count)?;
+        match (&mut self.rabitq, &self.vector_storage) {
+            (Some(codes), Some(vectors)) => sync_codes(codes, vectors),
+            _ => Ok(()),
         }
-        let mut next = codes.count();
-        while next < count {
-            let end = (next + ENCODE_CHUNK).min(count);
-            let batch: Vec<&[f32]> = (next..end)
-                .map(|id| {
-                    vectors.get(id).ok_or_else(|| {
-                        Error::Internal(format!("vector {id} vanished while encoding"))
-                    })
-                })
-                .collect::<Result<_>>()?;
-            codes.append(batch.into_iter())?;
-            next = end;
-        }
-        Ok(())
     }
 
     /// Code scan, then exact rescoring of the candidates
     pub(super) fn search_rabitq(&self, query: &[f32], k: usize) -> Result<Vec<(u64, f32)>> {
         Ok(self.rabitq_top(query, k, None)?.0)
     }
+}
+
+/// Drop codes beyond the vector count, encode vectors that have none
+fn sync_codes(codes: &mut RabitqStorage, vectors: &VectorStorage) -> Result<()> {
+    let count = vectors.count();
+    if codes.count() > count {
+        codes.truncate_to(count)?;
+    }
+    let mut next = codes.count();
+    while next < count {
+        let end = (next + ENCODE_CHUNK).min(count);
+        let batch: Vec<&[f32]> = (next..end)
+            .map(|id| {
+                vectors
+                    .get(id)
+                    .ok_or_else(|| Error::Internal(format!("vector {id} vanished while encoding")))
+            })
+            .collect::<Result<_>>()?;
+        codes.append(batch.into_iter())?;
+        next = end;
+    }
+    Ok(())
 }

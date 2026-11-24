@@ -1,5 +1,6 @@
 //! Creating a new database with fixed settings (ADR 0013)
 
+use super::budget;
 use super::create_options::{CreateOptions, IndexChoice};
 use super::open_existing::config_for;
 use super::settings::Requested;
@@ -95,6 +96,7 @@ struct Spec<'a> {
     rabitq: Option<RabitqConfig>,
     ivf: Option<ivf::IVFConfig>,
     training: Option<&'a [Vec<f32>]>,
+    memory_mb: Option<u64>,
 }
 
 /// A hidden sibling of `dir` to build the new database in
@@ -178,6 +180,7 @@ impl SrvDB {
         limits::check("dimension", dimension, 1, limits::MAX_DIMENSION)?;
         // Check every option before touching the disk
         let training = training_from(options, dimension)?;
+        let memory_mb = budget::memory_mb_from(options)?;
         let index = options.index();
         let hnsw = match index {
             IndexChoice::Hnsw | IndexChoice::Ivf => Some(hnsw_from(options)?),
@@ -214,6 +217,7 @@ impl SrvDB {
             rabitq,
             ivf,
             training,
+            memory_mb,
         };
         let staging = staging_path(dir)?;
         let staging_str = staging
@@ -258,7 +262,11 @@ impl SrvDB {
             (IndexChoice::Ivf, _, _) => open(None, IndexType::IVF)?,
             (IndexChoice::Auto, _, _) => {
                 let mut db = open(None, IndexType::Flat)?;
-                db.set_mode(IndexMode::Auto);
+                match spec.memory_mb {
+                    // An empty database always fits flat (ADR 0018)
+                    Some(mb) => db.memory_budget = Some(mb),
+                    None => db.set_mode(IndexMode::Auto),
+                }
                 db
             }
             _ => open(None, IndexType::Flat)?,

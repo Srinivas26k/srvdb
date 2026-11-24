@@ -24,7 +24,7 @@ pub mod tuning;
 mod vector;
 
 pub use config::{DatabaseConfig, IndexType, QuantizationConfig, QuantizationMode};
-pub use engine::{CreateOptions, IndexChoice, SrvDB, VectorEngine};
+pub use engine::{CreateOptions, IndexChoice, MemoryReport, SrvDB, VectorEngine};
 pub use error::{Error, Result};
 pub use filter::Filter;
 pub use graph::{ExpandedResult, Expansion};

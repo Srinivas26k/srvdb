@@ -1,4 +1,5 @@
 use super::*;
+use crate::error::Error;
 use tempfile::TempDir;
 
 fn hnsw() -> HnswParams {
@@ -38,6 +39,7 @@ fn every_kind_round_trips_through_the_file() {
         let settings = IndexSettings {
             dimension: 128,
             kind,
+            memory_mb: None,
         };
         save(dir.path(), &settings).unwrap();
         assert_eq!(load(dir.path()).unwrap(), Some(settings));
@@ -49,6 +51,7 @@ fn damage_is_a_checksum_mismatch_and_truncation_is_corrupt() {
     let settings = IndexSettings {
         dimension: 128,
         kind: IndexKind::Hnsw(hnsw()),
+        memory_mb: None,
     };
     let bytes = encode(&settings).unwrap();
     let mut flipped = bytes.clone();
@@ -75,6 +78,7 @@ fn record_with(edit: impl FnOnce(&mut Record)) -> Vec<u8> {
     let mut r = to_record(&IndexSettings {
         dimension: 128,
         kind: IndexKind::Flat,
+        memory_mb: None,
     });
     edit(&mut r);
     format::encode(format::INDEX_SETTINGS, &r).unwrap()
@@ -84,7 +88,7 @@ fn record_with(edit: impl FnOnce(&mut Record)) -> Vec<u8> {
 fn unknown_kinds_formats_and_bad_parameters_are_corrupt() {
     let cases: Vec<Edit> = vec![
         Box::new(|r| r.kind = 42),
-        Box::new(|r| r.format = 2),
+        Box::new(|r| r.format = 3),
         Box::new(|r| r.dimension = 0),
         Box::new(|r| r.dimension = 4097),
         Box::new(|r| {
@@ -127,3 +131,6 @@ fn unknown_kinds_formats_and_bad_parameters_are_corrupt() {
         assert!(matches!(err, Error::Corrupt(_)), "{err:?}");
     }
 }
+
+#[path = "settings_budget_tests.rs"]
+mod budget;

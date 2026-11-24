@@ -32,7 +32,8 @@ srvdb.create(path: str, dimension: int, index: str = "hnsw", *, exist_ok: bool =
   | `ivf` | `nlist` (100), `nprobe` (10), plus `m`, `ef_construction`, `ef_search` for the partition graphs |
   | `sq8`, `pq` | `training`: sample vectors the quantizer is trained on; without it, the first batch added (PQ needs at least 256) |
   | `rabitq` | `bits` (1, 2 or 4; default 4), `rerank` (40, 20 or 10 for 1, 2 or 4 bits; 0 disables), `seed` |
-  | `flat`, `auto` | none |
+  | `auto` | `memory_mb`: a resident-memory budget in MiB, 1 to 1048576 (none). See [Memory budget](/srvdb/guides/memory-budget/) |
+  | `flat` | none |
 
 ## Returns
 
