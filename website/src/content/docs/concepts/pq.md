@@ -128,6 +128,7 @@ query sub-vector and the stored centroid. The full vectors are not kept.
 - Hervé Jégou, Matthijs Douze, Cordelia Schmid (2011). *Product
   Quantization for Nearest Neighbor Search.* IEEE Transactions on Pattern
   Analysis and Machine Intelligence 33(1).
+  [doi:10.1109/TPAMI.2010.57](https://doi.org/10.1109/TPAMI.2010.57)
 - Fabien André, Anne-Marie Kermarrec, Nicolas Le Scouarnec (2015).
   *Cache locality is not enough: High-performance nearest neighbor search
   with product quantization fast scan.* VLDB 2015. The lookup-table

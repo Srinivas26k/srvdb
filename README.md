@@ -58,7 +58,7 @@ stores embeddings on local disk, with no server and no cloud.
 - 🛡️ **Crash-safe by design.** After `save()` returns, your data survives a
   crash or power loss, and the database reopens exactly as it was. Every write
   path has a crash test.
-- 🎯 **Honest results.** True cosine scores in [-1, 1] in every mode. Bad input
+- 🎯 **Honest results.** Cosine scores in [-1, 1]; true cosine in flat, HNSW and IVF, approximate in SQ8 and PQ. Bad input
   (wrong dimension, NaN, duplicate ids, invalid metadata) is rejected before
   anything is written.
 - ⚖️ **Your trade-off.** Exact search, HNSW, IVF, or 4× / up to 32× smaller
