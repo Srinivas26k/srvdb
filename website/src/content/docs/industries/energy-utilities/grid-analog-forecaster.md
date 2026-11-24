@@ -50,7 +50,7 @@ A complete, runnable **Grid Analog Forecaster** reference implementation is in p
 - **[Exact search (`flat`)](/srvdb/guides/index-modes/)**: every query compares against every stored vector, so results are exact and explainable.
 - **[Fully offline](/srvdb/start/introduction/)**: SrvDB runs in-process and never opens a network connection.
 - **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
-- **[True cosine scores](/srvdb/guides/index-modes/)**: scores in [-1, 1] mean the same in every mode, so thresholds are stable.
+- **[Cosine scores](/srvdb/guides/index-modes/)**: flat, HNSW and IVF return true cosine scores in [-1, 1], so thresholds are stable across them; SQ8 and PQ scores are approximations.
 
 ## Use cases
 
