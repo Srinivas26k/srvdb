@@ -1,8 +1,12 @@
-"""Run every ```python example in the Python API reference pages.
+"""Run every ```python example in the documentation pages.
 
 Usage (from the repository root, after ``maturin develop``)::
 
-    python website/scripts/check_examples.py [PAGE_DIR]
+    python website/scripts/check_examples.py [PAGE_DIR ...]
+
+Without arguments it checks the Python API reference, the Concepts pages,
+Get started and the Guides. Mark a block that cannot run offline with
+``<!-- check_examples: skip (reason) -->`` on the line before it.
 
 Each example runs in a fresh temporary directory with a separate
 interpreter. When an example contains comment lines starting with ``# ``
@@ -19,11 +23,19 @@ import sys
 import tempfile
 from pathlib import Path
 
-DEFAULT_DIR = (
-    Path(__file__).resolve().parent.parent
-    / "src/content/docs/reference/python"
+DOCS = Path(__file__).resolve().parent.parent / "src/content/docs"
+DEFAULT_DIRS = [
+    DOCS / "reference/python",
+    DOCS / "concepts",
+    DOCS / "start",
+    DOCS / "guides",
+]
+# A block directly preceded by ``<!-- check_examples: skip (reason) -->`` is
+# not run: it needs software or data the checker cannot assume (a model
+# download, a local LLM server). Say why in the marker.
+BLOCK = re.compile(
+    r"^(<!-- check_examples: skip[^\n]*-->\n)?```python\n(.*?)^```", re.S | re.M
 )
-BLOCK = re.compile(r"^```python\n(.*?)^```", re.S | re.M)
 
 
 def expected_output(code: str) -> list[str] | None:
@@ -65,10 +77,15 @@ def run(page: Path, index: int, code: str) -> str | None:
 
 
 def main() -> int:
-    page_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_DIR
+    dirs = [Path(a) for a in sys.argv[1:]] or DEFAULT_DIRS
+    pages = sorted(p for d in dirs for p in d.glob("*.md"))
     failures = total = 0
-    for page in sorted(page_dir.glob("*.md")):
-        blocks = [b for b in BLOCK.findall(page.read_text()) if runnable(b)]
+    for page in pages:
+        blocks = [
+            code
+            for skip, code in BLOCK.findall(page.read_text())
+            if not skip and runnable(code)
+        ]
         for i, code in enumerate(blocks, 1):
             total += 1
             error = run(page, i, code)

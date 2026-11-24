@@ -33,6 +33,7 @@ for path in Path("notes").glob("**/*.md"):
 
 ## 2. Embed and store
 
+<!-- check_examples: skip (needs sentence-transformers and a model download) -->
 ```python
 import json
 import srvdb
@@ -67,6 +68,7 @@ for hit in retrieve("How do I rotate the API keys?"):
 
 Any local model works. With [Ollama](https://ollama.com) (`pip install ollama`):
 
+<!-- check_examples: skip (needs a local Ollama server) -->
 ```python
 import ollama
 

@@ -31,8 +31,11 @@ pytest tests/python
 - Commit messages follow Conventional Commits: `fix(search): ...`.
 - Storage changes need a reopen test; durability changes a crash test.
 - Changes to the Python API update its page under
-  [Python API reference](/srvdb/reference/python/). Every example there must
-  pass `python website/scripts/check_examples.py` after `maturin develop`.
+  [Python API reference](/srvdb/reference/python/). Every example there and
+  under Concepts, Get started and Guides must pass
+  `python website/scripts/check_examples.py` after `maturin develop`; mark
+  a block that cannot run offline with
+  `<!-- check_examples: skip (reason) -->` on the line before it.
 
 Read [CONTRIBUTING.md](https://github.com/Srinivas26k/srvdb/blob/master/CONTRIBUTING.md)
 and the engineering rules in

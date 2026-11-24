@@ -14,10 +14,20 @@ own:
   other and for running searches instead of failing.
 
 ```python
+import random
 from concurrent.futures import ThreadPoolExecutor
+
+import srvdb
+
+vectors = [[random.random() for _ in range(128)] for _ in range(1000)]
+queries = vectors[:32]
+db = srvdb.create("./db", dimension=128)
+db.add([f"v{i}" for i in range(1000)], vectors, ["{}"] * 1000)
 
 with ThreadPoolExecutor(8) as pool:
     results = list(pool.map(lambda q: db.search(q, 10), queries))
+print(len(results))
+# 32
 ```
 
 For many queries at once, `search_batch(queries, k)` parallelises inside Rust.
