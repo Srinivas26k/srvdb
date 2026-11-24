@@ -198,15 +198,18 @@ impl Codebook {
         }
 
         for (i, centroid) in self.centroids.iter().enumerate() {
-            // Compute dot product (centroid is normalized to unit length)
             let dot_product: f32 = query_sub
                 .iter()
                 .zip(centroid.iter())
                 .map(|(a, b)| a * b)
                 .sum();
-
-            // Divide by query magnitude to get cosine (centroid magnitude is 1.0)
-            let cosine = dot_product / query_magnitude;
+            // Reseeded centroids are raw vectors, not unit length: divide by both
+            // magnitudes, and clamp rounding, so the cosine is in [-1, 1]
+            let centroid_magnitude: f32 = centroid.iter().map(|x| x * x).sum::<f32>().sqrt();
+            if centroid_magnitude < 1e-10 {
+                continue;
+            }
+            let cosine = (dot_product / (query_magnitude * centroid_magnitude)).clamp(-1.0, 1.0);
 
             // Negate because we minimize distance but want to maximize similarity
             distances[i] = -cosine;

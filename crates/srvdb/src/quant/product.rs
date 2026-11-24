@@ -190,4 +190,24 @@ mod tests {
         // All codes should be within valid range
         assert!(quantized.iter().all(|&c| (c as usize) < K));
     }
+
+    #[test]
+    fn similarity_stays_within_cosine_range() {
+        // Reseeded empty clusters keep raw, non-unit centroids: a long one
+        // parallel to the query used to score above 1 (issue #51)
+        let codebook = Codebook {
+            centroids: vec![vec![3.0, 0.0], vec![-0.5, 0.0]],
+        };
+        let pq = ProductQuantizer {
+            m: 2,
+            k: 2,
+            d_sub: 2,
+            codebooks: vec![codebook.clone(), codebook],
+        };
+        let table = pq.compute_distance_table(&[1.0, 0.0, 1.0, 0.0]);
+        let best = pq.asymmetric_distance(&[0, 0], &table);
+        let worst = pq.asymmetric_distance(&[1, 1], &table);
+        assert!((best - 1.0).abs() < 1e-6, "got {best}");
+        assert!((worst + 1.0).abs() < 1e-6, "got {worst}");
+    }
 }

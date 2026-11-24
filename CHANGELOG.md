@@ -100,6 +100,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unchanged (#26).
 
 ### Fixed
+- Product-quantized (PQ) similarity scores stay within [-1, 1] (#51). The
+  per-subspace cosine assumed unit-length centroids, but k-means reseeds
+  empty clusters with raw vectors, so scores up to about 1.09 were seen.
+  Both magnitudes are now divided out. Existing codebooks are unchanged;
+  scores from them are corrected on the next search.
 - The `ValueError` for an unknown mode now lists every accepted mode; `ivf`
   and the `scalar` and `product` aliases were missing.
 - HNSW recall on clustered data (#28). The graph kept only the M nearest
