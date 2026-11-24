@@ -66,6 +66,12 @@ pub(super) fn training<'a>(vectors: impl IntoIterator<Item = &'a [f32]>) -> Resu
     Ok(first.len())
 }
 
+/// The dimension of a new database, within the `DatabaseConfig::new` bounds
+pub(super) fn new_dimension(dimension: usize) -> Result<()> {
+    use crate::index::limits::{check, MAX_DIMENSION, MIN_DIMENSION};
+    check("dimension", dimension, MIN_DIMENSION, MAX_DIMENSION)
+}
+
 /// Prefix an error with the batch position it came from.
 fn at_index(err: Error, index: usize) -> Error {
     match err {
