@@ -50,7 +50,17 @@ pub trait VectorEngine {
     fn new(path: &str) -> Result<Self>
     where
         Self: Sized;
+    /// Append one vector with its metadata; returns its id.
+    ///
+    /// With a memory budget (ADR 0018) the add is checked first: it may
+    /// re-encode every stored vector to fewer bits, or fail with
+    /// `Error::MemoryBudget` without writing anything. A re-encode is
+    /// recorded in `index_settings.bin` before the vector is appended, so
+    /// it stays in effect even if the append then fails.
     fn add(&mut self, vec: &Vector, meta: &str) -> Result<u64>;
+    /// Append vectors with their metadata in one write; returns their ids.
+    /// The memory-budget check and its re-encode work as for [`Self::add`],
+    /// for the whole batch.
     fn add_batch(&mut self, vecs: &[Vector], metas: &[String]) -> Result<Vec<u64>>;
     fn search(&self, query: &Vector, k: usize) -> Result<Vec<SearchResult>>;
     fn search_batch(&self, queries: &[Vector], k: usize) -> Result<Vec<Vec<SearchResult>>>;

@@ -120,6 +120,11 @@ written.
   leaves the new mode with complete codes. Settings are always written
   before any vector that needed them can be committed, so the committed
   count always fits the recorded mode.
+  The step down is kept even if the append after it fails (I/O,
+  metadata): the database then holds fewer bits than its count needs,
+  which costs precision, never data or the budget; this is documented on
+  `add`. If the re-encode itself fails, the previous width (or flat) is
+  restored and nothing is recorded or appended.
   `crates/srvdb/tests/test_crash_budget.rs` kills a writer stepping down
   at random moments and checks that invariant on every reopen.
 - If even 1 bit does not fit, the write is refused with the new
