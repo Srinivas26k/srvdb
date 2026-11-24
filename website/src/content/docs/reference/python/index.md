@@ -61,6 +61,14 @@ Errors follow one rule: bad input raises `ValueError`, operating-system I/O fail
 |--------|---------|
 | `srvdb.__version__` | The installed version string, for example `"0.3.0"`. |
 
+## Errors and recovery
+
+Not part of everyday use; reach for it only when open fails, as described in [Handling errors](/srvdb/guides/errors/).
+
+| Object | Summary |
+|--------|---------|
+| [`srvdb.rebuild_checksums`](/srvdb/reference/python/rebuild-checksums/) | Recompute missing or damaged checksum files. |
+
 ---
 
 Every example in this section is checked by a script. To run it, build the extension with `maturin develop` (with `langchain-core` and `llama-index-core` installed for the adapter pages), then run `python website/scripts/check_examples.py` from the repository root. Each example runs in its own temporary directory.

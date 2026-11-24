@@ -21,7 +21,14 @@ from srvdb._low_level import Database, __version__
 if TYPE_CHECKING:
     from srvdb._low_level import Index
 
-__all__ = ["Database", "__version__", "create", "delete", "open"]
+__all__ = [
+    "Database",
+    "__version__",
+    "create",
+    "delete",
+    "open",
+    "rebuild_checksums",
+]
 
 
 def create(
@@ -107,3 +114,27 @@ def delete(path: str) -> None:
         OSError: A file could not be removed.
     """
     _low_level.delete(path)
+
+
+def rebuild_checksums(path: str) -> list[str]:
+    """Recompute missing or damaged checksum files (``*.crc``) of the
+    closed database at ``path`` so it opens again.
+
+    Use it when ``srvdb.open`` fails because a ``.crc`` file is missing or
+    damaged, for example after copying only ``vectors.bin``. It never runs
+    on its own. A ``.crc`` file that is intact but disagrees with the data
+    means the data is damaged: nothing is rewritten and RuntimeError is
+    raised. A rebuilt checksum cannot detect damage already in the data;
+    if the data may be damaged, restore a backup instead.
+
+    Returns:
+        Names of the checksum files that were rewritten (empty if all were
+        intact).
+
+    Raises:
+        FileNotFoundError: ``path`` is not a directory.
+        BlockingIOError: The database is open (close it first).
+        OSError: A file could not be read or written.
+        RuntimeError: The data is damaged or truncated; restore a backup.
+    """
+    return _low_level.rebuild_checksums(path)

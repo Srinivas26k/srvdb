@@ -1,4 +1,4 @@
-//! Module verbs `create`, `open`, `delete` and the `Database` lifecycle
+//! Module verbs `create`, `open`, `delete`, `rebuild_checksums` and the `Database` lifecycle
 //! methods `save`, `close`, `__enter__`, `__exit__` (ADR 0013).
 //!
 //! Option names and values are checked by the core (`srvdb::CreateOptions`);
@@ -71,6 +71,12 @@ pub(crate) fn open(py: Python<'_>, path: String) -> PyResult<PyDatabase> {
 #[pyfunction]
 pub(crate) fn delete(py: Python<'_>, path: String) -> PyResult<()> {
     py.detach(|| SrvDB::delete_database(&path)).map_err(to_py)
+}
+
+/// Rebuild missing or damaged checksum files; see `srvdb.rebuild_checksums`
+#[pyfunction]
+pub(crate) fn rebuild_checksums(py: Python<'_>, path: String) -> PyResult<Vec<String>> {
+    py.detach(|| SrvDB::rebuild_checksums(&path)).map_err(to_py)
 }
 
 #[pymethods]

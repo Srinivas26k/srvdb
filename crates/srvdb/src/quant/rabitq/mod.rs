@@ -44,6 +44,13 @@ pub(crate) struct RabitqQuery {
     tables: Vec<[f32; 16]>,
 }
 
+/// Bytes per stored vector for `dim` dimensions at `bits` (one of
+/// [`SUPPORTED_BITS`]); the same as [`RabitqQuantizer::record_size`]
+/// without building the rotation
+pub(crate) fn record_size(dim: usize, bits: u8) -> usize {
+    FACTOR_BYTES + dim.div_ceil(8 / bits as usize)
+}
+
 impl RabitqQuantizer {
     /// `bits` must be one of [`SUPPORTED_BITS`] (checked by the config)
     pub(crate) fn new(dim: usize, bits: u8, seed: u64) -> Self {
@@ -71,7 +78,7 @@ impl RabitqQuantizer {
 
     /// Bytes per stored vector
     pub(crate) fn record_size(&self) -> usize {
-        FACTOR_BYTES + self.code_bytes()
+        record_size(self.dim, self.bits)
     }
 
     /// Unit vector rotated; zero (or non-finite norm) maps to zeros

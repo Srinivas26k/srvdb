@@ -56,6 +56,11 @@ def delete(path: str) -> None:
     Raises ValueError for a directory with other files, BlockingIOError
     while the database is open."""
 
+def rebuild_checksums(path: str) -> list[str]:
+    """Recompute missing or damaged checksum files of a closed database
+    (see ``srvdb.rebuild_checksums``). Returns the rewritten file names.
+    Raises RuntimeError if the data itself is damaged."""
+
 class Database:
     """An open SrvDB database; safe to share between threads.
 

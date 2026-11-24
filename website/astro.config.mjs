@@ -117,6 +117,7 @@ export default defineConfig({
 								{ label: 'db.set_rabitq_rerank', slug: 'reference/python/db-set-rabitq-rerank' },
 								{ label: 'LangChain SrvDBVectorStore', slug: 'reference/python/langchain-srvdbvectorstore' },
 								{ label: 'LlamaIndex SrvDBVectorStore', slug: 'reference/python/llamaindex-srvdbvectorstore' },
+								{ label: 'Recovery: srvdb.rebuild_checksums', slug: 'reference/python/rebuild-checksums' },
 							],
 						},
 						{ label: 'Rust API', slug: 'reference/rust-api' },

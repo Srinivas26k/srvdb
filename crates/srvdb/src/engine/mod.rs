@@ -15,6 +15,7 @@ mod open_existing;
 mod rabitq;
 mod read;
 mod recover;
+mod repair;
 mod settings;
 mod validate;
 mod write;
