@@ -96,5 +96,22 @@ Paste the full table including the header lines into the release notes or
 report, and commit the JSON alongside it if it backs a claim. Do not quote a
 single number without its environment block.
 
+## Comparison with other libraries
+
+`benchmarks/compare/` runs SrvDB (through its Python package), FAISS,
+hnswlib, usearch and turbovec on the dataset this harness generates
+(exported with `--export-fvecs DIR`) and measures the same metrics. The
+competitors are installed only in a dedicated venv from
+`benchmarks/compare/requirements.txt`; see `benchmarks/compare/README.md`
+for setup, method and licences. Regenerate the website data with a clean
+tree:
+
+```bash
+.bench-venv/bin/python benchmarks/compare/run.py --dims 384,768 --ns 5000,50000
+```
+
+This rewrites `website/src/data/benchmarks/comparison.json`, which the
+page `/srvdb/benchmarks/` renders at build time.
+
 The micro-benchmark in `crates/srvdb/benches/search_benchmark.rs`
 (`cargo bench -p srvdb`) remains for quick flat-search regression checks.

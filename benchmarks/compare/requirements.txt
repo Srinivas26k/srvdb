@@ -1,0 +1,10 @@
+# Benchmark-only venv for benchmarks/compare. These are NOT SrvDB
+# dependencies; never add them to pyproject.toml or Cargo.toml.
+# Licences: see README.md in this directory.
+numpy==2.5.5
+psutil==7.2.2
+maturin==1.16.0
+faiss-cpu==1.16.0
+hnswlib==0.8.0
+usearch==2.26.6
+turbovec==1.1.2
