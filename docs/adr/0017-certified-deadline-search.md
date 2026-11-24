@@ -27,7 +27,10 @@ a unit query `q`, the estimate is `est = <o_bar, q'> / <o_bar, o>` (with
             = sqrt(1 - s^2) * sqrt(1 / <o_bar, o>^2 - 1) * Z
 
 `Z` is the component of `R e` along the part of `o_bar` orthogonal to
-`y`. The RaBitQ analysis (Gao and Long, arXiv:2405.12497, Theorem 3.2
+`y`. The argument assumes `R` is a uniformly random (Haar) orthogonal
+matrix. SrvDB's `R` is a pseudo-random f32 approximation of one: a
+fixed seed expanded by SplitMix64 and Box-Muller, orthonormalised in
+f64 and then rounded to f32. The RaBitQ analysis (Gao and Long, arXiv:2405.12497, Theorem 3.2
 and its proof) applies to any code that is a deterministic function of
 `y`. Given `y`, the rotation leaves `R e` uniform on the unit sphere of
 the `D - 1` dimensional complement of `y`. So `Z` is one coordinate of
@@ -44,8 +47,15 @@ vector of resident memory, still derived data, with no format change.
 
 The scan does not compute `est` exactly. It uses the u8 tables, which
 are off by at most `|f| * M * step / 2` (ADR 0012, `QueryLut::max_error`).
-Call that `lut`, and add a fixed `1e-3` for f32 rounding in the
-rotation, the tables and the factor. The interval half-width is
+Call that `lut`. On top of it, SrvDB adds a fixed `1e-3` for f32
+rounding in the rotation, the tables, the factor and `|g|`, and the
+`lut` bound carries a `1.001` factor. **Both are heuristics, not
+derived f32 error bounds.** A worst-case f32 analysis of a length-`D`
+dot product gives about `D * 2^-24` relative error (about `2.4e-4` at
+`D = 4096`), which is below the slack for unit vectors. However, the
+codes, factor and rotation compound several such terms, and that chain
+has not been bounded. The interval, and therefore the confidence, is
+approximate. The interval half-width is
 
     e0 = eps * w
     h  = e0 * sqrt(1 - s_min^2) + lut + 1e-3,
@@ -68,21 +78,31 @@ The union bound over all `n` live vectors fails with probability at most
 
 which is about 5.8 at `n = 100 000`.
 
-**Confidence** is a lower bound on the probability, over the random
-rotation seed, that the certified result is exactly the top k of the
-scanned vectors (ties aside). It follows that expected recall@k against
-exact search over those vectors is at least the confidence. A query
+**Confidence** is a nominal lower bound on a probability over a
+*hypothetical* uniformly random rotation: if the rotation were drawn
+at random, then for this query the certified result would be exactly
+the top k of the scanned vectors (ties aside) with at least this
+probability. What it is **not**:
+
+- not a guarantee about this query, whose rotation is already fixed;
+- not a long-run frequency over queries for one database, because the
+  seed is fixed once and every query shares it;
+- not joint across queries: it does not bound the probability that
+  every query of a batch is exact.
+
+Because of the pseudo-random rotation and the heuristic f32 slack
+above, the 0.99 is approximate. A certified search that completes
 reports `confidence = 0.99`. With a deadline, confidence still describes
 the scanned vectors, and `completeness` says how many vectors that was.
 The two values are kept separate because nothing is known about the
 vectors that were not scanned.
 
-The bound is conservative. It does not depend on the data distribution,
-it applies a union bound over every vector, and the concentration
-inequality is not tight. The test measures recall against exact search
-on 24 seeded datasets (8 seeds, 3 bit widths, cluster count and spread
-varying with the seed) and requires mean recall >= the reported
-confidence on every run.
+The bound is loose in practice: it does not depend on the data, it
+applies a union bound over every vector, and the concentration
+inequality is not tight. The test asserts that mean recall against
+exact search is at least the reported confidence on each of 24 seeded
+datasets (8 seeds, 3 bit widths, cluster count and spread varying with
+the seed). That is an empirical check, not a proof.
 
 ### Certification
 
@@ -110,13 +130,26 @@ not used: the number of vectors rescored follows from the intervals.
 With 1 bit the intervals are wide, and most candidates near the top are
 uncertain. Certification saves the most at 4 bits.
 
+### Rerank cap
+
+Wide intervals can leave a large share of the collection uncertain:
+1-bit codes on clustered data, or a large `n` (which raises `eps`). The
+certified rerank therefore rescores at most `max_rerank` candidates
+(`RabitqSearch::with_max_rerank`; by default `max(k * rerank, 1000)`).
+Uncertain candidates are ordered by upper bound, so a capped rerank
+keeps the most promising ones. When the cap is hit, the result is the
+best of that set and is **not certified**: `confidence` is `None` and
+`certified` is 0.
+
 ### Deadline
 
 `deadline` is a `Duration` measured from the start of the call. Every
 rayon scan task reads the clock before each 32-vector block and stops
 once the deadline has passed. This is cooperative: no thread is
-interrupted. The rerank after the scan always runs to completion, so a
-call can overrun the deadline by the time that rerank takes. Results are
+interrupted. The rerank after the scan also checks the clock between
+batches of 256 vectors, so a call overruns the deadline by at most one
+scan block per task plus one rerank batch. A certified rerank cut short
+this way is not certified (`confidence` is `None`). Results are
 the best found among the scanned vectors. `completeness` is the number of
 scanned live vectors divided by the number of live vectors (1.0 when
 there are none). A deadline of 0 scans nothing and returns no results
@@ -156,8 +189,12 @@ code path as `search` and returns identical results; a test checks this.
 ## Consequences
 
 - Resident memory for RaBitQ grows by 4 bytes per vector (the widths).
-- Certified search can rescore more vectors than `k * r` at 1 bit and
-  fewer at 4 bits. We publish no latency numbers until they are measured
+- Clustered data certifies almost nothing. In the test datasets (tight
+  clusters, k = 10) no result was certified without rerank at any bit
+  width. Up to the cap, 1-bit certified search rescored several times
+  as many candidates as a plain search with the default `k * r`.
+  Certification only removes rerank work when the nearest neighbours
+  stand clear of the rest. We publish no latency numbers until they are measured
   on an idle machine with a committed benchmark (AGENTS.md section 11).
 - Changing `CERTIFIED_CONFIDENCE` or the bound changes the reported
   confidence, which is a documented contract. Such a change needs an

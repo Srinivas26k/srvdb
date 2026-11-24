@@ -156,19 +156,28 @@ gives every scanned vector an interval `[lo, hi]` around its estimate.
 3. Only the remaining **uncertain** candidates are rescored on the full
    vectors. The rerank factor is not used.
 
-The interval width is set so that every interval holds with probability
-at least 0.99 over the random rotation. **Confidence** (0.99) is
-therefore a lower bound on the probability that the result is exactly
-the top k of the scanned vectors, so expected recall@k is at least 0.99.
-The bound is conservative: in the test suite, measured recall against
-exact search was 1.0 on all 24 seeded datasets. Certification pays off
-when the nearest neighbours stand clear of the rest. In tight clusters
-few results are certified and more candidates are uncertain, and at 1
-bit the intervals are wide.
+The interval width is chosen so that, if the rotation were drawn at
+random, every interval would hold with probability at least 0.99.
+**Confidence** (0.99) is that nominal probability for this query. It is
+**not** a guarantee for your query, **not** a long-run rate for your
+database (its seed is fixed, and all queries share it), and **not** a
+bound for a batch of queries together. It is also approximate: SrvDB's
+rotation is a pseudo-random f32 approximation of a random one, and the
+allowance for f32 rounding is a heuristic. The test suite checks that
+mean recall against exact search is at least the reported confidence
+on 24 seeded datasets.
+
+**On clustered data, almost nothing is certified.** In those tests no
+result was certified without rerank, and at 1 bit certified search
+rescored several times as many candidates as a normal search. The rerank
+is capped at `max(k × rerank, 1000)` candidates. When the cap or the
+deadline cuts the rerank short, the result is not certified:
+`confidence` is `None`. Certification saves work only when the nearest
+neighbours stand clear of the rest.
 
 `deadline_ms=` stops the code scan once the time is up. The clock is
-checked between 32-vector blocks, and the rescoring that follows always
-completes. You get the best results found so far and `completeness`, the
+checked between 32-vector blocks during the scan and between batches of
+256 during the rescoring that follows. You get the best results found so far and `completeness`, the
 fraction of vectors scanned. Both options work only on RaBitQ databases;
 other modes raise `ValueError`. Details:
 [ADR 0017](https://github.com/Srinivas26k/srvdb/blob/master/docs/adr/0017-certified-deadline-search.md).

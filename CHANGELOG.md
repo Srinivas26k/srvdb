@@ -12,12 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `db.search(q, k, certify=True)` gives every scanned vector an error
   interval from the RaBitQ bound plus the u8 table error. It certifies
   results whose interval clears the k-th lower bound and rescores only
-  the uncertain candidates on the full vectors; `confidence` (0.99) is
-  a lower bound on the probability that the result is the exact top k
-  of the scanned vectors. `deadline_ms=` stops the code scan between
-  blocks once the time is up and reports `completeness`. Both return a
+  the uncertain candidates on the full vectors, at most
+  `max(k * rerank, 1000)` of them. `confidence` (0.99) is a nominal,
+  approximate bound on a probability over a hypothetical random rotation
+  seed: it is not a per-query guarantee, not a long-run rate for the
+  database's fixed seed, and not joint across queries. It is `None`
+  when the rerank cap or the deadline cut the rescoring short. On
+  clustered data almost nothing is certified, and 1-bit search can
+  rescore far more candidates than a normal search. `deadline_ms=` stops the code scan between
+  blocks, and the rescoring between batches, once the time is up and reports `completeness`. Both return a
   list-like `SearchOutcome`, and both raise `ValueError` outside the
-  RaBitQ modes. Rust: `SrvDB::search_rabitq_with` with `RabitqSearch`,
+  RaBitQ modes. Rust: `SrvDB::search_rabitq_with` with `RabitqSearch` (incl. `with_max_rerank`),
   `SearchOutcome` and `SearchStats`. RaBitQ memory grows by 4 bytes per
   vector (derived error widths; the file format is unchanged).
 - `SrvDB::rebuild_checksums(path)` / `srvdb.rebuild_checksums(path)`

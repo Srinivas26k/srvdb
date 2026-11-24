@@ -26,16 +26,16 @@ db.search(query: Sequence[float], k: int, *, where: dict | None = None,
   Use the RaBitQ error bounds: certify results whose interval clears the k-th lower bound and rescore only the uncertain candidates on the full vectors. See [RaBitQ, step 5](/srvdb/concepts/rabitq/#5-certified-and-deadline-search-optional). Default `False`.
 
 - **deadline_ms** : *float, optional, keyword-only, RaBitQ modes only*
-  Stop scanning codes after this many milliseconds (checked between 32-vector blocks; the rescoring that follows always completes) and return the best results found. Default `None`, no deadline.
+  Stop after this many milliseconds and return the best results found. The clock is checked between 32-vector scan blocks and between 256-vector rescoring batches. Default `None`, no deadline.
 
 ## Returns
 
 `list[tuple[str, float]]`: up to `k` `(id, score)` pairs, best first. Scores are cosine similarities computed in float32, so an identical vector scores about 0.99999994 rather than exactly 1.0. With `where`, only matching vectors are returned, and `k` of them whenever at least `k` match. Fewer than `k` pairs come back when fewer vectors (or matches) exist; an empty database returns `[]`.
 
-With `certify=True` or `deadline_ms`, a `SearchOutcome`. It iterates, indexes and has a `len()` like the list above (`out.results` is that list), and also has these attributes:
+With `certify=True` or `deadline_ms`, a `SearchOutcome`. It iterates, indexes (integers and slices) and has a `len()` like the list above (`out.results` returns that plain list), and also has these attributes:
 
 - `completeness` (float): fraction of live vectors scanned, 1.0 unless the deadline passed.
-- `confidence` (float or None): with `certify=True`, a lower bound (0.99) on the probability that the results are exactly the top k of the scanned vectors; otherwise `None`.
+- `confidence` (float or None): with `certify=True`, 0.99, a nominal and approximate lower bound on the probability, over a hypothetical random rotation seed, that the results are exactly the top k of the scanned vectors. It is not a per-query guarantee, not a long-run rate for this database's fixed seed, and not joint across queries. `None` without `certify`, and when the rerank cap (`max(k × rerank, 1000)` candidates) or the deadline cut the rescoring short; `certified` is then 0.
 - `certified`, `reranked`, `scanned` (int): results certified without rescoring, candidates rescored, and vectors scanned.
 
 ## Raises
