@@ -30,7 +30,7 @@ db.search(query: Sequence[float] | None, k: int, *, text: str | None = None, whe
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`, when both `query` and `text` are `None`, when `text` has no letters or digits, and when `text` is given before `enable_keyword_search()`.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`, when both `query` and `text` are `None`, when `text` has no letters or digits, is over 64 KiB or has more than 1,024 distinct words, and when `text` is given before `enable_keyword_search()`.
 
 - **RuntimeError**
   An internal fault occurred, or the keyword index file is damaged (call `enable_keyword_search()` to rebuild it).

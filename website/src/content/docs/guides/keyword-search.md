@@ -55,7 +55,8 @@ Call it once; the index is saved by `save()` and used again after
 Words are runs of letters and digits in any script, lowercased. There is
 no stemming and there are no stop words: `install` does not match
 `installed`. Languages written without spaces (Chinese, Japanese, Thai)
-only match whole runs of text.
+only match whole runs of text. A query may hold up to 64 KiB of text and
+1,024 distinct words; longer ones raise `ValueError`.
 
 ## Durability
 

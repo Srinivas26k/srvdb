@@ -32,7 +32,9 @@ stores the text they need in each record's metadata JSON.
 3. **Scoring.** Okapi BM25 with `k1 = 1.2`, `b = 0.75` and the
    non-negative Lucene idf `ln(1 + (N - df + 0.5) / (df + 0.5))`, where `N`
    is the number of live indexed records. Each distinct query term counts
-   once. Ties are broken by lower id. Deleted records are removed from the
+   once. A query is at most 64 KiB of text and 1,024 distinct terms
+   (`Error::InvalidInput` otherwise), checked before the index lock is
+   taken, so the work of one search is bounded. Ties are broken by lower id. Deleted records are removed from the
    index (and from `N`, `df` and the average length) before scoring.
 
 4. **Hybrid ranking.** `SrvDB::search_hybrid(query, text, k, filter)`
@@ -52,14 +54,19 @@ stores the text they need in each record's metadata JSON.
    positive frequencies and that each record's length equals the sum of
    its frequencies. Damage is `Error::ChecksumMismatch` or
    `Error::Corrupt`; calling `enable_keyword_index` again rebuilds the file
-   from metadata.
+   from metadata. `enable_keyword_index` rebuilds only for those two
+   errors; I/O errors are returned. `persist()` writes `keyword.index`
+   after `index_settings.bin`, so a failed keyword write never leaves the
+   settings unrecorded.
 
 6. **Durability.** The index adds no guarantee of its own: what is durable
    is what `persist()` made durable in metadata (ADR 0003). `persist()`
    writes `keyword.index` after the metadata commit point, so the file can
    only lag behind metadata. On first use after open the index catches up:
    records `covered..count` are read from metadata and tokenized, and
-   tombstoned records are removed. A file claiming more records than the
+   tombstoned records are removed once. While the index is loaded,
+   `delete()` removes the record from it directly, so searches never walk
+   the whole deleted set. A file claiming more records than the
    database holds is rebuilt. `compact()` renumbers ids, so before its
    commit point it atomically replaces the file with an empty one for the
    same field (`covered = 0`); a crash anywhere in compaction therefore
