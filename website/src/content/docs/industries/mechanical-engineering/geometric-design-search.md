@@ -69,7 +69,7 @@ A complete, runnable **Geometric Design Search** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./geometric-design-search-db", dimension=512, mode="hnsw")
+db = srvdb.open("./geometric-design-search-db", dimension=512, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

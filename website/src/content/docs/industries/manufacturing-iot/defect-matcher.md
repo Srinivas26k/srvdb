@@ -69,7 +69,7 @@ A complete, runnable **Defect Matcher** reference implementation is in progress.
 import json
 import srvdb
 
-db = srvdb.Database("./defect-matcher-db", dimension=512)
+db = srvdb.open("./defect-matcher-db", dimension=512)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

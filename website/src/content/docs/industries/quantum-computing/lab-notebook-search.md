@@ -69,7 +69,7 @@ A complete, runnable **Lab Notebook Search** reference implementation is in prog
 import json
 import srvdb
 
-db = srvdb.Database("./lab-notebook-search-db", dimension=384)
+db = srvdb.open("./lab-notebook-search-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

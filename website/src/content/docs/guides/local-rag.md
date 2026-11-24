@@ -39,7 +39,7 @@ import srvdb
 from sentence_transformers import SentenceTransformer
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
-db = srvdb.Database("./rag-db", dimension=384)
+db = srvdb.open("./rag-db", dimension=384)
 
 vectors = model.encode([p["text"] for p in passages], normalize_embeddings=True)
 db.upsert(

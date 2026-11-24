@@ -69,7 +69,7 @@ A complete, runnable **Simulation Lookup** reference implementation is in progre
 import json
 import srvdb
 
-db = srvdb.Database("./simulation-lookup-db", dimension=128)
+db = srvdb.open("./simulation-lookup-db", dimension=128)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

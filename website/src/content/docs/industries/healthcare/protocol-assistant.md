@@ -70,7 +70,7 @@ A complete, runnable **Protocol Assistant** reference implementation is in progr
 import json
 import srvdb
 
-db = srvdb.Database("./protocol-assistant-db", dimension=384)
+db = srvdb.open("./protocol-assistant-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

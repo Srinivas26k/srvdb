@@ -69,7 +69,7 @@ A complete, runnable **Safety Report Analyzer** reference implementation is in p
 import json
 import srvdb
 
-db = srvdb.Database("./safety-report-analyzer-db", dimension=384)
+db = srvdb.open("./safety-report-analyzer-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

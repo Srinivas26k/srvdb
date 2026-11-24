@@ -69,7 +69,7 @@ A complete, runnable **Bug Dedup Engine** reference implementation is in progres
 import json
 import srvdb
 
-db = srvdb.Database("./bug-dedup-engine-db", dimension=384)
+db = srvdb.open("./bug-dedup-engine-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

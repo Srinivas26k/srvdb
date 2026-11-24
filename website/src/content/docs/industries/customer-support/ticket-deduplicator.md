@@ -69,7 +69,7 @@ A complete, runnable **Ticket Deduplicator** reference implementation is in prog
 import json
 import srvdb
 
-db = srvdb.Database("./ticket-deduplicator-db", dimension=384)
+db = srvdb.open("./ticket-deduplicator-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

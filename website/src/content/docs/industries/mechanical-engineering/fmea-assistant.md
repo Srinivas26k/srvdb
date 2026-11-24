@@ -69,7 +69,7 @@ A complete, runnable **FMEA Assistant** reference implementation is in progress.
 import json
 import srvdb
 
-db = srvdb.Database("./fmea-assistant-db", dimension=768)
+db = srvdb.open("./fmea-assistant-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

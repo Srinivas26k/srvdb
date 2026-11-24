@@ -69,7 +69,7 @@ A complete, runnable **E-discovery Assistant** reference implementation is in pr
 import json
 import srvdb
 
-db = srvdb.Database("./ediscovery-assistant-db", dimension=768, mode="hnsw")
+db = srvdb.open("./ediscovery-assistant-db", dimension=768, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

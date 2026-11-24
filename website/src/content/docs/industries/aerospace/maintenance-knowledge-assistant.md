@@ -69,7 +69,7 @@ A complete, runnable **Maintenance Knowledge Assistant** reference implementatio
 import json
 import srvdb
 
-db = srvdb.Database("./maintenance-knowledge-assistant-db", dimension=768)
+db = srvdb.open("./maintenance-knowledge-assistant-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

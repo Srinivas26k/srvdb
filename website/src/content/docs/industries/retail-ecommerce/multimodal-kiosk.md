@@ -69,7 +69,7 @@ A complete, runnable **Multimodal Kiosk** reference implementation is in progres
 import json
 import srvdb
 
-db = srvdb.Database("./multimodal-kiosk-db", dimension=512, mode="hnsw")
+db = srvdb.open("./multimodal-kiosk-db", dimension=512, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

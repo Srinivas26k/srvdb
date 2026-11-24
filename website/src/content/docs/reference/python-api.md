@@ -14,10 +14,13 @@ Type stubs ship with the package, so editors show signatures and types.
 ### Constructors
 
 ```python
+srvdb.open(path: str, dimension: int = 1536, mode: str = "flat") -> srvdb.Database
 srvdb.Database(path: str, dimension: int = 1536, mode: str = "flat")
 ```
 
-Create or open the database at `path`. `mode` is one of `"flat"`, `"hnsw"`,
+Create or open the database at `path`. `srvdb.open(...)` is the preferred
+form and returns a `Database`; it is identical to calling the `Database`
+constructor. Call it as `srvdb.open`; it does not replace the builtin `open`. `mode` is one of `"flat"`, `"hnsw"`,
 `"ivf"`, `"sq8"` (alias `"scalar"`), `"pq"` (alias `"product"`), `"auto"`.
 `dimension` must be 128–4096 and match the stored data.
 

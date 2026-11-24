@@ -15,7 +15,7 @@ import random
 import srvdb
 
 DIM = 128
-db = srvdb.Database("./quickstart-db", dimension=DIM)
+db = srvdb.open("./quickstart-db", dimension=DIM)
 ```
 
 The directory is created if needed. Opening an existing database loads it.
@@ -70,7 +70,7 @@ print(db.count())   # 999
 
 ```python
 del db
-db = srvdb.Database("./quickstart-db", dimension=DIM)
+db = srvdb.open("./quickstart-db", dimension=DIM)
 print(db.count())   # 999: exactly what was persisted
 ```
 

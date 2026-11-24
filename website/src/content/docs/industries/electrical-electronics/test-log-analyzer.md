@@ -69,7 +69,7 @@ A complete, runnable **Test Log Analyzer** reference implementation is in progre
 import json
 import srvdb
 
-db = srvdb.Database("./test-log-analyzer-db", dimension=384)
+db = srvdb.open("./test-log-analyzer-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -69,7 +69,7 @@ A complete, runnable **Autonomous Fleet Memory** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./autonomous-fleet-memory-db", dimension=256, mode="sq8")
+db = srvdb.open("./autonomous-fleet-memory-db", dimension=256, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

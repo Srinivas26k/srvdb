@@ -69,7 +69,7 @@ A complete, runnable **Listing Guardian** reference implementation is in progres
 import json
 import srvdb
 
-db = srvdb.Database("./listing-guardian-db", dimension=512)
+db = srvdb.open("./listing-guardian-db", dimension=512)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

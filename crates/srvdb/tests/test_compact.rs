@@ -141,6 +141,9 @@ fn committed_compaction_is_finished_on_open() {
     let record = DIM * 4;
     let mut staged = original[..24].to_vec();
     staged[8..16].copy_from_slice(&(keep.len() as u64).to_le_bytes());
+    // Header version 4 (no checksum sidecar): written by hand, so it takes
+    // the path of a 0.3 file, whose checksums are computed on open
+    staged[4..6].copy_from_slice(&4u16.to_le_bytes());
     for &id in &keep {
         let at = 24 + id as usize * record;
         staged.extend_from_slice(&original[at..at + record]);

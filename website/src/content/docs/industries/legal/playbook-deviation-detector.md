@@ -69,7 +69,7 @@ A complete, runnable **Playbook Deviation Detector** reference implementation is
 import json
 import srvdb
 
-db = srvdb.Database("./playbook-deviation-detector-db", dimension=768)
+db = srvdb.open("./playbook-deviation-detector-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

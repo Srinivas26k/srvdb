@@ -70,7 +70,7 @@ A complete, runnable **SOC Copilot** reference implementation is in progress. Th
 import json
 import srvdb
 
-db = srvdb.Database("./soc-copilot-db", dimension=384)
+db = srvdb.open("./soc-copilot-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
