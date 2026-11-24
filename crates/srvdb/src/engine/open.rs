@@ -22,9 +22,17 @@ impl SrvDB {
     pub fn new_with_config(path: &str, config: types::DatabaseConfig) -> Result<Self> {
         let requested = requested_by(&config);
         if matches!(requested, settings::Requested::Unspecified) {
-            // Read without the lock only to pick the constructor; the one
-            // that runs checks the settings again under the lock
-            if let Some(stored) = storage::settings::load(Path::new(path))? {
+            // Read under the lock, so a database open elsewhere reports
+            // Locked; the lock is released for the constructor chosen, which
+            // takes it again and checks the settings again
+            let dir = Path::new(path);
+            let stored = if dir.is_dir() {
+                let _lock = storage::lock::acquire(dir)?;
+                storage::settings::load(dir)?
+            } else {
+                None
+            };
+            if let Some(stored) = stored {
                 if stored.kind != storage::settings::IndexKind::Flat {
                     if stored.dimension != config.dimension {
                         return Err(Error::DimensionMismatch {

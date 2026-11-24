@@ -5,11 +5,25 @@ use super::*;
 use crate::storage::settings::{self as stored, IndexKind};
 use types::{IndexType, QuantizationMode};
 
+/// The configuration to reopen with; the dimension is checked against the
+/// header limit shared with `DatabaseConfig` (`index::limits`).
+///
+/// Not `DatabaseConfig::new` / `validate`: the 128 floor would lock out
+/// databases the core creates with smaller dimensions (`new_with_hnsw`,
+/// `new_scalar_quantized`, ...), and `validate` checks PQ `m` = 192 from
+/// the default config (for SQ8 too), while a stored PQ database uses the
+/// `m` of its checksummed codebooks.
 fn config_for(
     dimension: usize,
     quant: Option<QuantizationMode>,
     index_type: IndexType,
-) -> types::DatabaseConfig {
+) -> Result<types::DatabaseConfig> {
+    crate::index::limits::check(
+        "dimension",
+        dimension,
+        1,
+        crate::index::limits::MAX_DIMENSION,
+    )?;
     let mut config = types::DatabaseConfig {
         dimension,
         quantization: types::QuantizationConfig::default(),
@@ -19,7 +33,7 @@ fn config_for(
         config.quantization.enabled = true;
         config.quantization.mode = mode;
     }
-    config
+    Ok(config)
 }
 
 impl SrvDB {
@@ -56,7 +70,7 @@ impl SrvDB {
         let open = |quant, index_type| {
             Self::open_config(
                 path,
-                config_for(dim, quant, index_type),
+                config_for(dim, quant, index_type)?,
                 Requested::Unspecified,
             )
         };
@@ -108,7 +122,7 @@ impl SrvDB {
             })?;
         }
         let dimension = types::VectorHeader::from_bytes(&header)?.dimension as usize;
-        let config = config_for(dimension, None, IndexType::Flat);
+        let config = config_for(dimension, None, IndexType::Flat)?;
         Self::open_config(path, config, Requested::Unspecified)
     }
 }
