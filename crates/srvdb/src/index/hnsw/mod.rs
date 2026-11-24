@@ -189,6 +189,11 @@ impl HNSWIndex {
     /// Get the number of nodes in the graph
     /// Size of the candidate list during search (higher: better recall,
     /// slower). Saved with the graph.
+    /// The graph's configuration
+    pub(crate) fn config(&self) -> &HNSWConfig {
+        &self.config
+    }
+
     /// Links per node (M)
     pub(crate) fn m(&self) -> usize {
         self.config.m

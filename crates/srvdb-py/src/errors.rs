@@ -11,9 +11,10 @@ use srvdb::Error;
 pub(crate) fn to_py(err: Error) -> PyErr {
     let message = err.to_string();
     match err {
-        Error::InvalidInput(_) | Error::DimensionMismatch { .. } | Error::InvalidState(_) => {
-            PyValueError::new_err(message)
-        }
+        Error::InvalidInput(_)
+        | Error::DimensionMismatch { .. }
+        | Error::InvalidState(_)
+        | Error::SettingsMismatch(_) => PyValueError::new_err(message),
         Error::Io(_) => PyOSError::new_err(message),
         // An OSError subclass: the database is open elsewhere
         Error::Locked(_) => PyBlockingIOError::new_err(message),

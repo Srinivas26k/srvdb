@@ -37,6 +37,15 @@ impl SrvDB {
             storage::atomic::write_atomic(&self.path.join("hnsw.graph"), &hnsw.to_bytes()?)?;
         }
 
+        // 4. Index settings (ADR 0011), replaced atomically if they changed
+        // (set_mode, configure_ivf, set_ef_search, ...). Only updated, never
+        // created here: a database without them gets them from an explicit
+        // open, so a legacy database opened flat by default is not pinned
+        // to flat.
+        if self.stored_settings.is_some() {
+            self.record_settings()?;
+        }
+
         Ok(())
     }
 
