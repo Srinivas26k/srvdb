@@ -29,7 +29,8 @@ pub(crate) fn to_py(err: Error) -> PyErr {
         Error::InvalidInput(_)
         | Error::DimensionMismatch { .. }
         | Error::InvalidState(_)
-        | Error::SettingsMismatch(_) => PyValueError::new_err(message),
+        | Error::SettingsMismatch(_)
+        | Error::MemoryBudget(_) => PyValueError::new_err(message),
         Error::Io(_) => PyOSError::new_err(message),
         // OSError subclasses, as for os.makedirs / os.rmdir
         Error::NotFound(_) => PyFileNotFoundError::new_err(message),

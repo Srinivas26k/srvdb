@@ -10,6 +10,7 @@ mod graph;
 mod lifecycle;
 mod operations;
 mod rabitq;
+mod report;
 mod where_arg;
 mod writes;
 

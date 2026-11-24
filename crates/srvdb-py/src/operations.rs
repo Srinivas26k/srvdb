@@ -212,11 +212,6 @@ impl PyDatabase {
         })
     }
 
-    /// Number of searchable vectors (deleted ones are not counted)
-    fn count(&self, py: Python<'_>) -> PyResult<usize> {
-        self.read(py, |s| Ok(s.db.live_count() as usize))
-    }
-
     /// Alias of save(): make everything written so far durable.
     ///
     /// When it returns, every earlier add, upsert and delete survives a
@@ -298,32 +293,5 @@ impl PyDatabase {
     ///         set_mode("ivf") first.
     fn train_ivf(&self, py: Python<'_>) -> PyResult<()> {
         self.write(py, |s| s.db.train_ivf().map_err(to_py))
-    }
-
-    /// One-line summary: dimension, mode and vector count (plus memory and
-    /// compression in "pq" mode). Also used as repr().
-    fn info(&self, py: Python<'_>) -> PyResult<String> {
-        self.read(py, |s| {
-            let stats = match s.db.get_stats() {
-                Some(stats) => format!(
-                    "vectors={}, memory={}MB, compression={:.1}x",
-                    stats.vector_count,
-                    stats.memory_bytes / 1024 / 1024,
-                    stats.compression_ratio
-                ),
-                None => format!("vectors={}", s.db.live_count()),
-            };
-            Ok(format!(
-                "SrvDB(dimension={}, mode='{}', {stats})",
-                s.dimension, s.index_type
-            ))
-        })
-    }
-
-    fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
-        if self.is_closed(py) {
-            return Ok("SrvDB(closed)".to_string());
-        }
-        self.info(py)
     }
 }
