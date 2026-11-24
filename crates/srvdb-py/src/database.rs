@@ -44,7 +44,8 @@ impl State {
 /// waiting could block a writer that needs the GIL, and both would hang.
 #[pyclass(name = "Database", module = "srvdb", frozen)]
 pub struct PyDatabase {
-    state: RwLock<State>,
+    /// `None` once close() has released the database
+    state: RwLock<Option<State>>,
 }
 
 /// A panic while holding the lock leaves the state possibly half-updated
@@ -53,6 +54,11 @@ fn poisoned() -> PyErr {
         "this Database is unusable after an internal error; open it again \
          (committed data is safe)",
     )
+}
+
+/// Use of a database after close(), like I/O on a closed Python file
+fn closed() -> PyErr {
+    PyValueError::new_err("this Database is closed; open it again with srvdb.open(path)")
 }
 
 impl PyDatabase {
@@ -72,7 +78,7 @@ impl PyDatabase {
         };
         state.load_id_maps()?;
         Ok(Self {
-            state: RwLock::new(state),
+            state: RwLock::new(Some(state)),
         })
     }
 
@@ -82,7 +88,10 @@ impl PyDatabase {
         py: Python<'_>,
         f: impl FnOnce(&State) -> PyResult<R> + Send,
     ) -> PyResult<R> {
-        py.detach(|| f(&*self.state.read().map_err(|_| poisoned())?))
+        py.detach(|| {
+            let guard = self.state.read().map_err(|_| poisoned())?;
+            f(guard.as_ref().ok_or_else(closed)?)
+        })
     }
 
     /// Run `f` under the exclusive lock, with the GIL released
@@ -91,7 +100,24 @@ impl PyDatabase {
         py: Python<'_>,
         f: impl FnOnce(&mut State) -> PyResult<R> + Send,
     ) -> PyResult<R> {
-        py.detach(|| f(&mut *self.state.write().map_err(|_| poisoned())?))
+        py.detach(|| {
+            let mut guard = self.state.write().map_err(|_| poisoned())?;
+            f(guard.as_mut().ok_or_else(closed)?)
+        })
+    }
+
+    /// Drop the database (releasing its lock) and return whether it was
+    /// open. Waits for running calls, with the GIL released.
+    pub(crate) fn take(&self, py: Python<'_>) -> PyResult<bool> {
+        py.detach(|| {
+            let mut guard = self.state.write().map_err(|_| poisoned())?;
+            Ok(guard.take().is_some())
+        })
+    }
+
+    /// Whether close() has been called
+    pub(crate) fn is_closed(&self, py: Python<'_>) -> bool {
+        py.detach(|| self.state.read().is_ok_and(|g| g.is_none()))
     }
 }
 
@@ -99,7 +125,8 @@ impl PyDatabase {
 impl PyDatabase {
     /// Open the database at `path`, creating it if it does not exist.
     ///
-    /// `srvdb.open(path, dimension, mode)` is the same call.
+    /// Kept for code written against SrvDB 0.3; new code uses
+    /// `srvdb.create(path, dimension, index)` and `srvdb.open(path)`.
     ///
     /// Args:
     ///     path: Directory holding the database files; used as given.
@@ -121,10 +148,6 @@ impl PyDatabase {
     ///     OSError: the files cannot be created or read.
     ///     RuntimeError: stored data is damaged (checksum mismatch) or an
     ///         internal fault occurred.
-    ///
-    /// Examples:
-    ///     >>> db = srvdb.Database("./db", dimension=384)
-    ///     >>> db = srvdb.Database("./db2", dimension=768, mode="sq8")
     #[new]
     #[pyo3(signature = (path, dimension=1536, mode="flat"))]
     fn new(path: String, dimension: usize, mode: &str) -> PyResult<Self> {

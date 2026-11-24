@@ -1,47 +1,109 @@
 """SrvDB: embedded vector database for local and offline AI applications.
 
 >>> import srvdb
->>> db = srvdb.open("./vectors", dimension=384)
+>>> with srvdb.create("./vectors", dimension=384) as db:  # doctest: +SKIP
+...     db.add(ids, vectors, metadatas)
+>>> db = srvdb.open("./vectors")                            # doctest: +SKIP
+>>> srvdb.delete("./vectors")                               # doctest: +SKIP
 
-``srvdb.open`` returns a :class:`srvdb.Database`. It shadows the builtin
-``open`` only inside the ``srvdb`` namespace; call it as ``srvdb.open``.
+``srvdb.create`` and ``srvdb.open`` return a database object (``db``).
+``srvdb.open`` and ``srvdb.delete`` shadow builtins only inside the
+``srvdb`` namespace; call them as ``srvdb.open`` and ``srvdb.delete``.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from srvdb import _low_level
 from srvdb._low_level import Database, __version__
 
 if TYPE_CHECKING:
-    from srvdb._low_level import Mode
+    from srvdb._low_level import Index
 
-__all__ = ["Database", "__version__", "open"]
+__all__ = ["Database", "__version__", "create", "delete", "open"]
 
 
-def open(path: str, dimension: int = 1536, mode: Mode = "flat") -> Database:  # noqa: A001
-    """Open the database at ``path``, creating it if it does not exist.
+def create(
+    path: str,
+    dimension: int,
+    index: Index = "hnsw",
+    *,
+    exist_ok: bool = False,
+    **options: Any,
+) -> Database:
+    """Create a new database at ``path``; its settings are fixed here.
 
-    Same as ``Database(path, dimension=dimension, mode=mode)``. For HNSW or
-    quantized databases with custom parameters use ``Database.new_hnsw``,
-    ``Database.new_scalar_quantized`` or ``Database.new_product_quantized``.
+    The index and options are recorded on disk, so the database is
+    reopened later with ``srvdb.open(path)`` alone.
 
     Args:
-        path: Directory holding the database files. Used as given.
-        dimension: Vector dimension, 128 to 4096; must match an existing
-            database.
-        mode: Index mode: "flat", "hnsw", "sq8"/"scalar", "pq"/"product",
-            "ivf" or "auto". The mode is recorded on disk; the default "flat"
-            reopens in the recorded mode, another mode raises ValueError.
+        path: Directory for the database files, used as given. It must not
+            exist or must be empty; missing parents are created.
+        dimension: Vector dimension, 1 to 4096.
+        index: "hnsw" (default), "flat", "ivf", "sq8", "pq", "rabitq" or
+            "auto".
+        exist_ok: If True and a database already exists at ``path`` with
+            the same index, dimension and options, open it instead of
+            raising (like ``os.makedirs(exist_ok=True)``).
+        **options: Index options; each index accepts only its own:
+            hnsw: ``m`` (16), ``ef_construction`` (200), ``ef_search`` (50).
+            ivf: ``nlist`` (100), ``nprobe`` (10), ``m``,
+            ``ef_construction``, ``ef_search``.
+            sq8, pq: ``training``, sample vectors the quantizer is trained
+            on (otherwise the first batch added).
+            rabitq: ``bits`` (1, 2 or 4; default 4), ``rerank``, ``seed``.
 
     Returns:
-        The open ``Database``.
+        The open database.
 
     Raises:
-        ValueError: Invalid arguments (unknown mode, bad dimension, or a
-            dimension that does not match the stored database).
-        BlockingIOError: The database is already open elsewhere.
-        OSError: The files cannot be created or read.
-        RuntimeError: Stored data is damaged or an internal fault occurred.
+        ValueError: Unknown index, an option that does not apply to the
+            index (the message lists the valid ones), a value out of
+            range, or with ``exist_ok`` an existing database whose settings
+            differ.
+        FileExistsError: ``path`` already holds a database or other files.
+        BlockingIOError: The database is open elsewhere.
+        OSError: The files cannot be created.
+        RuntimeError: An internal fault occurred.
     """
-    return Database(path, dimension=dimension, mode=mode)
+    return _low_level.create(path, dimension, index, exist_ok, options)
+
+
+def open(path: str) -> Database:  # noqa: A001
+    """Open the existing database at ``path`` with its recorded settings.
+
+    Args:
+        path: Directory of a database made by ``srvdb.create``.
+
+    Returns:
+        The open database. Use it as a context manager to save and close
+        it on exit: ``with srvdb.open(path) as db: ...``.
+
+    Raises:
+        FileNotFoundError: No database exists at ``path``.
+        ValueError: A quantized database from SrvDB 0.3 without recorded
+            settings (see the upgrading guide).
+        BlockingIOError: The database is already open elsewhere.
+        OSError: The files cannot be read.
+        RuntimeError: Stored data is damaged (checksum mismatch) or an
+            internal fault occurred.
+    """
+    return _low_level.open(path)
+
+
+def delete(path: str) -> None:
+    """Delete the database at ``path`` from disk, directory included.
+
+    Only a closed SrvDB database is removed: the directory must hold
+    nothing but SrvDB files, at least one of them with a SrvDB header.
+    Deleted data cannot be recovered.
+
+    Raises:
+        FileNotFoundError: ``path`` is not a directory.
+        ValueError: ``path`` holds other files or no SrvDB database;
+            nothing was deleted.
+        BlockingIOError: The database is open (close it first).
+        OSError: A file could not be removed.
+    """
+    _low_level.delete(path)

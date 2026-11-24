@@ -88,10 +88,10 @@ impl PyDatabase {
         self.read(py, |s| Ok(s.db.live_count() as usize))
     }
 
-    /// Make everything written so far durable (crash-safe commit).
+    /// Alias of save(): make everything written so far durable.
     ///
     /// When it returns, every earlier add, upsert and delete survives a
-    /// crash or power loss; writes after the last persist() may be lost.
+    /// crash or power loss; writes after the last save() may be lost.
     ///
     /// Raises:
     ///     OSError: writing or syncing the files failed.
@@ -187,6 +187,9 @@ impl PyDatabase {
     }
 
     fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+        if self.is_closed(py) {
+            return Ok("SrvDB(closed)".to_string());
+        }
         self.info(py)
     }
 }
