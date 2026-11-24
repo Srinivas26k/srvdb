@@ -1,0 +1,92 @@
+"""Helpers shared by the framework adapters. Framework-free."""
+
+from __future__ import annotations
+
+import json
+import uuid
+from collections.abc import Callable, Iterable, Sequence
+from typing import Any
+
+from srvdb import Database
+
+#: Key under which the adapters store the chunk text in SrvDB metadata.
+TEXT_KEY = "text"
+#: Key under which the adapters store the user metadata in SrvDB metadata.
+META_KEY = "metadata"
+
+
+def new_ids(n: int) -> list[str]:
+    """Return ``n`` fresh random string ids."""
+    return [str(uuid.uuid4()) for _ in range(n)]
+
+
+def load(db: Database, id_: str) -> dict[str, Any] | None:
+    """Return the stored record for ``id_``, or None if the id is unknown."""
+    try:
+        raw = db.get(id_)
+    except ValueError:  # SrvDB reports an unknown id as ValueError
+        return None
+    if raw is None:
+        return None
+    record = json.loads(raw)
+    return record if isinstance(record, dict) else {}
+
+
+def write(
+    db: Database,
+    ids: Sequence[str],
+    embeddings: Sequence[Sequence[float]],
+    records: Iterable[dict[str, Any]],
+) -> None:
+    """Upsert vectors with their records, then persist so they are durable."""
+    if len(ids) != len(embeddings):
+        raise ValueError(
+            f"got {len(ids)} ids but {len(embeddings)} embeddings; "
+            "pass one embedding per id"
+        )
+    if not ids:
+        return
+    metas = [json.dumps(r, ensure_ascii=False) for r in records]
+    db.upsert(list(ids), [[float(x) for x in e] for e in embeddings], metas)
+    db.persist()
+
+
+def remove(db: Database, ids: Sequence[str]) -> int:
+    """Delete ``ids`` (unknown ones are ignored) and persist the delete."""
+    if not ids:
+        return 0
+    removed = db.delete(list(ids))
+    db.persist()
+    return removed
+
+
+def search(
+    db: Database,
+    query: Sequence[float],
+    k: int,
+    keep: Callable[[str, dict[str, Any]], bool] | None = None,
+) -> list[tuple[str, float, dict[str, Any]]]:
+    """Return up to ``k`` ``(id, cosine score, record)`` hits, best first.
+
+    SrvDB has no native metadata filter, so when ``keep`` is given the
+    search over-fetches and drops hits ``keep(id, record)`` rejects, doubling the
+    candidate count until ``k`` hits are found or every vector was seen.
+    """
+    if k < 1:
+        raise ValueError(f"k must be at least 1, got {k}")
+    total = db.count()
+    if total == 0:
+        return []
+    fetch = min(total, k if keep is None else k * 4)
+    while True:
+        hits = []
+        for id_, score in db.search([float(x) for x in query], fetch):
+            record = load(db, id_)
+            if record is None or (keep is not None and not keep(id_, record)):
+                continue
+            hits.append((id_, float(score), record))
+            if len(hits) == k:
+                return hits
+        if keep is None or fetch >= total:
+            return hits
+        fetch = min(total, fetch * 2)
