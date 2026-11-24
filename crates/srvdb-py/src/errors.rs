@@ -12,6 +12,17 @@ use srvdb::Error;
 /// failures are `OSError` (`FileNotFoundError` / `FileExistsError` for a
 /// missing or already existing database, `BlockingIOError` when it is already
 /// open elsewhere), anything else is `RuntimeError`.
+/// A Python int that must be a count or size: a negative value is
+/// `ValueError` naming the argument (pyo3's `usize` conversion would raise
+/// `OverflowError`, which callers do not expect for bad input)
+pub(crate) fn non_negative(name: &str, value: i64) -> Result<usize, PyErr> {
+    usize::try_from(value).map_err(|_| {
+        PyValueError::new_err(format!(
+            "{name} must be a non-negative integer, got {value}"
+        ))
+    })
+}
+
 pub(crate) fn to_py(err: Error) -> PyErr {
     let message = err.to_string();
     match err {

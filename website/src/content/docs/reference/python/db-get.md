@@ -16,12 +16,9 @@ db.get(id: str) -> str | None
 
 ## Returns
 
-`str`: the metadata as a JSON object string, including the id under the key `"__id__"`. Parse it with `json.loads`. The stub type allows `None`, which the core returns only if the metadata entry itself is missing.
+`str | None`: the metadata as a JSON object string, including the id under the key `"__id__"` (parse it with `json.loads`), or `None` if no live vector has this id: it never existed or was deleted. Like `dict.get`, an unknown id is not an error.
 
 ## Raises
-
-- **ValueError**
-  No live vector has this id (it never existed or was deleted).
 
 - **OSError**
   Reading the metadata failed.
@@ -45,6 +42,8 @@ w = [0.0, 1.0] + [0.0] * 126
 db.add(["a"], [v], [json.dumps({"title": "A"})])
 print(json.loads(db.get("a")))
 # {'__id__': 'a', 'title': 'A'}
+print(db.get("missing"))
+# None
 ```
 
 ## See also

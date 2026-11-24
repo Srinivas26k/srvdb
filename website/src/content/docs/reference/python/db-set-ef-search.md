@@ -21,10 +21,7 @@ db.set_ef_search(ef_search: int) -> None
 ## Raises
 
 - **ValueError**
-  `ef_search` is 0.
-
-- **OverflowError**
-  `ef_search` is negative.
+  `ef_search` is 0. Also raised for a negative value.
 
 ## Notes
 

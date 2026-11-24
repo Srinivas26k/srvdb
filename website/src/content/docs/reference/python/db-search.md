@@ -24,10 +24,7 @@ db.search(query: Sequence[float], k: int) -> list[tuple[str, float]]
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity.
-
-- **OverflowError**
-  `k` is negative.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity. Also raised for a negative value.
 
 - **RuntimeError**
   An internal fault occurred.

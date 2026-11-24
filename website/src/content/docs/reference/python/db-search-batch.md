@@ -24,10 +24,7 @@ db.search_batch(queries: Sequence[Sequence[float]], k: int) -> list[list[tuple[s
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity.
-
-- **OverflowError**
-  `k` is negative.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity. Also raised for a negative value.
 
 - **RuntimeError**
   An internal fault occurred.

@@ -2,9 +2,9 @@
 
 Keep in sync with crates/srvdb-py/src.
 
-Errors: invalid arguments (wrong dimension, NaN or infinity, k < 1, empty or
-duplicate ids, metadata that is not a JSON object) and calls that do not fit
-the current mode raise ValueError; operating-system I/O failures raise
+Errors: invalid arguments (wrong dimension, NaN or infinity, k < 1, negative
+counts, empty or duplicate ids, metadata that is not a JSON object) and
+calls that do not fit the current mode raise ValueError; operating-system I/O failures raise
 OSError, and opening a database that is already open elsewhere raises
 BlockingIOError (an OSError); anything unexpected raises RuntimeError.
 
@@ -131,7 +131,7 @@ class Database:
     ) -> list[list[tuple[str, float]]]:
         """One search() result list per query, in query order."""
     def get(self, id: str) -> str | None:
-        """Stored metadata JSON (with ``"__id__"``); ValueError if unknown."""
+        """Stored metadata JSON (with ``"__id__"``), or None for an unknown id."""
     def count(self) -> int:
         """Number of searchable vectors; deleted ones are not counted."""
     def save(self) -> None:

@@ -23,9 +23,6 @@ db.configure_ivf(nlist: int = 100, nprobe: int = 10) -> None
 
 ## Raises
 
-- **OverflowError**
-  A value is negative.
-
 ## Notes
 
 - Call before `set_mode("ivf")` so the index is created with these values. In `"ivf"` mode it replaces the index with an untrained one. Either way, call [`train_ivf`](/srvdb/reference/python/db-train-ivf/) afterwards.
