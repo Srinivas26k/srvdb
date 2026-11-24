@@ -89,3 +89,30 @@ fn bad_budgets_are_corrupt() {
     let err = Error::from(decode(&bytes).unwrap_err());
     assert!(matches!(err, Error::Corrupt(_)), "{err:?}");
 }
+
+/// A payload with bytes after the record is damage, not a valid file
+#[test]
+fn trailing_bytes_are_corrupt_in_both_formats() {
+    let v1 = Record {
+        format: 1,
+        dimension: 64,
+        ..Default::default()
+    };
+    let padded = format::encode(format::INDEX_SETTINGS, &(v1.clone(), 7u8)).unwrap();
+    let err = Error::from(decode(&padded).unwrap_err());
+    assert!(
+        matches!(err, Error::Corrupt(ref m) if m.contains("unexpected")),
+        "{err:?}"
+    );
+
+    let v2 = RecordV2 {
+        base: Record { format: 2, ..v1 },
+        memory_mb: 50,
+    };
+    let padded = format::encode(format::INDEX_SETTINGS, &(v2, 7u8)).unwrap();
+    let err = Error::from(decode(&padded).unwrap_err());
+    assert!(
+        matches!(err, Error::Corrupt(ref m) if m.contains("unexpected")),
+        "{err:?}"
+    );
+}

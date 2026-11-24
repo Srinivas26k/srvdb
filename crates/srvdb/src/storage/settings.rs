@@ -102,11 +102,18 @@ pub(crate) fn encode(settings: &IndexSettings) -> Result<Vec<u8>> {
 
 /// Decode and validate an `index_settings.bin` image of format 1 or 2
 pub(crate) fn decode(bytes: &[u8]) -> Result<IndexSettings> {
-    let record: Record = format::decode(format::INDEX_SETTINGS, bytes)?;
-    if record.format != FORMAT_V2 {
+    // The format number comes first; read it, then the whole payload of
+    // that format, refusing bytes after it
+    let head: Record = format::decode(format::INDEX_SETTINGS, bytes)?;
+    if head.format == FORMAT_V1 {
+        let record: Record = format::decode_exact(format::INDEX_SETTINGS, bytes)?;
         return from_record(&record, 0);
     }
-    let v2: RecordV2 = format::decode(format::INDEX_SETTINGS, bytes)?;
+    if head.format != FORMAT_V2 {
+        // Unknown format: from_record names it and says to upgrade
+        return from_record(&head, 0);
+    }
+    let v2: RecordV2 = format::decode_exact(format::INDEX_SETTINGS, bytes)?;
     if v2.memory_mb == 0 {
         return Err(corrupt("format 2 without a memory budget"));
     }
