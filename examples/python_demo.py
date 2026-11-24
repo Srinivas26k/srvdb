@@ -1,103 +1,52 @@
-"""
-SrvDB Python Example - ChromaDB-style API
+"""SrvDB Python example: create, add, search, save, reopen and delete.
 
-Demonstrates using SrvDB from Python with the familiar ChromaDB API pattern.
+Run after ``maturin develop`` (or ``pip install srvdb``)::
+
+    python examples/python_demo.py
 """
+
+import json
+import random
 
 import srvdb
-import random
-import os
-import shutil
+
+DIM = 384
+
+
+def vec():
+    return [random.random() - 0.5 for _ in range(DIM)]
+
 
 def main():
-    print("🚀 SrvDB Python Bindings Demo\n")
-    print(f"SrvDB Version: {srvdb.__version__}\n")
+    print(f"SrvDB {srvdb.__version__}")
 
-    # Cleanup previous run
-    if os.path.exists("./python_demo_db"):
-        shutil.rmtree("./python_demo_db")
+    # A new database; its settings are fixed here and recorded on disk.
+    # exist_ok=True reopens it if an earlier run left one with the same settings.
+    with srvdb.create("./python_demo_db", DIM, "hnsw", exist_ok=True, m=16) as db:
+        ids = ["doc1", "doc2", "doc3"]
+        embeddings = [vec() for _ in ids]
+        metadatas = [json.dumps({"title": f"Document {i}"}) for i in range(1, 4)]
+        db.upsert(ids, embeddings, metadatas)
+        print(f"{db.count()} vectors in {db}")
+        for doc_id, score in db.search(embeddings[0], k=3):
+            print(f"  {doc_id:6s} {score:.4f} {db.get(doc_id)}")
+        db.delete(["doc2"])
+    # The with block saved and closed the database.
 
-    # Initialize database
-    print("Initializing database...")
-    # v0.2.0 requirement: dimension argument
-    dim = 1536
-    db = srvdb.open("./python_demo_db", dimension=dim)
-    print(f"✓ Created: {db}\n")
+    db = srvdb.open("./python_demo_db")  # settings are read from disk
+    print(f"Reopened: {db.count()} vectors, ids {sorted(db.get_all_ids())}")
+    db.close()
 
-    # Prepare data
-    print("Preparing vectors...")
-    ids = ["doc1", "doc2", "doc3"]
-    
-    # Generate random 1536-dimensional vectors
-    embeddings = [
-        [random.random() - 0.5 for _ in range(dim)] for _ in range(3)
-    ]
-    
-    metadatas = [
-        '{"title": "Document 1", "category": "tech"}',
-        '{"title": "Document 2", "category": "science"}',
-        '{"title": "Document 3", "category": "tech"}'
-    ]
+    # SQ8 stores one byte per value; train it on a sample you choose.
+    sample = [vec() for _ in range(200)]
+    with srvdb.create("./python_sq8_db", DIM, "sq8", exist_ok=True, training=sample) as sq:
+        sq.upsert(["sq1"], [sample[0]], ['{"info": "quantized"}'])
+        print(f"SQ8 database: {sq}")
 
-    # Add vectors in bulk
-    print(f"Adding {len(ids)} vectors...")
-    count = db.add(ids=ids, embeddings=embeddings, metadatas=metadatas)
-    print(f"✓ Added {count} vectors\n")
+    srvdb.delete("./python_demo_db")
+    srvdb.delete("./python_sq8_db")
+    print("Deleted both databases.")
 
-    # Check count
-    total = db.count()
-    print(f"Total vectors in database: {total}\n")
-
-    # Search for similar vectors
-    print("Searching for similar vectors...")
-    query = embeddings[0]  # Use first vector as query
-    results = db.search(query=query, k=3)
-    
-    print(f"✓ Found {len(results)} results:\n")
-    for i, (doc_id, score) in enumerate(results, 1):
-        print(f"  {i}. ID: {doc_id:10s} | Score: {score:.4f}")
-    
-    # Get metadata for a specific document
-    print(f"\nRetrieving metadata for 'doc1'...")
-    metadata = db.get("doc1")
-    print(f"✓ Metadata: {metadata}\n")
-
-    # Get all IDs
-    all_ids = db.get_all_ids()
-    print(f"All IDs in database: {all_ids}\n")
-
-    # Delete a document
-    print("Deleting 'doc2'...")
-    deleted = db.delete(["doc2"])
-    print(f"✓ Deleted {deleted} vector(s)\n")
-
-    # Verify deletion
-    remaining = db.count()
-    print(f"Remaining vectors: {remaining}")
-    remaining_ids = db.get_all_ids()
-    print(f"Remaining IDs: {remaining_ids}\n")
-
-    # Persist to disk
-    print("Persisting to disk...")
-    db.persist()
-    print("✓ Data persisted successfully\n")
-
-    # ---------------------------------------------------------
-    # Demonstrate SQ8 Quantization (New in v0.2.0)
-    # ---------------------------------------------------------
-    print("\n--- SQ8 Quantization Demo ---")
-    if os.path.exists("./python_sq8_db"):
-        shutil.rmtree("./python_sq8_db")
-        
-    print("Initializing SQ8 quantized database (4x compression)...")
-    # SQ8 needs training data to init
-    db_sq = srvdb.Database.new_scalar_quantized("./python_sq8_db", dim, embeddings)
-    print("✓ SQ8 Database initialized")
-    
-    db_sq.add(["sq_doc1"], [embeddings[0]], ['{"info": "minified"}'])
-    print(f"Added vector to SQ8 DB. Count: {db_sq.count()}")
-    
-    print("🎉 Demo completed!")
 
 if __name__ == "__main__":
     main()
