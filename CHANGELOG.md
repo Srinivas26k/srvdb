@@ -105,6 +105,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   empty clusters with raw vectors, so scores up to about 1.09 were seen.
   Both magnitudes are now divided out. Existing codebooks are unchanged;
   scores from them are corrected on the next search.
+- `train_ivf()` returns the first error from placing a vector in its IVF
+  partition instead of discarding it and reporting success with an
+  incomplete index (#49). Its error outside IVF mode names the IVF mode
+  rather than a Rust enum variant.
 - The `ValueError` for an unknown mode now lists every accepted mode; `ivf`
   and the `scalar` and `product` aliases were missing.
 - HNSW recall on clustered data (#28). The graph kept only the M nearest
