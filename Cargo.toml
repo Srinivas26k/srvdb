@@ -22,6 +22,14 @@ codegen-units = 1
 strip = true
 debug = false
 
+# Size-focused build for constrained devices (Raspberry Pi, small
+# containers). Opt-in only: `cargo build --profile release-small` or
+# `maturin build --profile release-small`. The default release profile
+# stays tuned for speed; release wheels use it.
+[profile.release-small]
+inherits = "release"
+opt-level = "z"
+
 [profile.bench]
 inherits = "release"
 

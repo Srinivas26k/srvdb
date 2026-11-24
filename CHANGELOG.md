@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Edge builds (#87, ADR 0019). Release wheels use the stable ABI (abi3,
+  CPython >= 3.9): one wheel per platform for linux x86_64 and aarch64
+  (Raspberry Pi 64-bit), macOS arm64 and x86_64, and Windows x86_64. A
+  `release-small` Cargo profile (`opt-level = "z"`) builds a smaller
+  extension from source. CI builds and tests the aarch64 wheel on pull
+  requests into release branches. WebAssembly is a documented no-go for
+  now.
 - Memory budget (#86, ADR 0018). `srvdb.create(path, dim, index="auto",
   memory_mb=50)` (Rust: `CreateOptions::set("memory_mb", 50)` with
   `IndexChoice::Auto`) starts flat and, when an add would exceed 80 % of

@@ -27,3 +27,5 @@ srvdb.workspace = true
 # `cargo build --workspace --all-targets` can link the lib-test target.
 default = []
 extension-module = ["pyo3/extension-module"]
+# One wheel per platform for every CPython >= 3.9 (stable ABI)
+abi3 = ["pyo3/abi3-py39"]
