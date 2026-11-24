@@ -9,7 +9,7 @@ code, run `cargo doc --open -p srvdb` in a clone.
 
 | Item | Description |
 |------|-------------|
-| `SrvDB` | An open database. `Send + Sync`. `SrvDB::create(path, dimension, &options)` makes one, `SrvDB::open_existing(path)` reopens it, `SrvDB::delete_database(path)` removes it. |
+| `SrvDB` | An open database. `Send + Sync`. `SrvDB::create(path, dimension, &options)` makes one, `SrvDB::open_existing(path)` reopens it, `SrvDB::delete_database(path)` removes it, `SrvDB::rebuild_checksums(path)` recomputes missing or damaged `.crc` files of a closed database. |
 | `CreateOptions`, `IndexChoice` | Index chosen by name (`flat`, `hnsw`, `ivf`, `sq8`, `pq`, `rabitq`, `auto`) and its options, checked against that index, for `SrvDB::create`. |
 | `VectorEngine` | Trait with `add`, `add_batch`, `search`, `search_batch`, `get_metadata`, `persist`, `count`. |
 | `DatabaseConfig` | Dimension, index type and quantization for `SrvDB::new_with_config`. |

@@ -14,6 +14,7 @@ Errors follow one rule: bad input raises `ValueError`, operating-system I/O fail
 | [`srvdb.create`](/srvdb/reference/python/create/) | Create a new database with its index and options. |
 | [`srvdb.open`](/srvdb/reference/python/open/) | Open an existing database by path. |
 | [`srvdb.delete`](/srvdb/reference/python/delete/) | Delete a database from disk. |
+| [`srvdb.rebuild_checksums`](/srvdb/reference/python/rebuild-checksums/) | Recompute missing or damaged checksum files. |
 | [The database object](/srvdb/reference/python/db/) | What `create` and `open` return (`db`), and the `with` block. |
 
 ## Writing

@@ -97,6 +97,7 @@ export default defineConfig({
 								{ label: 'srvdb.create', slug: 'reference/python/create' },
 								{ label: 'srvdb.open', slug: 'reference/python/open' },
 								{ label: 'srvdb.delete', slug: 'reference/python/delete' },
+								{ label: 'srvdb.rebuild_checksums', slug: 'reference/python/rebuild-checksums' },
 								{ label: 'The db object', slug: 'reference/python/db' },
 								{ label: 'db.add', slug: 'reference/python/db-add' },
 								{ label: 'db.upsert', slug: 'reference/python/db-upsert' },

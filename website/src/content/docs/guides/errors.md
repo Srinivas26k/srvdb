@@ -43,3 +43,11 @@ Variants: `InvalidInput`, `DimensionMismatch`, `InvalidState`, `Locked`,
 `Corrupt`, `ChecksumMismatch`, `Io`, `Internal`. `ChecksumMismatch` means a
 file was damaged after it was written; the message names the file and byte
 range.
+
+If open fails only because a checksum file (`vectors.bin.crc` and the
+like) is missing or damaged, for example after copying just `vectors.bin`,
+close the database and call `SrvDB::rebuild_checksums(path)` (Python:
+`srvdb.rebuild_checksums(path)`). It recomputes those files from the data
+as found, so it cannot detect damage already in the data. If a checksum
+file is intact but the data does not match it, the call refuses with
+`ChecksumMismatch` and changes nothing: restore from a backup.
