@@ -66,7 +66,7 @@ tables (`code_bytes * 256` entries) and rotated the query with a dense
   instruction or need gathers again. u8 is what FAISS fast-scan and
   RaBitQ use.
 - **Hadamard rotation (#53).** It would cut the O(D^2) cost per query,
-  but the lane-summed dense product was enough for the target. It stays
+  but in preliminary runs the lane-summed dense product removed it as a bottleneck (#54 tracks the idle-machine rerun). It stays
   a separate decision because of the padding it needs.
 - **Saturating u8 adds.** They lose exactness and the scalar/SIMD
   identity.

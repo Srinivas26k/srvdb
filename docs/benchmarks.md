@@ -118,7 +118,11 @@ that means an exact scan below about 18% matching at 100k vectors, 5.7%
 at 1M and 1.8% at 10M. A fixed percentage would be too low for small
 databases and too high for large ones.
 
-## RaBitQ fast-scan (ADR 0012)
+## RaBitQ fast-scan (ADR 0012): preliminary
+
+**Preliminary: measured under heavy load, not for publication.** An
+idle-machine rerun from a clean commit is tracked in #54. Until then, do
+not quote these numbers or draw conclusions about mode ranking from them.
 
 QPS before (commit 3e4ab82, 256-entry f32 tables) and after (commit
 b1dd50e, u8 nibble tables with the AVX2 kernel and the vectorized
@@ -135,8 +139,8 @@ LTS, kernel 7.0.0-43-generic, release build, synthetic-gauss dataset
 `cargo run --release -p srvdb --example bench -- --dim D --n N --modes flat,sq8,rabitq2,rabitq4`.
 The one-minute load average was 9.8 to 11.4 during the "before" runs and
 17.9 to 20.0 during the "after" runs, on 8 cores. Other jobs shared the
-machine, so **these QPS numbers are indicative only**. Compare the modes
-within one row group, not the absolute values.
+machine, so these numbers are not reliable as absolute values or as a
+ranking of modes.
 
 | dim | n | flat | sq8 | rabitq2 before | rabitq2 after | rabitq4 before | rabitq4 after |
 |--:|--:|--:|--:|--:|--:|--:|--:|
@@ -146,9 +150,8 @@ within one row group, not the absolute values.
 | 768 | 50 000 | 67 / 101 | 218 / 183 | 95 | 331 | 96 | 423 |
 
 Flat and sq8 cells give the before / after runs. Those modes did not
-change, so the gap between the two runs shows the measurement noise. In
-every "after" run, rabitq2 and rabitq4 have higher QPS than flat and sq8
-and higher recall than sq8.
+change, so the gap between the two runs shows the measurement noise.
+rabitq1 was not measured; the rerun in #54 will include it.
 
 ## Real datasets (SIFT1M, GloVe)
 
