@@ -89,7 +89,7 @@ export default defineConfig({
 						{ label: 'Handling errors', slug: 'guides/errors' },
 						{ label: 'Using SrvDB from Rust', slug: 'guides/rust' },
 						{ label: 'Upgrading', slug: 'guides/upgrading' },
-						{ label: 'Live examples & cheat sheets', slug: 'examples/overview', badge: { text: 'Soon', variant: 'caution' } },
+						{ label: 'Examples gallery', slug: 'examples/overview' },
 					],
 				},
 				{
