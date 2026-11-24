@@ -65,11 +65,13 @@ impl Rotation {
         }
     }
 
-    /// `R x`
+    /// `R x`. Every query and insert pays this O(dim^2) product, so each
+    /// row is summed in eight independent lanes the compiler vectorizes
+    /// (a single running sum is one serial chain of dependent adds).
     pub(crate) fn apply(&self, x: &[f32]) -> Vec<f32> {
         self.rows
             .chunks_exact(self.dim.max(1))
-            .map(|row| row.iter().zip(x).map(|(a, b)| a * b).sum())
+            .map(|row| dot(row, x))
             .collect()
     }
 
@@ -77,6 +79,22 @@ impl Rotation {
     pub(crate) fn fingerprint(&self) -> u32 {
         crc32c::crc32c(bytemuck::cast_slice(&self.rows))
     }
+}
+
+/// Dot product over the common length, in eight lanes
+fn dot(a: &[f32], b: &[f32]) -> f32 {
+    let n = a.len().min(b.len());
+    let (a, b) = (&a[..n], &b[..n]);
+    let mut lanes = [0.0f32; 8];
+    let (ha, ta) = a.as_chunks::<8>();
+    let (hb, tb) = b.as_chunks::<8>();
+    for (ca, cb) in ha.iter().zip(hb) {
+        for i in 0..8 {
+            lanes[i] += ca[i] * cb[i];
+        }
+    }
+    let tail: f32 = ta.iter().zip(tb).map(|(x, y)| x * y).sum();
+    lanes.iter().sum::<f32>() + tail
 }
 
 #[cfg(test)]
@@ -98,5 +116,17 @@ mod tests {
         }
         assert_eq!(r.fingerprint(), Rotation::new(dim, 7).fingerprint());
         assert_ne!(r.fingerprint(), Rotation::new(dim, 8).fingerprint());
+    }
+
+    #[test]
+    fn apply_matches_plain_product() {
+        for dim in [1usize, 7, 8, 37, 64] {
+            let r = Rotation::new(dim, 3);
+            let x: Vec<f32> = (0..dim).map(|i| (i as f32 * 0.37).sin()).collect();
+            for (i, y) in r.apply(&x).iter().enumerate() {
+                let want: f32 = (0..dim).map(|t| r.rows[i * dim + t] * x[t]).sum();
+                assert!((y - want).abs() < 1e-5, "dim {dim} row {i}");
+            }
+        }
     }
 }
