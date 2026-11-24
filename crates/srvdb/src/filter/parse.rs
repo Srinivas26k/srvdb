@@ -1,11 +1,37 @@
 //! Parsing and validating a filter object into a `Node` tree
 
-use super::{Cond, Node, FIELD_OPS, LOGIC_OPS};
+use super::value::key;
+use super::{Cond, Node, FIELD_OPS, LOGIC_OPS, MAX_LIST_LEN, MAX_NODES};
 use crate::error::{Error, Result};
 use serde_json::{Map, Value};
+use std::collections::HashSet;
+
+/// Parse a whole filter, rejecting one with more than `MAX_NODES` conditions
+pub(super) fn filter(value: &Value) -> Result<Node> {
+    let root = object(value)?;
+    let nodes = root.size();
+    if nodes > MAX_NODES {
+        return Err(Error::invalid_input(format!(
+            "filter has {nodes} conditions; at most {MAX_NODES} are allowed \
+             (use $in for many values of one field)"
+        )));
+    }
+    Ok(root)
+}
+
+impl Node {
+    /// Number of nodes in the tree
+    fn size(&self) -> usize {
+        match self {
+            Node::And(n) | Node::Or(n) => 1 + n.iter().map(Node::size).sum::<usize>(),
+            Node::Not(n) => 1 + n.size(),
+            Node::Field { .. } => 1,
+        }
+    }
+}
 
 /// Parse one filter object; several keys are combined with AND
-pub(super) fn object(value: &Value) -> Result<Node> {
+fn object(value: &Value) -> Result<Node> {
     let Value::Object(map) = value else {
         return Err(Error::invalid_input(
             "a filter must be a JSON object such as {\"field\": value}",
@@ -48,6 +74,11 @@ fn entry(key: &str, value: &Value) -> Result<Node> {
 /// The operand of `$and` / `$or`: a non-empty list of filter objects
 fn list(op: &str, value: &Value) -> Result<Vec<Node>> {
     match value {
+        // Checked before parsing the items, so a huge list costs nothing
+        Value::Array(items) if items.len() > MAX_NODES => Err(Error::invalid_input(format!(
+            "{op} has {} filters; at most {MAX_NODES} conditions are allowed",
+            items.len()
+        ))),
         Value::Array(items) if !items.is_empty() => items.iter().map(object).collect(),
         _ => Err(Error::invalid_input(format!(
             "{op} needs a non-empty list of filter objects"
@@ -96,7 +127,15 @@ fn operator(name: &str, op: &str, v: &Value) -> Result<Cond> {
     let scalar = |v: &Value| !matches!(v, Value::Array(_) | Value::Object(_));
     let ordered = matches!(v, Value::Number(_) | Value::String(_));
     let values = || match v {
-        Value::Array(items) if items.iter().all(scalar) => Ok(items.clone()),
+        Value::Array(items) if items.len() > MAX_LIST_LEN => Err(Error::invalid_input(format!(
+            "{op} on filter field '{name}' has {} values; at most {MAX_LIST_LEN} are allowed",
+            items.len()
+        ))),
+        Value::Array(items) => items
+            .iter()
+            .map(key)
+            .collect::<Option<HashSet<_>>>()
+            .ok_or_else(|| bad("a list of strings, numbers, bools or nulls")),
         _ => Err(bad("a list of strings, numbers, bools or nulls")),
     };
     Ok(match op {

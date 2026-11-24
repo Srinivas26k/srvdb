@@ -86,3 +86,70 @@ fn messages_do_not_echo_operand_values() {
     let msg = rejected(r#"{"a": {"$gt": ["secret-value-x"]}}"#);
     assert!(!msg.contains("secret-value-x"));
 }
+
+#[test]
+fn large_integers_compare_exactly() {
+    // 2^53 + 1 is not representable as f64; it would equal 2^53 there
+    let big = r#"{"n": 9007199254740993}"#;
+    let eq = f(big);
+    assert!(eq.matches(big));
+    assert!(!eq.matches(r#"{"n": 9007199254740992}"#));
+    assert!(!eq.matches(r#"{"n": 9007199254740992.0}"#));
+    assert!(f(r#"{"n": {"$gt": 9007199254740992}}"#).matches(big));
+    let inn = f(r#"{"n": {"$in": [9007199254740993]}}"#);
+    assert!(inn.matches(big));
+    assert!(!inn.matches(r#"{"n": 9007199254740992}"#));
+    let max = r#"{"n": 18446744073709551615}"#;
+    assert!(f(r#"{"n": {"$in": [18446744073709551615]}}"#).matches(max));
+    let lt = f(r#"{"n": {"$lt": -9223372036854775807}}"#);
+    assert!(lt.matches(r#"{"n": -9223372036854775808}"#));
+}
+
+#[test]
+fn membership_uses_the_same_equality_as_eq() {
+    let inn = f(r#"{"n": {"$in": [1, 2.5, "x", true, null]}}"#);
+    let hits = ["1.0", "2.5", "\"x\"", "true", "null"];
+    for hit in hits {
+        assert!(inn.matches(&format!(r#"{{"n": {hit}}}"#)), "{hit}");
+    }
+    for miss in ["1.5", "\"1\"", "false", "[1]"] {
+        assert!(!inn.matches(&format!(r#"{{"n": {miss}}}"#)), "{miss}");
+    }
+    assert!(f(r#"{"n": {"$nin": [1]}}"#).matches(r#"{"n": [1]}"#));
+}
+
+fn join(items: impl Iterator<Item = String>) -> String {
+    items.collect::<Vec<_>>().join(",")
+}
+
+#[test]
+fn list_and_node_caps_are_enforced() {
+    let values = |n: usize| join((0..n).map(|i| i.to_string()));
+    let max = Filter::MAX_LIST_LEN;
+    let ok = format!(r#"{{"a": {{"$in": [{}]}}}}"#, values(max));
+    assert!(Filter::from_json(&ok).is_ok());
+    let msg = rejected(&format!(r#"{{"a": {{"$nin": [{}]}}}}"#, values(max + 1)));
+    assert!(msg.contains("at most 10000"), "{msg}");
+
+    let conds = |n: usize| join((0..n).map(|i| format!(r#"{{"a": {i}}}"#)));
+    // The $or node itself counts as one condition
+    let ok = format!(r#"{{"$or": [{}]}}"#, conds(Filter::MAX_NODES - 1));
+    assert!(Filter::from_json(&ok).is_ok());
+    let msg = rejected(&format!(r#"{{"$or": [{}]}}"#, conds(Filter::MAX_NODES)));
+    assert!(msg.contains("at most 1000 are allowed"), "{msg}");
+    let msg = rejected(&format!(
+        r#"{{"$and": [{}]}}"#,
+        conds(Filter::MAX_NODES + 1)
+    ));
+    assert!(msg.contains("at most 1000 conditions"), "{msg}");
+}
+
+#[test]
+fn debug_redacts_operand_values() {
+    let filter = f(r#"{"a.b": "secret-1", "n": {"$in": ["secret-2"]}, "$not": {"c": {"$gt": 7}}}"#);
+    let shown = format!("{filter:?}");
+    assert!(!shown.contains("secret"), "{shown}");
+    assert!(!shown.contains('7'), "{shown}");
+    assert!(shown.contains("a.b $eq <redacted>"), "{shown}");
+    assert!(shown.contains("n $in <redacted>"), "{shown}");
+}
