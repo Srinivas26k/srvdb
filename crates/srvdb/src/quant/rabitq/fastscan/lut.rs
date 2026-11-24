@@ -57,7 +57,6 @@ impl QueryLut {
     }
 
     /// Bound on `|estimate - f32 dot product|` (plus f32 rounding)
-    #[cfg(test)]
     pub(crate) fn max_error(&self) -> f32 {
         (self.bytes.len() / 16) as f32 * self.step / 2.0 * 1.001
     }

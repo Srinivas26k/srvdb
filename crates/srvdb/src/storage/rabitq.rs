@@ -17,12 +17,15 @@ use super::checksum::sidecar;
 use super::format;
 use super::record_file::RecordFile;
 use crate::error::Error;
-use crate::quant::rabitq::fastscan::{FastScanCodes, Kernel, QueryLut, BLOCK};
+use crate::quant::rabitq::certify::Split;
+use crate::quant::rabitq::fastscan::{FastScanCodes, QueryLut};
+use crate::quant::rabitq::scan::{Scan, Scanned};
 use crate::quant::rabitq::{RabitqConfig, RabitqQuantizer};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::Path;
+use std::time::Instant;
 
 pub const FILE_NAME: &str = "rabitq_codes.bin";
 pub const PARAMS_FILE: &str = "rabitq_params.bin";
@@ -93,7 +96,7 @@ impl RabitqStorage {
 
     /// Wrap an open code file and build its fast-scan copy
     fn with_file(file: RecordFile, quantizer: RabitqQuantizer) -> Result<Self> {
-        let mut fast = FastScanCodes::new(quantizer.code_bytes());
+        let mut fast = FastScanCodes::with_widths(quantizer.dim(), quantizer.bits());
         let count = file.count() as usize;
         if count > 0 {
             let records = file.range(0, count).ok_or_else(|| {
@@ -170,44 +173,66 @@ impl RabitqStorage {
     /// The `n` best ids by estimated cosine similarity, skipping
     /// `deleted`. Runs of blocks are scanned in parallel (rayon) with the
     /// fastest kernel this CPU supports.
+    #[cfg(test)]
     pub(crate) fn search(
         &self,
         query: &[f32],
         n: usize,
         deleted: &HashSet<u64>,
     ) -> Result<Vec<(u64, f32)>> {
-        use rayon::prelude::*;
-        /// Blocks per parallel task (1024 vectors)
-        const TASK_BLOCKS: usize = 32;
-        if self.fast.len() == 0 || n == 0 {
-            return Ok(Vec::new());
-        }
+        Ok(self.top(query, n, deleted, None).items)
+    }
+
+    /// Like `search`, stopping at `deadline` (ADR 0017)
+    pub(crate) fn top(
+        &self,
+        query: &[f32],
+        n: usize,
+        deleted: &HashSet<u64>,
+        deadline: Option<Instant>,
+    ) -> Scanned<(u64, f32)> {
         let lut = QueryLut::new(self.quantizer.prepare(query).tables());
-        let kernel = Kernel::detect();
-        let blocks = self.fast.len().div_ceil(BLOCK);
-        let tasks = blocks.div_ceil(TASK_BLOCKS);
-        let scored: Vec<(u64, f32)> = (0..tasks)
-            .into_par_iter()
-            .flat_map_iter(|task| {
-                let mut out = Vec::with_capacity(TASK_BLOCKS * BLOCK);
-                let mut scores = [0.0f32; BLOCK];
-                let end = ((task + 1) * TASK_BLOCKS).min(blocks);
-                for b in task * TASK_BLOCKS..end {
-                    let real = self.fast.block_scores(b, &lut, kernel, &mut scores);
-                    let first = (b * BLOCK) as u64;
-                    out.extend(
-                        scores[..real]
-                            .iter()
-                            .zip(first..)
-                            .filter(|(_, id)| deleted.is_empty() || !deleted.contains(id))
-                            .map(|(s, id)| (id, *s)),
-                    );
-                }
-                // Each task keeps only its own best n
-                crate::distance::select_top_k(out, n)
-            })
-            .collect();
-        Ok(crate::distance::select_top_k(scored, n))
+        let scan = self.scan(&lut, deleted, deadline);
+        if n == 0 {
+            return Scanned {
+                items: Vec::new(),
+                scanned: 0,
+            };
+        }
+        scan.top(n)
+    }
+
+    /// Certified split of the top `k` (ADR 0017) and the live count
+    pub(crate) fn certified(
+        &self,
+        query: &[f32],
+        k: usize,
+        deleted: &HashSet<u64>,
+        deadline: Option<Instant>,
+    ) -> crate::error::Result<(Scanned<Split>, usize)> {
+        let lut = QueryLut::new(self.quantizer.prepare(query).tables());
+        let scan = self.scan(&lut, deleted, deadline);
+        Ok((scan.certified(k)?, scan.live()))
+    }
+
+    /// Live vectors among the codes
+    pub(crate) fn live(&self, deleted: &HashSet<u64>) -> usize {
+        let n = self.fast.len();
+        n - deleted.iter().filter(|&&id| id < n as u64).count()
+    }
+
+    fn scan<'a>(
+        &'a self,
+        lut: &'a QueryLut,
+        deleted: &'a HashSet<u64>,
+        deadline: Option<Instant>,
+    ) -> Scan<'a> {
+        Scan {
+            codes: &self.fast,
+            lut,
+            deleted,
+            deadline,
+        }
     }
 
     pub(crate) fn count(&self) -> u64 {

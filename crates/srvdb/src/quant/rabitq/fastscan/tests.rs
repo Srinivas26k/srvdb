@@ -22,7 +22,7 @@ fn encoded(q: &RabitqQuantizer, data: &[Vec<f32>]) -> (Vec<u8>, FastScanCodes) {
     for v in data {
         q.encode_into(v, &mut records);
     }
-    let mut codes = FastScanCodes::new(q.code_bytes());
+    let mut codes = FastScanCodes::with_widths(q.dim(), q.bits());
     codes.extend(&records, q.record_size()).unwrap();
     (records, codes)
 }
