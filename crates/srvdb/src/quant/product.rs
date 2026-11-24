@@ -7,6 +7,7 @@
 //! - K-means clustering for codebook training
 
 use super::codebook::Codebook;
+use crate::error::Error;
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -35,13 +36,16 @@ pub struct ProductQuantizer {
 impl ProductQuantizer {
     /// Train a new product quantizer on training data
     pub fn train(training_data: &[Vec<f32>], m: usize) -> Result<Self> {
-        if training_data.is_empty() {
-            anyhow::bail!("Training data cannot be empty");
-        }
-
-        let dim = training_data[0].len();
-        if !dim.is_multiple_of(m) {
-            anyhow::bail!("Dimension {} must be divisible by m={}", dim, m);
+        let Some(first) = training_data.first() else {
+            return Err(Error::invalid_input("at least one training vector is required").into());
+        };
+        let dim = first.len();
+        if m == 0 || !dim.is_multiple_of(m) {
+            return Err(Error::invalid_input(format!(
+                "PQ needs a sub-quantizer count that divides the dimension; \
+                 {m} does not divide {dim}"
+            ))
+            .into());
         }
         let d_sub = dim / m;
 
@@ -153,12 +157,40 @@ impl ProductQuantizer {
     }
 
     /// Load codebooks from bytes (current format, or as written by v0.2)
+    ///
+    /// Fails if the codebooks do not form `m` sub-quantizers of `d_sub`
+    /// floats each with at most 256 centroids: search would index past them.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        if crate::storage::format::is_enveloped(bytes) {
-            crate::storage::format::decode(crate::storage::format::PQ_CODEBOOKS, bytes)
+        let pq: Self = if crate::storage::format::is_enveloped(bytes) {
+            crate::storage::format::decode(crate::storage::format::PQ_CODEBOOKS, bytes)?
         } else {
-            crate::storage::legacy::product_quantizer(bytes)
+            crate::storage::legacy::product_quantizer(bytes)?
+        };
+        pq.check_shape()?;
+        Ok(pq)
+    }
+
+    fn check_shape(&self) -> Result<()> {
+        let dim = self.m.saturating_mul(self.d_sub);
+        let consistent = self.m > 0
+            && self.d_sub > 0
+            && dim <= crate::index::limits::MAX_DIMENSION
+            && self.codebooks.len() == self.m
+            && self.codebooks.iter().all(|c| {
+                (1..=K).contains(&c.centroids.len())
+                    && c.centroids.iter().all(|v| v.len() == self.d_sub)
+            });
+        if !consistent {
+            return Err(Error::Corrupt(format!(
+                "PQ codebooks are inconsistent (m={}, d_sub={}, {} codebooks); \
+                 restore codebooks.bin from a backup",
+                self.m,
+                self.d_sub,
+                self.codebooks.len()
+            ))
+            .into());
         }
+        Ok(())
     }
 }
 
@@ -209,5 +241,33 @@ mod tests {
         let worst = pq.asymmetric_distance(&[1, 1], &table);
         assert!((best - 1.0).abs() < 1e-6, "got {best}");
         assert!((worst + 1.0).abs() < 1e-6, "got {worst}");
+    }
+
+    #[test]
+    fn train_rejects_m_that_does_not_divide_dimension() {
+        let training = vec![vec![0.5f32; 12]; 4];
+        for m in [0, 5] {
+            let err = crate::Error::from(ProductQuantizer::train(&training, m).unwrap_err());
+            assert!(
+                matches!(err, crate::Error::InvalidInput(_)),
+                "m={m}: {err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn from_bytes_rejects_inconsistent_shape() {
+        let codebook = Codebook {
+            centroids: vec![vec![1.0, 0.0]; 2],
+        };
+        // Claims 4 sub-quantizers but stores 1: search would index past it
+        let pq = ProductQuantizer {
+            m: 4,
+            k: 2,
+            d_sub: 2,
+            codebooks: vec![codebook],
+        };
+        let bytes = pq.to_bytes().unwrap();
+        assert!(ProductQuantizer::from_bytes(&bytes).is_err());
     }
 }
