@@ -32,6 +32,7 @@ Errors follow one rule: bad input raises `ValueError`, operating-system I/O fail
 | Object | Summary |
 |--------|---------|
 | [`db.search`](/srvdb/reference/python/db-search/) | Find the k nearest vectors to a query. |
+| [`db.enable_keyword_search`](/srvdb/reference/python/db-enable-keyword-search/) | Index a metadata field for keyword (BM25) search. |
 | [`db.search_batch`](/srvdb/reference/python/db-search-batch/) | Run several searches in one call. |
 | [`db.get`](/srvdb/reference/python/db-get/) | Return the metadata stored for an id. |
 | [`db.get_all_ids`](/srvdb/reference/python/db-get-all-ids/) | Return every live id. |

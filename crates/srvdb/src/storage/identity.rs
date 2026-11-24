@@ -10,7 +10,7 @@ use std::io::Read;
 use std::path::Path;
 
 /// Every file SrvDB writes in a database directory
-const OWNED: [&str; 12] = [
+const OWNED: [&str; 13] = [
     super::flat::FILE_NAME,
     super::sq::FILE_NAME,
     super::sq::QUANTIZER_FILE,
@@ -23,6 +23,7 @@ const OWNED: [&str; 12] = [
     super::lock::FILE_NAME,
     "hnsw.graph",
     "metadata.db",
+    crate::keyword::FILE_NAME,
 ];
 
 /// Whether `name` is a file SrvDB writes: an owned file, its checksum

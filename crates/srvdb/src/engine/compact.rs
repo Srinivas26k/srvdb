@@ -35,6 +35,9 @@ impl SrvDB {
             s.write_compacted(&compaction::staged(&dir, storage::pq::FILE_NAME), &keep)?;
         }
 
+        // Keyword ids are about to change: leave an empty index (ADR 0015)
+        self.reset_keyword_index_for_compaction()?;
+
         // 2. The commit point: renumbered metadata, flagged as pending
         self.metadata_store.compact(&keep)?;
 

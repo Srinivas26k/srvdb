@@ -131,12 +131,20 @@ class Database:
         """Add vectors, replacing existing ids. Returns the count written."""
     def search(
         self,
-        query: Sequence[float],
+        query: Sequence[float] | None,
         k: int,
         *,
+        text: str | None = None,
         where: Mapping[str, Any] | None = None,
     ) -> list[tuple[str, float]]:
-        """Up to ``k`` ``(id, cosine score)`` pairs, best first.
+        """Up to ``k`` ``(id, score)`` pairs, best first.
+
+        Scores are cosine similarities for a vector ``query``. ``text``
+        adds BM25 keyword search over the field chosen with
+        ``enable_keyword_search()``: with a query the two rankings are fused
+        (Reciprocal Rank Fusion, fused scores), with ``query=None`` the
+        search is keyword-only (BM25 scores). ValueError if both are None,
+        ``text`` has no letters or digits, or keyword search is not enabled.
 
         ``where`` keeps only vectors whose metadata matches, e.g.
         ``{"genre": "jazz", "year": {"$gte": 1950}}``. Operators: ``$eq``,
@@ -153,6 +161,9 @@ class Database:
     ) -> list[list[tuple[str, float]]]:
         """One search() result list per query, in query order; ``where``
         is evaluated once for the batch."""
+    def enable_keyword_search(self, field: str = "text") -> None:
+        """Index metadata field ``field`` (``"a.b"`` for nested) for
+        ``search(text=...)``; saved by the next save()."""
     def get(self, id: str) -> str | None:
         """Stored metadata JSON (with ``"__id__"``), or None for an unknown id."""
     def count(self) -> int:

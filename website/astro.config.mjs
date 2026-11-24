@@ -75,6 +75,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Build a local RAG app', slug: 'guides/local-rag' },
 						{ label: 'Filtered search', slug: 'guides/filtered-search' },
+						{ label: 'Keyword and hybrid search', slug: 'guides/keyword-search' },
 						{ label: 'LangChain and LlamaIndex', slug: 'guides/frameworks' },
 						{ label: 'Choosing an index mode', slug: 'guides/index-modes' },
 						{ label: 'RaBitQ low-bit search', slug: 'guides/rabitq' },
@@ -106,6 +107,7 @@ export default defineConfig({
 								{ label: 'db.close', slug: 'reference/python/db-close' },
 								{ label: 'db.compact', slug: 'reference/python/db-compact' },
 								{ label: 'db.search', slug: 'reference/python/db-search' },
+								{ label: 'db.enable_keyword_search', slug: 'reference/python/db-enable-keyword-search' },
 								{ label: 'db.search_batch', slug: 'reference/python/db-search-batch' },
 								{ label: 'db.get', slug: 'reference/python/db-get' },
 								{ label: 'db.get_all_ids', slug: 'reference/python/db-get-all-ids' },

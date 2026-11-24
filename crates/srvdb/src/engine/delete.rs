@@ -25,6 +25,7 @@ impl SrvDB {
         // unpersisted delete is undone on reopen exactly like an add
         self.deleted.insert(id);
         self.pending_deletes.push(id);
+        self.note_keyword_delete(id);
         Ok(true)
     }
 

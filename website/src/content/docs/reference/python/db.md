@@ -27,6 +27,7 @@ with srvdb.open(path) as db:   # saves and closes on a clean exit
 | [`db.save`](/srvdb/reference/python/db-save/) | Make every earlier write durable. `db.persist()` is an alias. |
 | [`db.close`](/srvdb/reference/python/db-close/) | Release the database and its lock without saving. |
 | [`db.search`](/srvdb/reference/python/db-search/) | Find the k nearest vectors to a query. |
+| [`db.enable_keyword_search`](/srvdb/reference/python/db-enable-keyword-search/) | Index a metadata field for keyword search. |
 | [`db.count`](/srvdb/reference/python/db-count/) | Number of searchable vectors. |
 
 The full list is in the [Python API overview](/srvdb/reference/python/).
