@@ -56,6 +56,10 @@ def delete(path: str) -> None:
     Raises ValueError for a directory with other files, BlockingIOError
     while the database is open."""
 
+def drop_links(path: str) -> int:
+    """Delete every link of a closed database (see ``srvdb.drop_links``).
+    Returns the number removed."""
+
 def rebuild_checksums(path: str) -> list[str]:
     """Recompute missing or damaged checksum files of a closed database
     (see ``srvdb.rebuild_checksums``). Returns the rewritten file names.
@@ -164,7 +168,7 @@ class Database:
     def link(self, source: str, link_type: str, target: str) -> bool:
         """Add the link ``source -link_type-> target`` (durable after
         save()). False if it existed. ``link_type`` matches
-        ``[a-z][a-z0-9_]{0,63}``; at most 1024 outgoing links per record."""
+        ``[a-z][a-z0-9_]{0,63}``; at most 1024 outgoing and 100000 incoming links per record, 1000000 links per database."""
     def unlink(self, source: str, link_type: str, target: str) -> bool:
         """Remove a link; False if it did not exist."""
     def neighbors(self, id: str, type: str | None = None) -> list[tuple[str, str]]:

@@ -54,6 +54,12 @@ pub(crate) fn search_expanded(
         .collect())
 }
 
+/// Delete every link of a closed database; see `srvdb.drop_links`
+#[pyfunction]
+pub(crate) fn drop_links(py: Python<'_>, path: String) -> PyResult<u64> {
+    py.detach(|| srvdb::SrvDB::drop_links(&path)).map_err(to_py)
+}
+
 #[pymethods]
 impl PyDatabase {
     /// Add the directed link `source -link_type-> target`.
@@ -67,8 +73,9 @@ impl PyDatabase {
     ///
     /// Raises:
     ///     ValueError: an id is unknown, source equals target, link_type
-    ///         does not match [a-z][a-z0-9_]{0,63}, or source already has
-    ///         1024 outgoing links.
+    ///         does not match [a-z][a-z0-9_]{0,63}, or a limit would be
+    ///         exceeded (1024 outgoing / 100000 incoming links per record,
+    ///         1000000 links or 1024 link types per database).
     fn link(
         &self,
         py: Python<'_>,

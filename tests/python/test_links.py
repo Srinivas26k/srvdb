@@ -79,3 +79,19 @@ def test_search_expand_marks_hops(db):
             db.search(vec(0), 1, expand=bad)
     with pytest.raises(ValueError):
         db.search(vec(0), 1, where={"i": 0}, expand=("next", 1))
+
+
+def test_drop_links_clears_a_closed_database(tmp_path, db):
+    db.link("doc0", "cites", "doc1")
+    db.save()
+    path = str(tmp_path / "db")
+    with pytest.raises(BlockingIOError):
+        srvdb.drop_links(path)
+    db.close()
+    assert srvdb.drop_links(path) == 1
+    again = srvdb.open(path)
+    assert again.neighbors("doc0") == []
+    assert again.count() == 6
+    again.close()
+    with pytest.raises(FileNotFoundError):
+        srvdb.drop_links(str(tmp_path / "missing"))

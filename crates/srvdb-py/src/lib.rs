@@ -23,6 +23,7 @@ fn _low_level(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(lifecycle::open, m)?)?;
     m.add_function(wrap_pyfunction!(lifecycle::delete, m)?)?;
     m.add_function(wrap_pyfunction!(lifecycle::rebuild_checksums, m)?)?;
+    m.add_function(wrap_pyfunction!(graph::drop_links, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add(
         "__doc__",
