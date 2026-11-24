@@ -55,6 +55,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Build a local RAG app', slug: 'guides/local-rag' },
 						{ label: 'Choosing an index mode', slug: 'guides/index-modes' },
+						{ label: 'RaBitQ low-bit search', slug: 'guides/rabitq' },
 						{ label: 'Durability and persist()', slug: 'guides/durability' },
 						{ label: 'Delete, upsert and compact', slug: 'guides/delete-upsert-compact' },
 						{ label: 'Threads and processes', slug: 'guides/concurrency' },
