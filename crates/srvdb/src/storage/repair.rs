@@ -7,9 +7,11 @@
 //!   file is trusted. If the records match it, nothing is written. If they
 //!   do not, the records are damaged and the rebuild is refused with
 //!   `Error::ChecksumMismatch`.
-//! - Only a sidecar that is missing, fails its envelope check or does not
-//!   describe the file (wrong record size or block count) is recomputed,
-//!   from the records as found. Damage that is already in those records
+//! - An intact sidecar whose record size or block count disagrees with
+//!   the header (or PQ codebooks) means the header is damaged: refused
+//!   with `Error::Corrupt`, nothing written.
+//! - Only a sidecar that is missing or fails its envelope check is
+//!   recomputed, from the records as found. Damage that is already in those records
 //!   cannot be detected and becomes part of the new checksums.
 //!
 //! The new table covers `min(header count, whole records present)`, the
@@ -43,9 +45,23 @@ pub(crate) enum Outcome {
 /// Read and validate the header of the vector file at `path`
 pub(crate) fn read_header(path: &Path) -> Result<VectorHeader> {
     let mut bytes = [0u8; VectorHeader::SIZE];
-    File::open(path)
-        .and_then(|mut f| f.read_exact(&mut bytes))
-        .with_context(|| format!("failed to read the header of {}", path.display()))?;
+    let mut file =
+        File::open(path).with_context(|| format!("failed to open {}", path.display()))?;
+    match file.read_exact(&mut bytes) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+            return Err(Error::Corrupt(format!(
+                "{} is shorter than its {}-byte header; restore the database from a backup",
+                file_name(path),
+                VectorHeader::SIZE
+            ))
+            .into())
+        }
+        Err(e) => {
+            return Err(e)
+                .with_context(|| format!("failed to read the header of {}", path.display()))
+        }
+    }
     VectorHeader::from_bytes(&bytes)
 }
 
@@ -93,22 +109,16 @@ pub(crate) fn rebuild(path: &Path, header: &VectorHeader, record_size: usize) ->
         ))
         .into());
     }
-    match BlockSums::load(path, record_size) {
-        Ok(Some(stored)) => {
-            if compute(path, record_size, stored.count())? == stored {
-                return Ok(Outcome::Intact);
-            }
-            return Err(Error::ChecksumMismatch(format!(
-                "{} is intact but the records of {} do not match it, so the data \
-                 is damaged; checksums were not rebuilt. Restore the database from \
-                 a backup",
-                file_name(&sidecar(path)),
-                file_name(path)
-            ))
-            .into());
-        }
-        Ok(None) => log::warn!("{} has no checksum file", file_name(path)),
-        Err(e) => match Error::from(e) {
+    let side = sidecar(path);
+    let bytes = match std::fs::read(&side) {
+        Ok(bytes) => Some(bytes),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => return Err(e).with_context(|| format!("failed to read {}", side.display())),
+    };
+    match bytes.map(|b| BlockSums::decode(&b)) {
+        None => log::warn!("{} has no checksum file", file_name(path)),
+        Some(Ok(stored)) => return check_intact(path, &stored, record_size),
+        Some(Err(e)) => match Error::from(e) {
             Error::Corrupt(_) | Error::ChecksumMismatch(_) => {
                 log::warn!("the checksum file of {} is damaged", file_name(path));
             }
@@ -125,6 +135,31 @@ pub(crate) fn rebuild(path: &Path, header: &VectorHeader, record_size: usize) ->
         file_name(path)
     );
     Ok(Outcome::Rebuilt)
+}
+
+/// An intact sidecar is trusted: it must describe the file and match the
+/// records, or the vector file (or the PQ codebooks) is what is damaged
+fn check_intact(path: &Path, stored: &BlockSums, record_size: usize) -> Result<Outcome> {
+    if !stored.describes(record_size) {
+        return Err(Error::Corrupt(format!(
+            "{}: header or codebooks disagree with an intact checksum file ({}); \
+             restore a backup",
+            file_name(path),
+            file_name(&sidecar(path))
+        ))
+        .into());
+    }
+    if compute(path, record_size, stored.count())? == *stored {
+        return Ok(Outcome::Intact);
+    }
+    Err(Error::ChecksumMismatch(format!(
+        "{} is intact but the records of {} do not match it, so the data \
+         is damaged; checksums were not rebuilt. Restore the database from \
+         a backup",
+        file_name(&sidecar(path)),
+        file_name(path)
+    ))
+    .into())
 }
 
 fn file_name(path: &Path) -> String {

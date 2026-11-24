@@ -200,3 +200,73 @@ fn rebuild_after_crashes_recovers_to_the_committed_count() {
     drop(db);
     assert_eq!(reopen(dir.path()).unwrap().count(), N + 1);
 }
+
+/// Damage one byte of a vector file header (the sidecar stays intact);
+/// the rebuild must refuse with the header message and leave the sidecar
+fn assert_header_damage_refused(index: IndexChoice, file: &str, at: usize, damage: fn(u8) -> u8) {
+    let dir = TempDir::new().unwrap();
+    persisted(dir.path(), index);
+    let side = dir.path().join(format!("{file}.crc"));
+    let before = std::fs::read(&side).unwrap();
+    let path = dir.path().join(file);
+    let mut bytes = std::fs::read(&path).unwrap();
+    bytes[at] = damage(bytes[at]);
+    std::fs::write(&path, bytes).unwrap();
+    let err = rebuild(dir.path()).unwrap_err();
+    assert!(matches!(err, Error::Corrupt(_)), "{file}@{at}: {err:?}");
+    assert_eq!(
+        std::fs::read(&side).unwrap(),
+        before,
+        "{file}: sidecar rewritten"
+    );
+}
+
+#[test]
+fn flipped_dimension_bit_with_an_intact_sidecar_is_refused() {
+    // Dimension is bytes 6..8: 128 -> 129 and 128 -> 384
+    assert_header_damage_refused(IndexChoice::Flat, "vectors.bin", 6, |b| b ^ 0x01);
+    assert_header_damage_refused(IndexChoice::Flat, "vectors.bin", 7, |b| b ^ 0x01);
+    let dir = TempDir::new().unwrap();
+    persisted(dir.path(), IndexChoice::Flat);
+    flip(&dir.path().join("vectors.bin"), 6);
+    let err = rebuild(dir.path()).unwrap_err().to_string();
+    assert!(
+        err.contains("header or codebooks disagree with an intact checksum file"),
+        "{err}"
+    );
+}
+
+#[test]
+fn flipped_rabitq_mode_byte_is_refused() {
+    // Mode byte 16 is 0x10 | bits: another supported bit width (a valid
+    // looking header with a different record size), and a foreign mode
+    let other_width = |b: u8| if b & 0x0F == 1 { 0x12 } else { 0x11 };
+    assert_header_damage_refused(IndexChoice::Rabitq, "rabitq_codes.bin", 16, other_width);
+    assert_header_damage_refused(IndexChoice::Rabitq, "rabitq_codes.bin", 16, |b| b ^ 0x40);
+}
+
+#[test]
+fn directory_without_vector_files_is_not_found_and_not_locked() {
+    let dir = TempDir::new().unwrap();
+    let err = rebuild(dir.path()).unwrap_err();
+    assert!(matches!(err, Error::NotFound(_)), "{err:?}");
+    assert_eq!(
+        std::fs::read_dir(dir.path()).unwrap().count(),
+        0,
+        "file left"
+    );
+}
+
+#[test]
+fn vector_file_shorter_than_its_header_is_corrupt() {
+    let dir = TempDir::new().unwrap();
+    persisted(dir.path(), IndexChoice::Flat);
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .open(dir.path().join("vectors.bin"))
+        .unwrap();
+    file.set_len(10).unwrap();
+    drop(file);
+    let err = rebuild(dir.path()).unwrap_err();
+    assert!(matches!(err, Error::Corrupt(_)), "{err:?}");
+}

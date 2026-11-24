@@ -144,6 +144,23 @@ impl BlockSums {
         write_atomic(&sidecar(path), &format::encode(format::CHECKSUMS, self)?)
     }
 
+    /// Decode sidecar bytes (envelope check only, no shape check)
+    pub(crate) fn decode(bytes: &[u8]) -> Result<Self> {
+        format::decode(format::CHECKSUMS, bytes)
+    }
+
+    /// Whether the table is internally consistent and is for records of
+    /// `record_size` bytes
+    pub(crate) fn describes(&self, record_size: usize) -> bool {
+        let expected = self
+            .count
+            .checked_mul(self.record_size)
+            .map(|len| len.div_ceil(self.block_bytes.max(1)));
+        self.block_bytes != 0
+            && self.record_size == record_size as u64
+            && expected == Some(self.crcs.len() as u64)
+    }
+
     /// Read the sidecar of `path`, or `None` if it does not exist.
     /// The table must match `record_size` and be internally consistent.
     pub(crate) fn load(path: &Path, record_size: usize) -> Result<Option<Self>> {
@@ -154,14 +171,7 @@ impl BlockSums {
         let bytes =
             std::fs::read(&side).with_context(|| format!("failed to read {}", side.display()))?;
         let sums: Self = format::decode(format::CHECKSUMS, &bytes)?;
-        let expected = sums
-            .count
-            .checked_mul(sums.record_size)
-            .map(|len| len.div_ceil(sums.block_bytes.max(1)));
-        if sums.block_bytes == 0
-            || sums.record_size != record_size as u64
-            || expected != Some(sums.crcs.len() as u64)
-        {
+        if !sums.describes(record_size) {
             return Err(Error::Corrupt(format!(
                 "{} does not describe {} (record size or block count is wrong); \
                  restore the database from a backup",

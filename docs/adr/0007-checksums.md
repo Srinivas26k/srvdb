@@ -132,8 +132,11 @@ closed database (it takes the lock). For each vector file with a version
   records than the file holds): the data is damaged, not the sidecar. The
   call fails with `ChecksumMismatch` (`Corrupt` for truncation) and writes
   nothing; the user is told to restore from a backup.
-- **Missing sidecar, or one that fails its own envelope check or does not
-  describe the file**: recomputed from the records as found. This is the
+- **Intact sidecar whose record size or block count disagrees with the
+  header (or PQ codebooks)**: the header is what is damaged (the sidecar's
+  own CRC holds). Refused with `Corrupt` ("header or codebooks disagree
+  with an intact checksum file; restore a backup"); nothing is written.
+- **Missing sidecar, or one that fails its own envelope check**: recomputed from the records as found. This is the
   only case that trusts the data, and only because the user asked; the
   documentation says a rebuilt checksum cannot detect damage that was
   already there. Deleting a sidecar and rebuilding is the documented way
@@ -146,7 +149,10 @@ truncates to the committed count as usual. The sidecar is written with
 `write_atomic` (temp file, fsync, rename, directory fsync): a crash leaves
 the old or the new sidecar and the call can be repeated. Vector files,
 redb and indexes are not modified. The record size comes from the header
-(flat, SQ8, RaBitQ) or from `codebooks.bin` (PQ). Staged compaction files
+(flat, SQ8, RaBitQ) or from `codebooks.bin` (PQ). A directory with no vector file is `NotFound`, checked before the lock is
+taken so no lock file is created there. A vector file shorter than its
+header is `Corrupt`. Limit: with the sidecar missing, a damaged header
+cannot be detected, because nothing else records the record size. Staged compaction files
 (`*.compact.crc`) are not rebuilt; `compaction::finish` handles them on
 open.
 

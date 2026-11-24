@@ -61,8 +61,11 @@ impl SrvDB {
     /// - an intact `.crc` that does **not** match means the records are
     ///   damaged: the call fails with `ChecksumMismatch` and writes nothing
     ///   for that file, so damaged data is never re-checksummed as good;
-    /// - a missing `.crc`, or one that is damaged or describes another
-    ///   file, is recomputed from the records as found.
+    /// - an intact `.crc` whose record size or block count disagrees with
+    ///   the header (or PQ codebooks) means the header is damaged: the call
+    ///   fails with `Corrupt` and writes nothing;
+    /// - a missing `.crc`, or one that fails its own check, is recomputed
+    ///   from the records as found.
     ///
     /// A rebuilt checksum cannot detect damage that was already in the
     /// records; they are trusted as they are. If the data itself may be
@@ -78,7 +81,7 @@ impl SrvDB {
     /// if every one was intact).
     ///
     /// # Errors
-    /// `NotFound` if `path` is not a directory; `Locked` if the database is
+    /// `NotFound` if `path` is not a directory or holds no vector file; `Locked` if the database is
     /// open; `ChecksumMismatch` if records do not match an intact checksum
     /// file; `Corrupt` if a vector file is truncated or its header (or the
     /// PQ codebooks) is invalid; I/O errors.
@@ -90,18 +93,26 @@ impl SrvDB {
                 dir.display()
             )));
         }
-        let _lock = crate::storage::lock::acquire(dir)?;
-        let mut rebuilt = Vec::new();
-        for name in [
+        let names: Vec<&str> = [
             flat::FILE_NAME,
             sq::FILE_NAME,
             pq::FILE_NAME,
             crate::storage::rabitq::FILE_NAME,
-        ] {
+        ]
+        .into_iter()
+        .filter(|name| dir.join(name).is_file())
+        .collect();
+        if names.is_empty() {
+            // Checked before the lock, so no lock file is left behind
+            return Err(Error::NotFound(format!(
+                "{} holds no SrvDB vector file; pass the database directory",
+                dir.display()
+            )));
+        }
+        let _lock = crate::storage::lock::acquire(dir)?;
+        let mut rebuilt = Vec::new();
+        for name in names {
             let file = dir.join(name);
-            if !file.is_file() {
-                continue;
-            }
             let header = repair::read_header(&file)?;
             let size = record_size(dir, name, &header)?;
             if repair::rebuild(&file, &header, size)? == Outcome::Rebuilt {
