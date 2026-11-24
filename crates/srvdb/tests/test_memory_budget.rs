@@ -186,3 +186,29 @@ fn every_mode_reports_its_parts() {
         r.vector_bytes + r.index_bytes + r.links_bytes + r.keyword_bytes
     );
 }
+
+/// A step-down whose re-encode fails leaves the previous mode in place:
+/// nothing appended, settings and search unchanged, and the next add
+/// steps down once the cause is gone
+#[test]
+fn a_failed_step_down_restores_the_previous_mode() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("db");
+    let path = path.to_str().unwrap();
+    let mut db = budgeted(path, 1);
+    let cap = db.memory_report().capacity.unwrap();
+    fill(&mut db, cap);
+    // A directory where the code file must go makes the re-encode fail
+    let blocker = dir.path().join("db").join("rabitq_codes.bin");
+    std::fs::create_dir(&blocker).unwrap();
+    let err = db.add(&vector(cap), "{}").unwrap_err();
+    assert!(!matches!(err, Error::MemoryBudget(_)), "{err:?}");
+    assert_eq!(db.count(), cap);
+    assert_eq!(db.rabitq_config(), None);
+    assert_eq!(mode(&db), ("flat", None));
+    assert_eq!(db.search(&vector(3), 1).unwrap()[0].id, 3);
+
+    std::fs::remove_dir(&blocker).unwrap();
+    fill(&mut db, cap + 1);
+    assert_eq!(mode(&db), ("rabitq", Some(4)));
+}
