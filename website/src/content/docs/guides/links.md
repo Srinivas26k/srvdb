@@ -33,8 +33,9 @@ print([(id_, hop) for id_, _, hop in db.search(vectors[0], k=1, expand=("cites",
   else raises `ValueError`.
 - Linking twice returns `False` and changes nothing; `db.unlink` returns
   whether the link existed.
-- A record may have at most 1,024 outgoing links and a database at most
-  10,000,000 links. Incoming links are not limited per record.
+- A record may have at most 1,024 outgoing and 100,000 incoming links; a
+  database at most 1,000,000 links and 1,024 link type names. The graph
+  is kept in memory (about 100 bytes per link).
 - Both ends must exist, and a record cannot link to itself.
 
 ## Durability
@@ -83,5 +84,14 @@ follows outgoing links of `link_type` breadth-first:
 - A linked record's score is the score of the record it was reached from,
   not its own similarity to the query.
 - `expand` cannot be combined with `where`.
+
+## Opening with an older SrvDB
+
+SrvDB 0.3 and earlier ignore links. If one of them adds, deletes or
+compacts records after links were saved, the links may point at the
+wrong records, so a newer SrvDB refuses to open the database with a
+`RuntimeError` that says so. Close it and call
+[`srvdb.drop_links(path)`](/srvdb/reference/python/drop-links/) to
+remove the links; vectors and metadata are kept. Then link again.
 
 The design and its guarantees are recorded in ADR 0016.

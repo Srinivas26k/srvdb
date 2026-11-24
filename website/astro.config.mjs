@@ -123,6 +123,7 @@ export default defineConfig({
 								{ label: 'LangChain SrvDBVectorStore', slug: 'reference/python/langchain-srvdbvectorstore' },
 								{ label: 'LlamaIndex SrvDBVectorStore', slug: 'reference/python/llamaindex-srvdbvectorstore' },
 								{ label: 'Recovery: srvdb.rebuild_checksums', slug: 'reference/python/rebuild-checksums' },
+								{ label: 'Recovery: srvdb.drop_links', slug: 'reference/python/drop-links' },
 							],
 						},
 						{ label: 'Rust API', slug: 'reference/rust-api' },

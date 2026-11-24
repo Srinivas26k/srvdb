@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   committed in the same transaction as records by `persist()`/`save()`;
   deleting a record removes its links, replace/upsert keep them, and
   compaction renumbers them. Databases without links open unchanged.
+  Limits: 1,024 outgoing and 100,000 incoming links per record, 1,000,000
+  links and 1,024 link types per database. If SrvDB 0.3 changes records
+  after links were saved, opening refuses with `Corrupt` (`RuntimeError`)
+  instead of using possibly wrong links; `SrvDB::drop_links(path)` /
+  `srvdb.drop_links(path)` removes them.
 - `SrvDB::rebuild_checksums(path)` / `srvdb.rebuild_checksums(path)`
   recomputes missing or damaged `.crc` checksum files of a closed database
   so it opens again (#33, ADR 0007). It never runs implicitly; an intact

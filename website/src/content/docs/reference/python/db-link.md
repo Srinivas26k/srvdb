@@ -24,7 +24,7 @@ db.link(source: str, link_type: str, target: str) -> bool
 ## Raises
 
 - **ValueError**
-  An id is unknown, `source` equals `target`, `link_type` is not a valid name, or `source` already has 1,024 outgoing links.
+  An id is unknown, `source` equals `target`, `link_type` is not a valid name, or a limit would be exceeded: 1,024 outgoing links for `source`, 100,000 incoming links for `target`, 1,000,000 links or 1,024 link type names per database.
 
 ## Notes
 
