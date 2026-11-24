@@ -43,7 +43,8 @@ pub(crate) fn finish(dir: &Path) -> Result<()> {
         }
     }
     sync_dir(dir)?;
-    for file in INDEX_FILES {
+    let rabitq = super::rabitq::ALL_FILES;
+    for file in INDEX_FILES.iter().chain(rabitq.iter()) {
         let path = dir.join(file);
         if path.exists() {
             std::fs::remove_file(&path)
