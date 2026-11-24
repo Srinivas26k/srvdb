@@ -6,7 +6,9 @@ description: Find the k nearest vectors to a query.
 Find the k nearest vectors to a query.
 
 ```python
-db.search(query: Sequence[float], k: int, *, where: dict | None = None) -> list[tuple[str, float]]
+db.search(query: Sequence[float], k: int, *, where: dict | None = None,
+          certify: bool = False, deadline_ms: float | None = None)
+    -> list[tuple[str, float]] | SearchOutcome
 ```
 
 ## Parameters
@@ -20,14 +22,26 @@ db.search(query: Sequence[float], k: int, *, where: dict | None = None) -> list[
 - **where** : *dict, optional, keyword-only*
   Metadata filter, for example `{"genre": "jazz"}` or `{"year": {"$gte": 1950}}`. Operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$and`, `$or`, `$not`; `"a.b"` names a nested field. See [Filtered search](/srvdb/guides/filtered-search/). Default `None` searches every vector.
 
+- **certify** : *bool, keyword-only, RaBitQ modes only*
+  Use the RaBitQ error bounds: certify results whose interval clears the k-th lower bound and rescore only the uncertain candidates on the full vectors. See [RaBitQ, step 5](/srvdb/concepts/rabitq/#5-certified-and-deadline-search-optional). Default `False`.
+
+- **deadline_ms** : *float, optional, keyword-only, RaBitQ modes only*
+  Stop scanning codes after this many milliseconds (checked between 32-vector blocks; the rescoring that follows always completes) and return the best results found. Default `None`, no deadline.
+
 ## Returns
 
 `list[tuple[str, float]]`: up to `k` `(id, score)` pairs, best first. Scores are cosine similarities computed in float32, so an identical vector scores about 0.99999994 rather than exactly 1.0. With `where`, only matching vectors are returned, and `k` of them whenever at least `k` match. Fewer than `k` pairs come back when fewer vectors (or matches) exist; an empty database returns `[]`.
 
+With `certify=True` or `deadline_ms`, a `SearchOutcome`. It iterates, indexes and has a `len()` like the list above (`out.results` is that list), and also has these attributes:
+
+- `completeness` (float): fraction of live vectors scanned, 1.0 unless the deadline passed.
+- `confidence` (float or None): with `certify=True`, a lower bound (0.99) on the probability that the results are exactly the top k of the scanned vectors; otherwise `None`.
+- `certified`, `reranked`, `scanned` (int): results certified without rescoring, candidates rescored, and vectors scanned.
+
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter (empty, an unknown operator, a wrong operand type, a value JSON cannot encode). Also raised for a negative `k`; for `certify` or `deadline_ms` on a database that is not in a RaBitQ mode or combined with `where`; and for a negative or non-finite `deadline_ms`.
 
 - **RuntimeError**
   An internal fault occurred.
@@ -54,6 +68,21 @@ print(db.search(v, k=2))
 db.add(["c"], [w], ['{"kind": "note"}'])
 print(db.search(v, k=2, where={"kind": "note"}))
 # [('c', 0.0)]
+```
+
+With a RaBitQ database:
+
+```python
+import random
+import srvdb
+
+rng = random.Random(3)
+vecs = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(1000)]
+db = srvdb.create("./rq", dimension=128, index="rabitq")
+db.add([f"d{i}" for i in range(1000)], vecs, ["{}"] * 1000)
+out = db.search(vecs[5], k=1, certify=True, deadline_ms=10_000)
+print(out[0][0], out.completeness, out.confidence)
+# d5 1.0 0.99
 ```
 
 ## See also

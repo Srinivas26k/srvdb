@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Certified and deadline search for RaBitQ (#81, ADR 0017).
+  `db.search(q, k, certify=True)` gives every scanned vector an error
+  interval from the RaBitQ bound plus the u8 table error. It certifies
+  results whose interval clears the k-th lower bound and rescores only
+  the uncertain candidates on the full vectors; `confidence` (0.99) is
+  a lower bound on the probability that the result is the exact top k
+  of the scanned vectors. `deadline_ms=` stops the code scan between
+  blocks once the time is up and reports `completeness`. Both return a
+  list-like `SearchOutcome`, and both raise `ValueError` outside the
+  RaBitQ modes. Rust: `SrvDB::search_rabitq_with` with `RabitqSearch`,
+  `SearchOutcome` and `SearchStats`. RaBitQ memory grows by 4 bytes per
+  vector (derived error widths; the file format is unchanged).
 - `SrvDB::rebuild_checksums(path)` / `srvdb.rebuild_checksums(path)`
   recomputes missing or damaged `.crc` checksum files of a closed database
   so it opens again (#33, ADR 0007). It never runs implicitly; an intact

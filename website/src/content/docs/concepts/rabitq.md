@@ -138,6 +138,59 @@ The `k × rerank` best estimates are rescored exactly against
 checked. Rerank is a search-time setting (`set_rabitq_rerank`), not stored
 on disk; `0` returns the estimates without reranking.
 
+### 5. Certified and deadline search (optional)
+
+The estimate error has a known bound. For a stored vector with code
+direction `o_bar`, the estimate differs from the true cosine `s` by
+`sqrt(1 - s²) × sqrt(1/<o_bar, o>² - 1) × Z`, where `Z` behaves like one
+coordinate of a random unit vector in `D - 1` dimensions (RaBitQ paper,
+Theorem 3.2). SrvDB adds the u8 table rounding from step 3 on top, which
+gives every scanned vector an interval `[lo, hi]` around its estimate.
+
+`db.search(q, k, certify=True)` uses these intervals:
+
+1. Vectors whose `hi` is below the k-th largest `lo` cannot be in the
+   top k and are dropped.
+2. A vector whose `lo` is above the `hi` of all but at most `k - 1`
+   others is **certified**: it is in the top k without rescoring.
+3. Only the remaining **uncertain** candidates are rescored on the full
+   vectors. The rerank factor is not used.
+
+The interval width is set so that every interval holds with probability
+at least 0.99 over the random rotation. **Confidence** (0.99) is
+therefore a lower bound on the probability that the result is exactly
+the top k of the scanned vectors, so expected recall@k is at least 0.99.
+The bound is conservative: in the test suite, measured recall against
+exact search was 1.0 on all 24 seeded datasets. Certification pays off
+when the nearest neighbours stand clear of the rest. In tight clusters
+few results are certified and more candidates are uncertain, and at 1
+bit the intervals are wide.
+
+`deadline_ms=` stops the code scan once the time is up. The clock is
+checked between 32-vector blocks, and the rescoring that follows always
+completes. You get the best results found so far and `completeness`, the
+fraction of vectors scanned. Both options work only on RaBitQ databases;
+other modes raise `ValueError`. Details:
+[ADR 0017](https://github.com/Srinivas26k/srvdb/blob/master/docs/adr/0017-certified-deadline-search.md).
+
+```python
+import random
+import srvdb
+
+rng = random.Random(3)
+vectors = [[rng.gauss(0, 1) for _ in range(128)] for _ in range(2000)]
+ids = [f"doc-{i}" for i in range(len(vectors))]
+db = srvdb.create("./certified-db", dimension=128, index="rabitq", bits=4)
+db.add(ids, vectors, ["{}"] * len(ids))
+
+out = db.search(vectors[7], k=1, certify=True)
+print(out[0][0], out.certified, out.reranked, out.confidence)
+# doc-7 1 0 0.99
+late = db.search(vectors[7], k=1, deadline_ms=0)
+print(len(late), late.completeness)
+# 0 0.0
+```
+
 ## Try it in SrvDB
 
 ```python
@@ -205,6 +258,7 @@ The rerank step then reads `k × rerank` full vectors: 100 vectors
 Compare every mode on one page in [Compare index modes](/srvdb/concepts/comparison/).
 API: [`srvdb.create`](/srvdb/reference/python/create/),
 [`db.set_rabitq_rerank`](/srvdb/reference/python/db-set-rabitq-rerank/),
+[`db.search`](/srvdb/reference/python/db-search/) (`certify`, `deadline_ms`),
 and the [on-disk files](/srvdb/reference/files/).
 
 ## FAQ
