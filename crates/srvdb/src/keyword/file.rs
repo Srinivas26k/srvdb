@@ -5,6 +5,7 @@
 //! on load; the file is derived data and can always be rebuilt.
 
 use super::index::InvertedIndex;
+use super::maintain::validate_field;
 use crate::error::Error;
 use crate::storage::{atomic::write_atomic, format};
 use anyhow::{Context, Result};
@@ -85,8 +86,8 @@ fn from_record(r: Record) -> Result<InvertedIndex> {
             r.format
         )));
     }
-    if r.field.is_empty() {
-        return Err(corrupt("the field name is empty"));
+    if validate_field(&r.field).is_err() {
+        return Err(corrupt("the field name is empty or malformed"));
     }
     if !sorted_unique(r.lengths.iter().map(|l| l.0))
         || !sorted_unique(r.postings.iter().map(|p| &p.0))
@@ -152,18 +153,37 @@ mod tests {
         index.covered = 3;
         save(dir.path(), &index).unwrap();
         let back = load(dir.path()).unwrap().unwrap();
+        let fox = ["fox".to_string()];
         assert_eq!(back.field, "body");
         assert_eq!(back.covered, 3);
         assert_eq!(back.postings, index.postings);
         assert_eq!(back.lengths, index.lengths);
         assert_eq!(back.total_len, index.total_len);
-        assert_eq!(back.search("fox", 5, None), index.search("fox", 5, None));
+        assert_eq!(back.search(&fox, 5, None), index.search(&fox, 5, None));
     }
 
     #[test]
     fn missing_file_is_none() {
         let dir = TempDir::new().unwrap();
         assert!(load(dir.path()).unwrap().is_none());
+    }
+
+    #[test]
+    fn malformed_field_name_is_corrupt() {
+        let dir = TempDir::new().unwrap();
+        for field in ["", "a..b", ".a"] {
+            let bad = Record {
+                format: FORMAT,
+                field: field.into(),
+                covered: 0,
+                lengths: vec![],
+                postings: vec![],
+            };
+            let bytes = format::encode(format::KEYWORD_INDEX, &bad).unwrap();
+            std::fs::write(dir.path().join(FILE_NAME), bytes).unwrap();
+            let err = Error::from(load(dir.path()).unwrap_err());
+            assert!(matches!(err, Error::Corrupt(_)), "{field:?}: {err:?}");
+        }
     }
 
     #[test]

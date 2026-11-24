@@ -35,3 +35,6 @@ enum Slot {
 /// (`&self`) may load it or catch it up with metadata.
 #[derive(Debug, Default)]
 pub(crate) struct KeywordState(Mutex<Slot>);
+
+#[cfg(test)]
+mod tests;

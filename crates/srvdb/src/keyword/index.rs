@@ -80,11 +80,12 @@ impl InvertedIndex {
         true
     }
 
-    /// The `k` best records for `text` by BM25, best first (ties: lower id).
-    /// Only ids in `allowed` are scored when it is given.
+    /// The `k` best records for the distinct query `terms` (see
+    /// `search::query_terms`) by BM25, best first (ties: lower id). Only ids
+    /// in `allowed` are scored when it is given.
     pub(crate) fn search(
         &self,
-        text: &str,
+        terms: &[String],
         k: usize,
         allowed: Option<&HashSet<u64>>,
     ) -> Vec<(u64, f32)> {
@@ -93,11 +94,8 @@ impl InvertedIndex {
             return Vec::new();
         }
         let avgdl = self.total_len as f64 / n;
-        let mut terms = tokenize(text);
-        terms.sort();
-        terms.dedup();
         let mut scores: HashMap<u64, f64> = HashMap::new();
-        for term in &terms {
+        for term in terms {
             let Some(ids) = self.postings.get(term) else {
                 continue;
             };
@@ -156,7 +154,7 @@ mod tests {
         index.add(0, "fox");
         index.add(1, "fox");
         let allowed = HashSet::from([1]);
-        let hits = index.search("fox", 10, Some(&allowed));
+        let hits = index.search(&["fox".to_string()], 10, Some(&allowed));
         assert_eq!(hits.iter().map(|h| h.0).collect::<Vec<_>>(), [1]);
     }
 }

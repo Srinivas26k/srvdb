@@ -11,13 +11,35 @@ use std::collections::HashSet;
 /// Results taken from each list before fusion: `max(2k, MIN_DEPTH)`
 const MIN_DEPTH: usize = 50;
 
-fn validate_text(text: &str) -> Result<()> {
-    if tokenize(text).is_empty() {
+/// Longest accepted query text, in bytes
+pub(crate) const MAX_TEXT_BYTES: usize = 64 * 1024;
+/// Most distinct words accepted in one query
+pub(crate) const MAX_TERMS: usize = 1024;
+
+/// Validate `text` and return its distinct terms, sorted. Bounds the work
+/// of one search; runs before any lock is taken.
+pub(crate) fn query_terms(text: &str) -> Result<Vec<String>> {
+    if text.len() > MAX_TEXT_BYTES {
+        return Err(Error::invalid_input(format!(
+            "text is {} bytes; keyword queries are limited to {MAX_TEXT_BYTES} bytes",
+            text.len()
+        )));
+    }
+    let mut terms = tokenize(text);
+    terms.sort();
+    terms.dedup();
+    if terms.is_empty() {
         return Err(Error::invalid_input(
             "text has no searchable words; pass at least one letter or digit",
         ));
     }
-    Ok(())
+    if terms.len() > MAX_TERMS {
+        return Err(Error::invalid_input(format!(
+            "text has {} distinct words; keyword queries are limited to {MAX_TERMS}",
+            terms.len()
+        )));
+    }
+    Ok(terms)
 }
 
 fn not_enabled() -> Error {
@@ -48,10 +70,10 @@ impl SrvDB {
         filter: Option<&Filter>,
     ) -> Result<Vec<SearchResult>> {
         validate::k(k)?;
-        validate_text(text)?;
+        let terms = query_terms(text)?;
         let allowed = self.allowed(filter)?;
         let hits = self
-            .with_keyword_index(|ix| ix.map(|ix| ix.search(text, k, allowed.as_ref())))?
+            .with_keyword_index(|ix| ix.map(|ix| ix.search(&terms, k, allowed.as_ref())))?
             .ok_or_else(not_enabled)?;
         self.attach(hits)
     }
@@ -73,11 +95,11 @@ impl SrvDB {
     ) -> Result<Vec<SearchResult>> {
         validate::k(k)?;
         validate::vector(&query.data, self.dimension)?;
-        validate_text(text)?;
+        let terms = query_terms(text)?;
         let depth = k.saturating_mul(2).max(MIN_DEPTH);
         let allowed = self.allowed(filter)?;
         let keyword = self
-            .with_keyword_index(|ix| ix.map(|ix| ix.search(text, depth, allowed.as_ref())))?
+            .with_keyword_index(|ix| ix.map(|ix| ix.search(&terms, depth, allowed.as_ref())))?
             .ok_or_else(not_enabled)?;
         let vector = match &allowed {
             Some(ids) => self.search_filtered(query, depth, ids)?,

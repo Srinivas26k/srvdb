@@ -9,7 +9,7 @@ use crate::{SrvDB, VectorEngine};
 /// Longest accepted field name, in bytes
 const MAX_FIELD_BYTES: usize = 256;
 
-fn validate_field(field: &str) -> Result<()> {
+pub(super) fn validate_field(field: &str) -> Result<()> {
     if field.is_empty() || field.len() > MAX_FIELD_BYTES || field.split('.').any(str::is_empty) {
         return Err(Error::invalid_input(format!(
             "the keyword field must be 1 to {MAX_FIELD_BYTES} bytes of dot-separated, \
@@ -37,16 +37,18 @@ impl SrvDB {
     /// error reading metadata.
     pub fn enable_keyword_index(&mut self, field: &str) -> Result<()> {
         validate_field(field)?;
-        let existing = match file::load(&self.path) {
+        let existing = match file::load(&self.path).map_err(Error::from) {
             Ok(index) => index.filter(|ix| ix.field == field && ix.covered <= self.count()),
-            Err(e) => {
-                // Derived data: the rebuild below replaces the damaged file
-                log::warn!("{} is unreadable, rebuilding it: {e:#}", file::FILE_NAME);
+            // Derived data: a damaged file is replaced by the rebuild below.
+            // Anything else (I/O) is returned to the caller.
+            Err(e @ (Error::Corrupt(_) | Error::ChecksumMismatch(_))) => {
+                log::warn!("{} is damaged, rebuilding it: {e}", file::FILE_NAME);
                 None
             }
+            Err(e) => return Err(e),
         };
         let mut index = existing.unwrap_or_else(|| InvertedIndex::new(field));
-        self.catch_up(&mut index)?;
+        self.catch_up(&mut index, true)?;
         *self.keyword.0.get_mut() = Slot::On { index, dirty: true };
         Ok(())
     }
@@ -69,10 +71,12 @@ impl SrvDB {
         if matches!(*slot, Slot::Unread) {
             *slot = match file::load(&self.path)? {
                 None => Slot::Off,
-                Some(index) => Slot::On {
-                    index,
-                    dirty: false,
-                },
+                Some(mut index) => {
+                    // The file may predate deletes: apply all of them once;
+                    // later deletes are applied by note_keyword_delete
+                    let dirty = self.catch_up(&mut index, true)?;
+                    Slot::On { index, dirty }
+                }
             };
         }
         match &mut *slot {
@@ -83,16 +87,18 @@ impl SrvDB {
                     log::warn!("{} is ahead of the database, rebuilding", file::FILE_NAME);
                     *index = InvertedIndex::new(&index.field);
                 }
-                *dirty |= self.catch_up(index)?;
+                *dirty |= self.catch_up(index, false)?;
                 Ok(f(Some(index)))
             }
             _ => Ok(f(None)),
         }
     }
 
-    /// Index records added since `index.covered` and drop deleted ones.
+    /// Index records added since `index.covered`; with `all_deletes`, also
+    /// drop every deleted record (done once, when the index is loaded or
+    /// built; afterwards `note_keyword_delete` removes each delete).
     /// Returns whether anything changed.
-    fn catch_up(&self, index: &mut InvertedIndex) -> Result<bool> {
+    fn catch_up(&self, index: &mut InvertedIndex, all_deletes: bool) -> Result<bool> {
         let mut changed = false;
         let count = self.count();
         if index.covered < count {
@@ -109,10 +115,20 @@ impl SrvDB {
             index.covered = count;
             changed = true;
         }
-        for id in &self.deleted {
-            changed |= index.remove(*id);
+        if all_deletes {
+            for id in &self.deleted {
+                changed |= index.remove(*id);
+            }
         }
         Ok(changed)
+    }
+
+    /// `delete()` step: drop `id` from the keyword index if it is loaded.
+    /// An index not loaded yet applies every delete when it is loaded.
+    pub(crate) fn note_keyword_delete(&mut self, id: u64) {
+        if let Slot::On { index, dirty } = self.keyword.0.get_mut() {
+            *dirty |= index.remove(id);
+        }
     }
 
     /// `persist()` step: write `keyword.index` if it changed. Runs after
@@ -120,7 +136,7 @@ impl SrvDB {
     pub(crate) fn persist_keyword_index(&mut self) -> Result<()> {
         let mut slot = std::mem::take(self.keyword.0.get_mut());
         let result = match &mut slot {
-            Slot::On { index, dirty } => match self.catch_up(index) {
+            Slot::On { index, dirty } => match self.catch_up(index, false) {
                 Ok(changed) if changed || *dirty => file::save(&self.path, index)
                     .map(|()| *dirty = false)
                     .map_err(Error::from),

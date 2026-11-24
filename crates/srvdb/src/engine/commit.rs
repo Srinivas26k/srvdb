@@ -36,7 +36,6 @@ impl SrvDB {
         if let Some(ref hnsw) = self.hnsw_index {
             storage::atomic::write_atomic(&self.path.join("hnsw.graph"), &hnsw.to_bytes()?)?;
         }
-        self.persist_keyword_index()?;
 
         // 4. Index settings (ADR 0011), replaced atomically if they changed
         // (set_mode, configure_ivf, set_ef_search, ...). Only updated, never
@@ -46,6 +45,12 @@ impl SrvDB {
         if self.stored_settings.is_some() {
             self.record_settings()?;
         }
+
+        // 5. Keyword index (ADR 0015), after the settings so a failure to
+        // write this derived file never leaves the settings unrecorded.
+        // HNSW/IVF stay before the settings (ADR 0011 order): the settings
+        // describe those files, and each is rebuilt if missing or stale.
+        self.persist_keyword_index()?;
 
         Ok(())
     }
