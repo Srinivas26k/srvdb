@@ -128,7 +128,7 @@ with the normal rebuild path, without touching `vectors.bin`. We chose
 per-vector records now because they reuse `RecordFile` (append, truncate,
 checksums, crash rules) unchanged.
 
-**Update (ADR 0011):** the 256-entry tables are replaced by the
+**Update (ADR 0012):** the 256-entry tables are replaced by the
 in-memory option. Codes are copied into 32-vector interleaved blocks on
 open and scanned with u8 nibble tables (AVX2 `vpshufb`, NEON `tbl`, and
 a scalar fallback). `rabitq_codes.bin` is unchanged.

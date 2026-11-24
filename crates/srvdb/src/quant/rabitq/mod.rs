@@ -16,7 +16,7 @@
 //! `8 / b` dimensions per byte, lowest bits first, dimensions in order.
 //! The scan scores a record with one 16-entry table per nibble (a nibble
 //! is `4 / b` dimensions), so every bit width shares the fast-scan kernel
-//! in [`fastscan`] (ADR 0011).
+//! in [`fastscan`] (ADR 0012).
 
 mod config;
 pub(crate) mod fastscan;

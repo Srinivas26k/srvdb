@@ -66,7 +66,7 @@ on ARM, chosen at runtime, with a portable fallback on other CPUs). The
 removes that error from the returned scores. With `rerank=0` you get the
 estimates directly. The in-memory copy costs as much RAM as the codes
 themselves (`n × dimension × bits / 8` bytes). See
-[ADR 0011](https://github.com/Srinivas26k/srvdb/blob/master/docs/adr/0011-rabitq-fast-scan.md).
+[ADR 0012](https://github.com/Srinivas26k/srvdb/blob/master/docs/adr/0012-rabitq-fast-scan.md).
 
 ## When to use it
 

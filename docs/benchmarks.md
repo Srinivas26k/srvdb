@@ -118,7 +118,7 @@ that means an exact scan below about 18% matching at 100k vectors, 5.7%
 at 1M and 1.8% at 10M. A fixed percentage would be too low for small
 databases and too high for large ones.
 
-## RaBitQ fast-scan (ADR 0011)
+## RaBitQ fast-scan (ADR 0012)
 
 QPS before (commit 3e4ab82, 256-entry f32 tables) and after (commit
 b1dd50e, u8 nibble tables with the AVX2 kernel and the vectorized

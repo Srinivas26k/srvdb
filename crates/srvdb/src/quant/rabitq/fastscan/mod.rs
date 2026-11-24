@@ -1,4 +1,4 @@
-//! Fast-scan of RaBitQ codes (ADR 0011)
+//! Fast-scan of RaBitQ codes (ADR 0012)
 //!
 //! Codes are kept in memory in blocks of [`BLOCK`] = 32 vectors, byte `j`
 //! of every vector side by side: `block[j * 32 + v]` is code byte `j` of

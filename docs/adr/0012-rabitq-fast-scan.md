@@ -1,4 +1,4 @@
-# ADR 0011: Fast-scan kernel for RaBitQ codes
+# ADR 0012: Fast-scan kernel for RaBitQ codes
 
 - **Status:** Accepted
 - **Date:** 2026-11-24
