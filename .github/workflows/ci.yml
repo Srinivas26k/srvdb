@@ -119,8 +119,12 @@ jobs:
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # The gallery requirements let tests/python/test_examples_gallery.py
+      # run every example in fast mode here (it is skipped elsewhere).
       - name: Build and install the package with adapter extras
-        run: python -m pip install ".[langchain,llamaindex]" pytest pip-licenses
+        run: >-
+          python -m pip install ".[langchain,llamaindex]"
+          -r examples/gallery/requirements.txt pytest pip-licenses
       # AGENTS.md section 9: the framework packages the extras pull in
       # must carry a permissive licence. Their transitive trees use
       # free-form licence strings and are the frameworks' responsibility.
@@ -136,7 +140,7 @@ jobs:
           set -o pipefail
           python -m pytest tests/python -q -rs | tee pytest.log
           if grep -q "SKIPPED" pytest.log; then
-            echo "adapter tests were skipped; an extra did not import" >&2
+            echo "adapter or gallery tests were skipped; a dependency did not import" >&2
             exit 1
           fi
 
