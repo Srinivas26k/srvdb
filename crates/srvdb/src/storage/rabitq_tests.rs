@@ -37,14 +37,14 @@ fn reopens_with_same_settings_and_scores_alike() {
     let config = RabitqConfig::new(2).unwrap();
     let before = filled(dir.path(), &config, 600);
     let query = &data(600)[17];
-    let want = before.search(query, 5, &HashSet::new());
+    let want = before.search(query, 5, &HashSet::new()).unwrap();
     drop(before);
     let after = RabitqStorage::open(dir.path(), DIM, &config).unwrap();
     assert_eq!(after.count(), 600);
-    assert_eq!(after.search(query, 5, &HashSet::new()), want);
+    assert_eq!(after.search(query, 5, &HashSet::new()).unwrap(), want);
     assert_eq!(want[0].0, 17);
     let deleted: HashSet<u64> = [17].into_iter().collect();
-    assert_ne!(after.search(query, 1, &deleted)[0].0, 17);
+    assert_ne!(after.search(query, 1, &deleted).unwrap()[0].0, 17);
 }
 
 #[test]

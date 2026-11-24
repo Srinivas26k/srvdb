@@ -147,13 +147,17 @@ impl RabitqStorage {
         query: &[f32],
         n: usize,
         deleted: &HashSet<u64>,
-    ) -> Vec<(u64, f32)> {
+    ) -> Result<Vec<(u64, f32)>> {
         use crate::distance::BATCH_SIZE;
         use rayon::prelude::*;
         let size = self.file.record_size();
-        let Some(records) = self.file.range(0, self.file.count() as usize) else {
-            return Vec::new();
-        };
+        let count = self.file.count();
+        if count == 0 {
+            return Ok(Vec::new());
+        }
+        let records = self.file.range(0, count as usize).ok_or_else(|| {
+            Error::Internal(format!("{FILE_NAME}: {count} records are not mapped"))
+        })?;
         let prepared: RabitqQuery = self.quantizer.prepare(query);
         let scored: Vec<(u64, f32)> = records
             .par_chunks(BATCH_SIZE * size)
@@ -168,7 +172,7 @@ impl RabitqStorage {
                     .map(move |(r, id)| (id, prepared.score(r)))
             })
             .collect();
-        crate::distance::select_top_k(scored, n)
+        Ok(crate::distance::select_top_k(scored, n))
     }
 
     pub(crate) fn count(&self) -> u64 {

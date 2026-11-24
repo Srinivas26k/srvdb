@@ -2,7 +2,7 @@
 //! derived from them, searched by a code scan plus exact rerank
 
 use super::*;
-use crate::quant::rabitq::RabitqConfig;
+use crate::quant::rabitq::{RabitqConfig, MAX_DIMENSION as MAX_RABITQ_DIMENSION};
 use crate::storage::rabitq::RabitqStorage;
 
 /// Vectors encoded per append while catching codes up with storage
@@ -26,15 +26,16 @@ impl SrvDB {
     ///
     /// # Errors
     /// `InvalidInput` for an unsupported bit width or a dimension of 0 or
-    /// above 65535, `DimensionMismatch` if `vectors.bin` holds another
+    /// above [`crate::quant::rabitq::MAX_DIMENSION`] (4096), `DimensionMismatch` if `vectors.bin` holds another
     /// dimension, `Locked` if the database is open elsewhere, `Corrupt` /
     /// `ChecksumMismatch` for damaged vector or metadata files, or I/O.
     pub fn new_rabitq(path: &str, dimension: usize, config: RabitqConfig) -> Result<Self> {
         config.validate()?;
-        if dimension == 0 || dimension > u16::MAX as usize {
+        if dimension == 0 || dimension > MAX_RABITQ_DIMENSION {
             return Err(Error::invalid_input(format!(
-                "dimension must be between 1 and {}, got {dimension}",
-                u16::MAX
+                "RaBitQ dimension must be between 1 and {MAX_RABITQ_DIMENSION}, got \
+                 {dimension}; larger dimensions would need a rotation matrix too \
+                 large to build on every open"
             )));
         }
         let db_path = Path::new(path);
@@ -101,14 +102,29 @@ impl SrvDB {
             Ok(storage) => storage,
             Err(e) => {
                 match Error::from(e) {
+                    // No codes yet, or made with other settings
                     Error::InvalidState(why) => log::info!("building RaBitQ codes: {why}"),
-                    other => log::warn!("RaBitQ codes unusable, rebuilding them: {other}"),
+                    // Damaged, or a code-file header of another width or
+                    // dimension: derived data, so rebuild from the vectors
+                    e @ (Error::Corrupt(_)
+                    | Error::ChecksumMismatch(_)
+                    | Error::InvalidInput(_)) => {
+                        log::warn!("RaBitQ codes unusable, rebuilding them: {e}")
+                    }
+                    // I/O and other faults are not proof the codes are bad
+                    other => return Err(other),
                 }
                 RabitqStorage::create(&self.path, self.dimension, &config)?
             }
         };
         self.rabitq = Some(storage);
-        self.sync_rabitq()
+        self.sync_rabitq()?;
+        // Codes now cover exactly the committed vectors (recover() ran
+        // first): make them durable so the next open does not re-encode
+        if let Some(ref mut codes) = self.rabitq {
+            codes.flush()?;
+        }
+        Ok(())
     }
 
     /// Make the codes cover exactly the stored vectors: drop codes beyond
@@ -145,13 +161,20 @@ impl SrvDB {
             return Err(Error::invalid_state("RaBitQ storage not initialized"));
         };
         if config.rerank == 0 {
-            return Ok(codes.search(query, k, &self.deleted));
+            return Ok(codes.search(query, k, &self.deleted)?);
         }
-        let candidates = codes.search(query, k.saturating_mul(config.rerank), &self.deleted);
+        let candidates = codes.search(query, k.saturating_mul(config.rerank), &self.deleted)?;
+        // sync_rabitq keeps codes.count() == vectors.count(), so every
+        // candidate id has a vector; a miss is an internal fault
         let rescored = candidates
             .into_iter()
-            .filter_map(|(id, _)| Some((id, search::cosine_similarity(query, vectors.get(id)?))))
-            .collect();
+            .map(|(id, _)| {
+                let v = vectors.get(id).ok_or_else(|| {
+                    Error::Internal(format!("RaBitQ candidate {id} has no stored vector"))
+                })?;
+                Ok((id, search::cosine_similarity(query, v)))
+            })
+            .collect::<Result<Vec<_>>>()?;
         Ok(search::select_top_k(rescored, k))
     }
 }

@@ -20,7 +20,7 @@
 mod config;
 mod rotation;
 
-pub use config::{default_rerank, RabitqConfig, DEFAULT_SEED, SUPPORTED_BITS};
+pub use config::{default_rerank, RabitqConfig, DEFAULT_SEED, MAX_DIMENSION, SUPPORTED_BITS};
 pub(crate) use rotation::Rotation;
 
 /// Bytes before the packed codes in a record (the f32 factor)
@@ -45,6 +45,9 @@ pub(crate) struct RabitqQuery {
 impl RabitqQuantizer {
     /// `bits` must be one of [`SUPPORTED_BITS`] (checked by the config)
     pub(crate) fn new(dim: usize, bits: u8, seed: u64) -> Self {
+        // Other widths would mis-pack codes; RabitqConfig::validate and
+        // the header mode byte keep them out
+        debug_assert!(SUPPORTED_BITS.contains(&bits), "unsupported bits {bits}");
         Self {
             dim,
             bits,

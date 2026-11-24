@@ -16,6 +16,12 @@ pub fn default_rerank(bits: u8) -> usize {
     }
 }
 
+/// Largest dimension RaBitQ accepts, the same 4096 as `DatabaseConfig`.
+/// The dense rotation holds dim^2 f64 + f32 values while it is built
+/// (about 200 MB at 4096) and costs O(dim^3) on every open, so larger
+/// dimensions are refused (ADR 0008).
+pub const MAX_DIMENSION: usize = 4096;
+
 /// Default rotation seed; any fixed value works, this one is documented
 pub const DEFAULT_SEED: u64 = 0x5352_5644_4252_5131; // "SRVDBRQ1"
 
