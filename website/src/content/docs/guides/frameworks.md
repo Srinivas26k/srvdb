@@ -20,10 +20,10 @@ Both adapters behave the same way:
 - **Scores** are cosine similarities, best first.
 - **Writes persist.** Every add or delete calls `save()` before it
   returns, so it survives a crash.
-- **Metadata filters** run on the search results: the adapter fetches
-  more candidates until it has `k` matches or has seen every vector.
-  Very selective filters on large databases therefore cost close to a
-  full scan.
+- **Metadata filters** run inside SrvDB ([filtered
+  search](/srvdb/guides/filtered-search/)), so a search returns `k`
+  matches whenever `k` exist, however selective the filter. Only a
+  LangChain filter given as a Python callable runs on the search results.
 - **No network.** The adapters only call the embedding model you pass in.
   The examples below use a small hash-based embedding so they run with no
   model download; swap in a real local model (for example a
@@ -69,7 +69,8 @@ store.add_texts(
 for doc, score in store.similarity_search_with_score("where does srvdb run", k=1):
     print(doc.id, round(score, 3), doc.page_content)
 
-# Filters: a dict of equal values, or a callable on the metadata dict.
+# Filters: a dict (equality or operators like {"n": {"$gt": 1}}),
+# or a callable on the metadata dict.
 print(store.similarity_search("srvdb", k=2, filter={"topic": "lang"}))
 
 retriever = store.as_retriever(search_kwargs={"k": 1})

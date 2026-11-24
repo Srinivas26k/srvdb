@@ -49,6 +49,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unchanged. Resident memory grows by one copy of the codes (#24).
 
 ### Added
+- Filtered search from Python (#46, ADR 0014): `db.search(query, k,
+  where={...})` and `db.search_batch(queries, k, where={...})` return only
+  vectors whose metadata matches, and `k` of them whenever at least `k`
+  match. Filters are dicts with equality (`{"genre": "jazz"}`), `$eq`,
+  `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$and`, `$or`,
+  `$not` and dotted nested fields; anything else raises `ValueError`. The
+  Rust core gains `srvdb::Filter` (`Filter::from_json`, `matches`),
+  `SrvDB::search_where` and `SrvDB::search_batch_where`, which validate the
+  filter the same way. The LangChain and LlamaIndex adapters pass their
+  dict filters, `MetadataFilters`, `node_ids` and `doc_ids` to SrvDB
+  instead of post-filtering search results; LangChain dict filters now
+  accept the operators above (a dict value is an operator object, a list
+  value is rejected; use `$in`), and LlamaIndex `NIN` now matches a
+  missing key, like `NE`. A LangChain callable filter still post-filters.
 - Persisted index settings (#50, ADR 0011): the index mode and its
   parameters (HNSW `m` / `ef_construction` / `ef_search`, IVF `nlist` /
   `nprobe`, RaBitQ bits / rerank / seed, SQ8, PQ, auto) are stored in a

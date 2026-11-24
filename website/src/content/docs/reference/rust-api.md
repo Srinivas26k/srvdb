@@ -18,9 +18,10 @@ code, run `cargo doc --open -p srvdb` in a clone.
 | `Vector` | A vector of `f32` values. |
 | `SearchResult` | `id: u64`, `score: f32` (cosine), `metadata: Option<String>`. |
 | `Error`, `Result` | Typed errors; see [Handling errors](/srvdb/guides/errors/). |
+| `Filter` | A metadata filter parsed by `Filter::from_json` (`$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$and`, `$or`, `$not`) for `search_where`; see [Filtered search](/srvdb/guides/filtered-search/). |
 
 `SrvDB` methods beyond the trait: `delete`, `replace`, `is_deleted`,
-`live_count`, `compact`, `search_filtered`, `ids_where`, `set_mode`, `set_ef_search`, `configure_ivf`,
+`live_count`, `compact`, `search_filtered`, `ids_where`, `search_where`, `search_batch_where`, `set_mode`, `set_ef_search`, `configure_ivf`,
 `train_ivf`, `all_metadata`, `get_stats`, `index_name`, `dimension`.
 
 Example: [Using SrvDB from Rust](/srvdb/guides/rust/).
