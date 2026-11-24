@@ -7,6 +7,7 @@ mod delete;
 mod filter;
 mod modes;
 mod open;
+mod rabitq;
 mod read;
 mod recover;
 mod validate;
@@ -69,6 +70,9 @@ pub struct SrvDB {
     pub(crate) hnsw_config: Option<hnsw::HNSWConfig>,
     pub(crate) ivf_index: Option<ivf::IVFIndex>,
     pub(crate) ivf_config: Option<ivf::IVFConfig>,
+    /// RaBitQ codes derived from `vector_storage` (ADR 0008)
+    pub(crate) rabitq: Option<storage::rabitq::RabitqStorage>,
+    pub(crate) rabitq_config: Option<quant::rabitq::RabitqConfig>,
     pub current_mode: IndexMode,
     /// Vector dimension every insert and query must match
     pub(crate) dimension: usize,
@@ -103,6 +107,8 @@ impl VectorEngine for SrvDB {
             hnsw_config: None,
             ivf_index: None,
             ivf_config: None,
+            rabitq: None,
+            rabitq_config: None,
             current_mode: IndexMode::Flat,
             deleted: Default::default(),
             pending_deletes: Default::default(),

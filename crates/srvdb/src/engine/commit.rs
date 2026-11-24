@@ -27,6 +27,9 @@ impl SrvDB {
         self.pending_deletes.clear();
 
         // 3. Derived indexes, each replaced atomically
+        if let Some(ref mut codes) = self.rabitq {
+            codes.flush()?;
+        }
         if let Some(ref ivf) = self.ivf_index {
             storage::ivf::IVFStorage::save(ivf, &self.path)?;
         }

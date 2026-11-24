@@ -9,11 +9,12 @@ back it up.
 | File | Contents | Derived? |
 |------|----------|----------|
 | `metadata.db` | Metadata, commit record, deletes ([redb](https://github.com/cberner/redb)) | No |
-| `vectors.bin` | Full-precision vectors (flat, HNSW, IVF, auto) | No |
+| `vectors.bin` | Full-precision vectors (flat, HNSW, IVF, RaBitQ, auto) | No |
 | `sq8_vectors.bin`, `scalar_quantizer.bin` | SQ8 codes and scaling | No |
 | `quantized_vectors.bin`, `codebooks.bin` | PQ codes and codebooks | No |
 | `hnsw.graph` | HNSW graph | Yes: rebuilt if missing |
 | `ivf.index` | Trained IVF index | Yes: retrain with `train_ivf()` |
+| `rabitq_codes.bin`, `rabitq_params.bin` | RaBitQ codes and their settings | Yes: rebuilt on open if missing, damaged or stale |
 | `srvdb.lock` | Lock held while the database is open | — |
 
 Index files are derived data: they can always be rebuilt from the vectors.

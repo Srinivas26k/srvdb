@@ -107,7 +107,9 @@ impl PyDatabase {
     ///         match the stored dimension when the database exists.
     ///     mode: Index mode, case-insensitive: "flat" (default), "hnsw",
     ///         "sq8" (alias "scalar"), "pq" (alias "product"), "ivf" or
-    ///         "auto". The mode is not stored; pass it on every open.
+    ///         "auto", or "rabitq1" / "rabitq2" / "rabitq4" (RaBitQ codes with
+    ///         rerank, see new_rabitq). The mode is not stored; pass it on
+    ///         every open.
     ///
     /// Raises:
     ///     ValueError: dimension outside 128-4096, unknown mode, or a
@@ -133,6 +135,9 @@ impl PyDatabase {
             )));
         }
 
+        if let Some(bits) = crate::rabitq::bits_for_mode(mode) {
+            return Self::open_rabitq(path, dimension, bits, None, None);
+        }
         let mut config = srvdb::types::DatabaseConfig::new(dimension)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
@@ -167,7 +172,7 @@ impl PyDatabase {
             _ => {
                 return Err(PyValueError::new_err(format!(
                     "Invalid mode '{}'. Choose: 'flat', 'hnsw', 'sq8' (or 'scalar'), \
-                    'pq' (or 'product'), 'ivf' or 'auto'",
+                    'pq' (or 'product'), 'ivf', 'auto', 'rabitq1', 'rabitq2' or 'rabitq4'",
                     mode
                 )));
             }

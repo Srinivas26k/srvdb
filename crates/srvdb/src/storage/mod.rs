@@ -11,6 +11,7 @@ pub(crate) mod legacy;
 pub(crate) mod lock;
 pub mod metadata;
 pub mod pq;
+pub(crate) mod rabitq;
 mod record_file;
 pub mod sq;
 

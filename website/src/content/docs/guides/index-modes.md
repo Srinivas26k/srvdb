@@ -13,6 +13,7 @@ Every mode ranks by cosine similarity and reports true cosine scores in
 | `ivf` | Partitions, then graph | Full vectors + index | `train_ivf()` |
 | `sq8` | Scan of 8-bit codes | 1 byte × dimension | First batch |
 | `pq` | Scan of PQ codes | dimension ÷ 8 bytes (÷ 4 if not divisible by 8) | First batch, ≥ 256 vectors |
+| `rabitq1` / `rabitq2` / `rabitq4` | Scan of 1/2/4-bit codes, then exact rerank | Full vectors + dimension × bits ÷ 8 + 4 bytes | None |
 | `auto` | Flat, then HNSW | Full vectors | None |
 
 ## How to choose
@@ -22,6 +23,8 @@ Every mode ranks by cosine similarity and reports true cosine scores in
 2. **Search too slow?** Try `hnsw`, then raise `set_ef_search()` until recall
    is good enough.
 3. **Storage too large?** Try `sq8` (4× smaller), then `pq` (up to 32×).
+   **Scan too slow but you want flat-like recall?** Try
+   [RaBitQ](/srvdb/guides/rabitq/).
 4. **Always measure recall** against `flat` on a sample of your own data.
    Approximate modes vary with the data; PQ in particular can lose accuracy
    on tightly clustered embeddings.

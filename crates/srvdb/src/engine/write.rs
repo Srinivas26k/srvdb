@@ -101,6 +101,7 @@ impl SrvDB {
             return Err(Error::invalid_state("Vector storage not initialized"));
         };
 
+        self.sync_rabitq()?;
         self.index_new_ids(&[id])?;
 
         self.metadata_store.set(id, meta)?;
@@ -135,6 +136,7 @@ impl SrvDB {
             return Err(Error::invalid_state("Vector storage not initialized"));
         };
 
+        self.sync_rabitq()?;
         self.index_new_ids(&ids)?;
 
         // Store metadata

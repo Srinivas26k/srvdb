@@ -2,7 +2,9 @@
 
 use std::path::PathBuf;
 
-pub const ALL_MODES: [&str; 5] = ["flat", "sq8", "pq", "hnsw", "ivf"];
+pub const ALL_MODES: [&str; 8] = [
+    "flat", "sq8", "pq", "hnsw", "ivf", "rabitq1", "rabitq2", "rabitq4",
+];
 
 pub const USAGE: &str = "\
 usage: cargo run --release -p srvdb --example bench -- [options]
@@ -12,10 +14,12 @@ usage: cargo run --release -p srvdb --example bench -- [options]
   --queries N        query vectors (default 200)
   --k N              neighbours per query (default 10)
   --seed N           synthetic dataset seed (default 42)
-  --modes LIST       comma list of flat,sq8,pq,hnsw,ivf (default all)
+  --modes LIST       comma list of flat,sq8,pq,hnsw,ivf,rabitq1,rabitq2,rabitq4
+                     (default all)
   --ef-search N      HNSW/IVF search list size (default 100)
   --nlist N          IVF partitions (default sqrt(n))
   --nprobe N         IVF partitions probed (default 8)
+  --rerank N         RaBitQ rerank factor (default 40/20/10 for 1/2/4 bits)
   --base-fvecs PATH  load base vectors from an .fvecs file instead
   --query-fvecs PATH load query vectors from an .fvecs file (with --base-fvecs)
   --filter-pct P     search only a seeded random P% of vectors (filtered
@@ -37,6 +41,7 @@ pub struct Args {
     pub ef_search: usize,
     pub nlist: Option<usize>,
     pub nprobe: usize,
+    pub rerank: Option<usize>,
     pub base_fvecs: Option<PathBuf>,
     pub query_fvecs: Option<PathBuf>,
     pub filter_pct: Option<f64>,
@@ -65,6 +70,7 @@ pub fn parse(raw: &[String]) -> Result<Args, String> {
         ef_search: 100,
         nlist: None,
         nprobe: 8,
+        rerank: None,
         base_fvecs: None,
         query_fvecs: None,
         filter_pct: None,
@@ -84,6 +90,7 @@ pub fn parse(raw: &[String]) -> Result<Args, String> {
             "--ef-search" => a.ef_search = num(&flag, it.next())?,
             "--nlist" => a.nlist = Some(num(&flag, it.next())?),
             "--nprobe" => a.nprobe = num(&flag, it.next())?,
+            "--rerank" => a.rerank = Some(num(&flag, it.next())?),
             "--modes" => {
                 let v = it.next().ok_or("--modes needs a value")?;
                 a.modes = v.split(',').map(|s| s.trim().to_lowercase()).collect();

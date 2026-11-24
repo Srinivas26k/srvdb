@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- RaBitQ mode (`SrvDB::new_rabitq`, `RabitqConfig`; Python
+  `Database.new_rabitq()` and modes `"rabitq1"`, `"rabitq2"`, `"rabitq4"`):
+  training-free 1, 2 or 4-bit codes after a seeded random rotation, with a
+  per-vector correction factor, scanned in parallel; the top `k * rerank`
+  candidates are rescored exactly against the full vectors, which stay on
+  disk as the source of truth. Codes live in `rabitq_codes.bin` (CRC32C
+  block checksums) and `rabitq_params.bin` and are rebuilt from the vectors
+  when missing, damaged or made with other settings (ADR 0008). The
+  benchmark harness gains `rabitq1`, `rabitq2`, `rabitq4` and `--rerank`.
 - Python API reference on the documentation site: an index of every public
   object and one page per function, method and adapter class, with
   parameters, return values, exact exceptions, durability and thread-safety

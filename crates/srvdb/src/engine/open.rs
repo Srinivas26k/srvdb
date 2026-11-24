@@ -46,6 +46,8 @@ impl SrvDB {
             hnsw_config: None,
             ivf_index: None,
             ivf_config: None,
+            rabitq: None,
+            rabitq_config: None,
             current_mode,
             dimension,
             deleted: Default::default(),

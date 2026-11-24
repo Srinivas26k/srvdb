@@ -1,0 +1,45 @@
+---
+title: srvdb.Database.set_rabitq_rerank
+description: Change the rerank factor of a RaBitQ database.
+---
+
+Change the rerank factor of a RaBitQ database.
+
+```python
+Database.set_rabitq_rerank(rerank: int) -> None
+```
+
+## Parameters
+
+- **rerank** : *int*
+  Candidates per result rescored against the full vectors. `0` turns rerank off and returns estimated scores.
+
+## Returns
+
+`None`. Later searches use the new factor.
+
+## Raises
+
+- **ValueError**
+  The database is not in RaBitQ mode, or `rerank` is above 1 000 000.
+
+## Notes
+
+- Higher values give higher recall and slower searches. The setting is not stored.
+- Thread safety: a `Database` is safe to share between threads. This method releases the GIL and takes the write lock, so it waits for running searches.
+
+## Examples
+
+```python
+import srvdb
+
+db = srvdb.Database.new_rabitq("./vectors", 128, bits=1)
+db.set_rabitq_rerank(80)
+db.set_rabitq_rerank(0)
+print("ok")
+# ok
+```
+
+## See also
+
+- [`srvdb.Database.new_rabitq`](/srvdb/reference/python/database-new-rabitq/): Open or create a database searched through RaBitQ codes.

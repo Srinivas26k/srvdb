@@ -5,7 +5,7 @@ use crate::dataset::Dataset;
 use crate::measure;
 use serde_json::{json, Value};
 use srvdb::types::DatabaseConfig;
-use srvdb::{HNSWConfig, IVFConfig, IndexMode, SrvDB, Vector, VectorEngine};
+use srvdb::{HNSWConfig, IVFConfig, IndexMode, RabitqConfig, SrvDB, Vector, VectorEngine};
 use std::time::Instant;
 
 /// Vectors used to train SQ8 / PQ quantizers (and IVF k-means internally).
@@ -30,6 +30,13 @@ fn create(mode: &str, path: &str, ds: &Dataset, args: &Args) -> srvdb::Result<Sr
                 ..HNSWConfig::default()
             };
             SrvDB::new_with_hnsw(path, ds.dim, cfg)
+        }
+        "rabitq1" | "rabitq2" | "rabitq4" => {
+            let mut cfg = RabitqConfig::new(mode.as_bytes()[6] - b'0')?;
+            if let Some(r) = args.rerank {
+                cfg = cfg.with_rerank(r);
+            }
+            SrvDB::new_rabitq(path, ds.dim, cfg)
         }
         other => Err(srvdb::Error::InvalidInput(format!("unknown mode {other}"))),
     }

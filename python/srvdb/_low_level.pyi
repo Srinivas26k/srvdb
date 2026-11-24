@@ -19,7 +19,19 @@ from typing import Literal
 
 __version__: str
 
-Mode = Literal["flat", "hnsw", "sq8", "scalar", "pq", "product", "ivf", "auto"]
+Mode = Literal[
+    "flat",
+    "hnsw",
+    "sq8",
+    "scalar",
+    "pq",
+    "product",
+    "ivf",
+    "auto",
+    "rabitq1",
+    "rabitq2",
+    "rabitq4",
+]
 SwitchableMode = Literal["flat", "hnsw", "sq8", "scalar", "ivf", "auto"]
 
 class Database:
@@ -63,6 +75,20 @@ class Database:
         path: str, dimension: int, training_vectors: Sequence[Sequence[float]]
     ) -> Database:
         """Open or create a PQ database trained on ``training_vectors``."""
+    @staticmethod
+    def new_rabitq(
+        path: str,
+        dimension: int = 1536,
+        bits: Literal[1, 2, 4] = 4,
+        rerank: int | None = None,
+        seed: int | None = None,
+    ) -> Database:
+        """Full vectors on disk, searched through 1/2/4-bit RaBitQ codes plus
+        exact rerank of k * rerank candidates (default 40/20/10 for 1/2/4
+        bits; 0 disables rerank). No training. Raises ValueError for other
+        bit widths."""
+    def set_rabitq_rerank(self, rerank: int) -> None:
+        """Rerank factor for later searches; ValueError outside RaBitQ mode."""
     def add(
         self,
         ids: Sequence[str],
