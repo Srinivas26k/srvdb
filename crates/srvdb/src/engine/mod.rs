@@ -1,5 +1,6 @@
 //! The `SrvDB` engine: storage, indexes and metadata behind one API
 
+mod budget;
 mod commit;
 mod compact;
 mod constructors;
@@ -24,6 +25,7 @@ mod write;
 #[cfg(test)]
 mod tests;
 
+pub use budget::MemoryReport;
 pub use create_options::{CreateOptions, IndexChoice};
 
 use crate::error::{Error, Result};
@@ -86,6 +88,9 @@ pub struct SrvDB {
     /// Contents of `index_settings.bin` as last read or written (ADR 0011);
     /// `None` for a database that has none yet (SrvDB 0.3 / early 0.4)
     pub(crate) stored_settings: Option<storage::settings::IndexSettings>,
+    /// Memory budget in MiB (ADR 0018); writes step down the bit width
+    /// or are refused to stay within it
+    pub(crate) memory_budget: Option<u64>,
     pub current_mode: IndexMode,
     /// Vector dimension every insert and query must match
     pub(crate) dimension: usize,
@@ -129,6 +134,7 @@ impl VectorEngine for SrvDB {
             rabitq: None,
             rabitq_config: None,
             stored_settings: None,
+            memory_budget: None,
             current_mode: IndexMode::Flat,
             deleted: Default::default(),
             pending_deletes: Default::default(),

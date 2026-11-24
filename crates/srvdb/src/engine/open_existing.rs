@@ -88,6 +88,9 @@ impl SrvDB {
         if settings.kind == IndexKind::Auto {
             db.set_mode(IndexMode::Auto);
         }
+        db.memory_budget = settings.memory_mb;
+        // The constructor recorded the settings without the budget field
+        db.stored_settings = Some(settings);
         Ok(db)
     }
 

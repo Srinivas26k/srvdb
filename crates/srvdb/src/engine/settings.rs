@@ -138,6 +138,7 @@ impl SrvDB {
         IndexSettings {
             dimension: self.dimension,
             kind,
+            memory_mb: self.memory_budget,
         }
     }
 

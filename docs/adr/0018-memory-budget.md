@@ -64,8 +64,11 @@ The estimates are checked against measured allocations where they can
 be measured: a counting global allocator in
 `crates/srvdb/tests/test_memory_estimate.rs` measures the live heap of
 the RaBitQ copy and rotation and of the HNSW graph across database sizes.
-Stated tolerance: RaBitQ within 10 %, HNSW within 35 % (neighbour lists
-grow by `push`, so their capacity depends on insertion order). Flat,
+RaBitQ is measured against a flat database of the same vectors, so
+redb's cache cancels. Stated tolerance: RaBitQ codes and rotation within
+2 % (they match to the byte in practice), HNSW within 35 % (neighbour
+lists grow by `push`, so their capacity depends on insertion order; the
+estimate errs high). Flat,
 SQ8 and PQ are record sizes of mapped files and exact by construction;
 links and keyword are rough and are not used to pick a bit width, only
 added to the total.
