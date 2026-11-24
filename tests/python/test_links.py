@@ -95,3 +95,55 @@ def test_drop_links_clears_a_closed_database(tmp_path, db):
     again.close()
     with pytest.raises(FileNotFoundError):
         srvdb.drop_links(str(tmp_path / "missing"))
+
+
+@pytest.fixture
+def worded(tmp_path):
+    """Six docs with text, chained doc0 -> doc1 -> ... -> doc5 by "next"."""
+    database = srvdb.create(str(tmp_path / "worded"), DIM)
+    words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot"]
+    ids = [f"doc{i}" for i in range(6)]
+    metas = [json.dumps({"text": w, "even": i % 2 == 0}) for i, w in enumerate(words)]
+    database.add(ids, [vec(i) for i in range(6)], metas)
+    database.enable_keyword_search("text")
+    for i in range(5):
+        database.link(f"doc{i}", "next", f"doc{i + 1}")
+    yield database
+    database.close()
+
+
+def test_expand_with_vector_search(worded):
+    hits = worded.search(vec(0), 1, expand=("next", 1))
+    assert [h[2] for h in hits] == [0, 1]
+    assert hits[1][0] == f"doc{int(hits[0][0][3:]) + 1}"
+
+
+def test_expand_with_keyword_only_search(worded):
+    hits = worded.search(None, 1, text="charlie", expand=("next", 2))
+    assert [(h[0], h[2]) for h in hits] == [("doc2", 0), ("doc3", 1), ("doc4", 2)]
+    assert all(h[1] == hits[0][1] for h in hits)
+
+
+def test_expand_with_hybrid_search(worded):
+    plain = worded.search(vec(2), 2, text="charlie")
+    hits = worded.search(vec(2), 2, text="charlie", expand=("next", 1))
+    assert [(h[0], h[1]) for h in hits[:2]] == plain
+    assert all(h[2] == 0 for h in hits[:2])
+    assert all(h[2] == 1 for h in hits[2:])
+
+
+def test_expand_with_where_is_refused(worded):
+    with pytest.raises(ValueError, match="where.*expand"):
+        worded.search(vec(0), 1, where={"even": True}, expand=("next", 1))
+
+
+def test_expand_with_text_and_where_is_refused(worded):
+    with pytest.raises(ValueError, match="where.*expand"):
+        worded.search(None, 1, text="alpha", where={"even": True}, expand=("next", 1))
+    with pytest.raises(ValueError, match="where.*expand"):
+        worded.search(vec(0), 1, text="alpha", where={"even": True}, expand=("next", 1))
+
+
+def test_expand_without_query_or_text_is_refused(worded):
+    with pytest.raises(ValueError, match="query vector, text"):
+        worded.search(None, 1, expand=("next", 1))

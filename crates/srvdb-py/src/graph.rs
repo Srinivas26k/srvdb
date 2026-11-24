@@ -37,14 +37,13 @@ pub(crate) fn to_expansion(value: &Bound<'_, PyAny>) -> PyResult<srvdb::Expansio
     Ok(expansion)
 }
 
-/// Run an expanded search; results without a string id are dropped
-pub(crate) fn search_expanded(
+/// Expand search hits along links; results without a string id are dropped
+pub(crate) fn expand_named(
     state: &State,
-    query: &srvdb::Vector,
-    k: usize,
+    hits: &[srvdb::SearchResult],
     expansion: &srvdb::Expansion,
 ) -> PyResult<Vec<(String, f32, u32)>> {
-    let results = state.db.search_expand(query, k, expansion).map_err(to_py)?;
+    let results = state.db.expand_hits(hits, expansion).map_err(to_py)?;
     Ok(results
         .into_iter()
         .filter_map(|r| {

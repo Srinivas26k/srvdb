@@ -26,6 +26,7 @@ impl SrvDB {
         self.deleted.insert(id);
         self.pending_deletes.push(id);
         self.graph.remove_record(id); // a deleted record has no links (ADR 0016)
+        self.note_keyword_delete(id);
         Ok(true)
     }
 

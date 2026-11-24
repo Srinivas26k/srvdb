@@ -135,20 +135,29 @@ class Database:
         """Add vectors, replacing existing ids. Returns the count written."""
     def search(
         self,
-        query: Sequence[float],
+        query: Sequence[float] | None,
         k: int,
         *,
+        text: str | None = None,
         where: Mapping[str, Any] | None = None,
         expand: tuple[str, int] | tuple[str, int, int] | None = None,
     ) -> list[tuple[str, float]] | list[tuple[str, float, int]]:
-        """Up to ``k`` ``(id, cosine score)`` pairs, best first.
+        """Up to ``k`` ``(id, score)`` pairs, best first.
+
+        Scores are cosine similarities for a vector ``query``. ``text``
+        adds BM25 keyword search over the field chosen with
+        ``enable_keyword_search()``: with a query the two rankings are fused
+        (Reciprocal Rank Fusion, fused scores), with ``query=None`` the
+        search is keyword-only (BM25 scores). ValueError if both are None,
+        ``text`` has no letters or digits, or keyword search is not enabled.
 
         ``expand=(link_type, hops[, max_results])`` follows outgoing links
         of ``link_type`` from the hits for 1 to 3 hops (at most
         ``max_results`` added, default 100, at most 1000) and returns
         ``(id, score, hop)`` tuples instead; hits have hop 0. Linked
         records inherit the score of the record they were reached from.
-        Cannot be combined with ``where``.
+        Works with vector, keyword (``text``) and hybrid hits; ValueError
+        if combined with ``where`` (linked records would not be filtered).
 
         ``where`` keeps only vectors whose metadata matches, e.g.
         ``{"genre": "jazz", "year": {"$gte": 1950}}``. Operators: ``$eq``,
@@ -174,6 +183,9 @@ class Database:
     def neighbors(self, id: str, type: str | None = None) -> list[tuple[str, str]]:
         """Outgoing ``(link_type, target id)`` links of ``id``, sorted.
         Deleting a record removes its links; upsert keeps them."""
+    def enable_keyword_search(self, field: str = "text") -> None:
+        """Index metadata field ``field`` (``"a.b"`` for nested) for
+        ``search(text=...)``; saved by the next save()."""
     def get(self, id: str) -> str | None:
         """Stored metadata JSON (with ``"__id__"``), or None for an unknown id."""
     def count(self) -> int:

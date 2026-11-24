@@ -83,7 +83,9 @@ follows outgoing links of `link_type` breadth-first:
   smallest hop.
 - A linked record's score is the score of the record it was reached from,
   not its own similarity to the query.
-- `expand` cannot be combined with `where`.
+- `expand` works with vector, keyword (`text=`) and hybrid searches: the
+  hits of any of them are expanded. It cannot be combined with `where`,
+  because linked records would not be filtered; that raises `ValueError`.
 
 ## Opening with an older SrvDB
 

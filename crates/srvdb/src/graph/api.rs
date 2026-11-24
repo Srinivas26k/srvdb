@@ -136,7 +136,23 @@ impl SrvDB {
     ) -> Result<Vec<ExpandedResult>> {
         expansion.validate()?;
         let hits = self.search(query, k)?;
-        let expanded = expand(&self.graph, &hits, expansion);
+        self.expand_hits(&hits, expansion)
+    }
+
+    /// Expand the results of any search (vector, keyword or hybrid) along
+    /// links, as [`SrvDB::search_expand`] does for a vector search: `hits`
+    /// become hop 0 in their given order, followed by linked records.
+    ///
+    /// # Errors
+    /// `InvalidInput` if the expansion is out of bounds or its link type
+    /// is invalid.
+    pub fn expand_hits(
+        &self,
+        hits: &[crate::SearchResult],
+        expansion: &Expansion,
+    ) -> Result<Vec<ExpandedResult>> {
+        expansion.validate()?;
+        let expanded = expand(&self.graph, hits, expansion);
         let ids: Vec<u64> = expanded.iter().map(|&(id, _, _)| id).collect();
         let metadata = self.metadata_store.get_batch(&ids)?;
         Ok(expanded

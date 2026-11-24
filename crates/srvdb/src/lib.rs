@@ -17,6 +17,7 @@ mod error;
 mod filter;
 mod graph;
 pub mod index;
+mod keyword;
 pub mod quant;
 pub mod storage;
 pub mod tuning;

@@ -54,6 +54,7 @@ impl SrvDB {
             deleted: Default::default(),
             pending_deletes: Default::default(),
             graph: Default::default(),
+            keyword: Default::default(),
             _lock: lock,
             dimension,
         };
@@ -121,6 +122,7 @@ impl SrvDB {
             deleted: Default::default(),
             pending_deletes: Default::default(),
             graph: Default::default(),
+            keyword: Default::default(),
             _lock: lock,
             dimension,
         };
@@ -180,6 +182,7 @@ impl SrvDB {
             deleted: Default::default(),
             pending_deletes: Default::default(),
             graph: Default::default(),
+            keyword: Default::default(),
             _lock: lock,
             dimension,
         };
@@ -263,6 +266,7 @@ impl SrvDB {
             deleted: Default::default(),
             pending_deletes: Default::default(),
             graph: Default::default(),
+            keyword: Default::default(),
             _lock: lock,
             // Non-empty: storage training above rejects an empty set
             dimension: embedded[0].len(),
