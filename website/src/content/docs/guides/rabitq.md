@@ -32,7 +32,7 @@ db.set_rabitq_rerank(0)    # no rerank: estimated scores, fastest
 ```
 
 The mode strings `"rabitq1"`, `"rabitq2"` and `"rabitq4"` work with
-`srvdb.Database(path, dimension, mode=...)` too. Reopen a database with the
+`srvdb.open(path, dimension, mode=...)` and `srvdb.Database(...)` too. Reopen a database with the
 same bit width; opening it with another one rebuilds the codes.
 
 From Rust:

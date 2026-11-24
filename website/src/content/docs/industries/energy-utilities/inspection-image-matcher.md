@@ -69,7 +69,7 @@ A complete, runnable **Inspection Image Matcher** reference implementation is in
 import json
 import srvdb
 
-db = srvdb.Database("./inspection-image-matcher-db", dimension=512, mode="hnsw")
+db = srvdb.open("./inspection-image-matcher-db", dimension=512, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

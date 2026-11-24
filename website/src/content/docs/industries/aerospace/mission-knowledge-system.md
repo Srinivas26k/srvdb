@@ -69,7 +69,7 @@ A complete, runnable **Mission Knowledge System** reference implementation is in
 import json
 import srvdb
 
-db = srvdb.Database("./mission-knowledge-system-db", dimension=768)
+db = srvdb.open("./mission-knowledge-system-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

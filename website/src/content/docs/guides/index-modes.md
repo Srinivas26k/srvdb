@@ -41,7 +41,7 @@ def recall_at_k(exact_db, approx_db, queries, k=10):
 ## Flat
 
 ```python
-db = srvdb.Database("./db", dimension=768, mode="flat")
+db = srvdb.open("./db", dimension=768, mode="flat")
 ```
 
 ## HNSW
@@ -60,7 +60,7 @@ Groups vectors into `nlist` partitions (spherical k-means) and searches only
 the `nprobe` closest ones, each with its own HNSW graph.
 
 ```python
-db = srvdb.Database("./db", dimension=768, mode="ivf")
+db = srvdb.open("./db", dimension=768, mode="ivf")
 db.add(ids, embeddings, metadatas)
 db.configure_ivf(nlist=100, nprobe=10)
 db.train_ivf()
@@ -72,7 +72,7 @@ db.persist()            # the trained index is saved and reloaded on open
 Each value stored as one byte, scaled per dimension from the first batch.
 
 ```python
-db = srvdb.Database("./db", dimension=768, mode="sq8")
+db = srvdb.open("./db", dimension=768, mode="sq8")
 ```
 
 ## PQ
@@ -82,7 +82,7 @@ nearest learned centroid. Trained on the first batch, which needs at least 256
 vectors.
 
 ```python
-db = srvdb.Database("./db", dimension=768, mode="pq")
+db = srvdb.open("./db", dimension=768, mode="pq")
 ```
 
 From Rust, `SrvDB::new_with_hnsw_quantized` builds an HNSW graph over PQ
@@ -95,5 +95,5 @@ vectors and at least 2 GB of RAM is available, it builds an HNSW graph.
 It never compresses: compression is always your choice.
 
 ```python
-db = srvdb.Database("./db", dimension=768, mode="auto")
+db = srvdb.open("./db", dimension=768, mode="auto")
 ```

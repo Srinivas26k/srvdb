@@ -70,7 +70,7 @@ A complete, runnable **On-prem Risk AI Platform** reference implementation is in
 import json
 import srvdb
 
-db = srvdb.Database("./on-prem-risk-ai-db", dimension=768, mode="hnsw")
+db = srvdb.open("./on-prem-risk-ai-db", dimension=768, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

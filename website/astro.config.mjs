@@ -31,7 +31,12 @@ export default defineConfig({
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/Srinivas26k/srvdb' },
 			],
 			editLink: { baseUrl: 'https://github.com/Srinivas26k/srvdb/edit/master/website/' },
-			customCss: ['@fontsource/cinzel/600.css', '@fontsource/cinzel/700.css', './src/styles/eagle.css'],
+			customCss: [
+				'@fontsource/inter/400.css',
+				'@fontsource/inter/600.css',
+				'@fontsource/jetbrains-mono/400.css',
+				'./src/styles/tokens.css',
+			],
 			lastUpdated: true,
 			sidebar: [
 				{
@@ -54,6 +59,7 @@ export default defineConfig({
 					label: 'Guides',
 					items: [
 						{ label: 'Build a local RAG app', slug: 'guides/local-rag' },
+						{ label: 'LangChain and LlamaIndex', slug: 'guides/frameworks' },
 						{ label: 'Choosing an index mode', slug: 'guides/index-modes' },
 						{ label: 'RaBitQ low-bit search', slug: 'guides/rabitq' },
 						{ label: 'Durability and persist()', slug: 'guides/durability' },

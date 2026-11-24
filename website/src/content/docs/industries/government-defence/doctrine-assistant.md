@@ -69,7 +69,7 @@ A complete, runnable **Doctrine Assistant** reference implementation is in progr
 import json
 import srvdb
 
-db = srvdb.Database("./doctrine-assistant-db", dimension=768)
+db = srvdb.open("./doctrine-assistant-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -69,7 +69,7 @@ A complete, runnable **Field Intelligence Agent** reference implementation is in
 import json
 import srvdb
 
-db = srvdb.Database("./field-intelligence-agent-db", dimension=512, mode="sq8")
+db = srvdb.open("./field-intelligence-agent-db", dimension=512, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

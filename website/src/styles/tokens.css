@@ -1,0 +1,103 @@
+/* SrvDB documentation design tokens.
+   One sans-serif text face (Inter), one monospace (JetBrains Mono).
+   Colours are set through Starlight's custom properties so every built-in
+   component picks them up. Neutral greys, one blue accent.
+   Contrast (WCAG 2.1, checked against the page background):
+     dark:  body #e4e6eb on #15171c ~ 14:1, accent #8ab4ff ~ 8.6:1,
+            muted gray-3 #9aa1ad ~ 6.9:1
+     light: body #1f2329 on #ffffff ~ 15.6:1, accent #1d4ed8 ~ 6.7:1,
+            muted gray-3 #5b6370 ~ 6.0:1
+   All text pairs meet AA (4.5:1). */
+
+/* Typography, spacing and radii (theme independent) */
+:root {
+	--sl-font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--sl-font-heading: var(--sl-font);
+
+	/* Type scale (Starlight variables, modest 1.2 ratio) */
+	--sl-text-xs: 0.8125rem;
+	--sl-text-sm: 0.875rem;
+	--sl-text-base: 1rem;
+	--sl-text-lg: 1.125rem;
+	--sl-text-xl: 1.25rem;
+	--sl-text-2xl: 1.5rem;
+	--sl-text-3xl: 1.75rem;
+	--sl-text-4xl: 2rem;
+	--sl-text-5xl: 2.5rem;
+	--sl-text-h1: var(--sl-text-4xl);
+	--sl-text-h2: var(--sl-text-2xl);
+	--sl-text-h3: var(--sl-text-xl);
+	--sl-text-h4: var(--sl-text-lg);
+	--sl-line-height: 1.65;
+	--sl-line-height-headings: 1.25;
+
+	/* Spacing and radii used by the overrides below */
+	--srv-space-1: 0.25rem;
+	--srv-space-2: 0.5rem;
+	--srv-space-3: 0.75rem;
+	--srv-space-4: 1rem;
+	--srv-space-6: 1.5rem;
+	--srv-radius-sm: 4px;
+	--srv-radius-md: 8px;
+}
+
+/* Dark theme (Starlight's default) */
+:root {
+	--sl-color-accent-low: #1b2a4a;
+	--sl-color-accent: #8ab4ff;
+	--sl-color-accent-high: #d6e4ff;
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #e4e6eb;
+	--sl-color-gray-2: #c3c7cf;
+	--sl-color-gray-3: #9aa1ad;
+	--sl-color-gray-4: #5f6672;
+	--sl-color-gray-5: #393e47;
+	--sl-color-gray-6: #23262d;
+	--sl-color-black: #15171c;
+}
+
+/* Light theme */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #dbe6fe;
+	--sl-color-accent: #1d4ed8;
+	--sl-color-accent-high: #1e3a8a;
+	--sl-color-white: #111318;
+	--sl-color-gray-1: #1f2329;
+	--sl-color-gray-2: #3a404a;
+	--sl-color-gray-3: #5b6370;
+	--sl-color-gray-4: #8b929d;
+	--sl-color-gray-5: #d5d9df;
+	--sl-color-gray-6: #eef0f3;
+	--sl-color-gray-7: #f7f8fa;
+	--sl-color-black: #ffffff;
+}
+
+/* Headings: same face as body, tighter tracking, semibold */
+.sl-markdown-content :is(h1, h2, h3, h4),
+h1#_top,
+.hero h1 {
+	font-family: var(--sl-font-heading);
+	font-weight: 600;
+	letter-spacing: -0.015em;
+}
+
+/* Inline code and blocks share one radius */
+.sl-markdown-content :not(pre) > code {
+	border-radius: var(--srv-radius-sm);
+	padding: 0.1em 0.35em;
+}
+.expressive-code .frame {
+	--ec-brdRad: var(--srv-radius-md);
+}
+
+/* Cards: flat, one border, one radius */
+.card {
+	border-radius: var(--srv-radius-md);
+	padding: var(--srv-space-6);
+}
+
+/* Splash hero: plain, left-aligned text, no decoration */
+.hero {
+	padding-block: var(--srv-space-6);
+}

@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   block checksums) and `rabitq_params.bin` and are rebuilt from the vectors
   when missing, damaged or made with other settings (ADR 0008). The
   benchmark harness gains `rabitq1`, `rabitq2`, `rabitq4` and `--rerank`.
+- LangChain and LlamaIndex vector-store adapters,
+  `srvdb.integrations.langchain.SrvDBVectorStore` and
+  `srvdb.integrations.llamaindex.SrvDBVectorStore`, over `srvdb.Database`:
+  add texts or nodes with embeddings and metadata, similarity search with
+  cosine scores, delete, and metadata filters (applied to search results).
+  Install with `pip install "srvdb[langchain]"` or `"srvdb[llamaindex]"`;
+  `import srvdb` never imports either framework, and the adapters make no
+  network calls. See the "LangChain and LlamaIndex" guide (#26).
+- `srvdb.open(path, dimension=1536, mode="flat")`, a shorter way to create
+  or open a database. It returns a `srvdb.Database` and takes the same
+  arguments as the `Database` constructor, which stays public and unchanged.
 - CRC32C checksums over vector files (one per 1 MiB block, in a
   `<file>.crc` sidecar) and over index and quantizer files. Every vector file
   is verified when the database opens; damage (bit rot, a torn write, a bad

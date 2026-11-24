@@ -69,7 +69,7 @@ A complete, runnable **Contract Q&A** reference implementation is in progress. T
 import json
 import srvdb
 
-db = srvdb.Database("./contract-qa-db", dimension=768)
+db = srvdb.open("./contract-qa-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -70,7 +70,7 @@ A complete, runnable **Air-gapped OT Sentinel** reference implementation is in p
 import json
 import srvdb
 
-db = srvdb.Database("./ot-sentinel-db", dimension=128, mode="sq8")
+db = srvdb.open("./ot-sentinel-db", dimension=128, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

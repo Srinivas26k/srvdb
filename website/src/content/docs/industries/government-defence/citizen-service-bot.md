@@ -69,7 +69,7 @@ A complete, runnable **Citizen Service Bot** reference implementation is in prog
 import json
 import srvdb
 
-db = srvdb.Database("./citizen-service-bot-db", dimension=384)
+db = srvdb.open("./citizen-service-bot-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

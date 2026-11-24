@@ -69,7 +69,7 @@ A complete, runnable **Secure Leak Analysis** reference implementation is in pro
 import json
 import srvdb
 
-db = srvdb.Database("./secure-leak-analysis-db", dimension=768, mode="hnsw")
+db = srvdb.open("./secure-leak-analysis-db", dimension=768, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

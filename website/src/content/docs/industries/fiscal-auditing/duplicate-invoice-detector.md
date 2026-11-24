@@ -69,7 +69,7 @@ A complete, runnable **Duplicate Invoice Detector** reference implementation is 
 import json
 import srvdb
 
-db = srvdb.Database("./duplicate-invoice-detector-db", dimension=384)
+db = srvdb.open("./duplicate-invoice-detector-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

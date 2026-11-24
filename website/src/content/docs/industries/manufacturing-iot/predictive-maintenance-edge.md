@@ -69,7 +69,7 @@ A complete, runnable **Predictive Maintenance at the Edge** reference implementa
 import json
 import srvdb
 
-db = srvdb.Database("./predictive-maintenance-edge-db", dimension=128, mode="sq8")
+db = srvdb.open("./predictive-maintenance-edge-db", dimension=128, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

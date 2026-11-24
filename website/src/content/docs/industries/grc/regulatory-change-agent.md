@@ -69,7 +69,7 @@ A complete, runnable **Regulatory Change Agent** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./regulatory-change-agent-db", dimension=768)
+db = srvdb.open("./regulatory-change-agent-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

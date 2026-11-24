@@ -69,7 +69,7 @@ A complete, runnable **RF Fingerprint Lab** reference implementation is in progr
 import json
 import srvdb
 
-db = srvdb.Database("./rf-fingerprint-lab-db", dimension=128, mode="sq8")
+db = srvdb.open("./rf-fingerprint-lab-db", dimension=128, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

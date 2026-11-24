@@ -69,7 +69,7 @@ A complete, runnable **Investigator Agent** reference implementation is in progr
 import json
 import srvdb
 
-db = srvdb.Database("./investigator-agent-db", dimension=768)
+db = srvdb.open("./investigator-agent-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

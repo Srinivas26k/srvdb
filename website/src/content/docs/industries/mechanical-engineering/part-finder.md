@@ -69,7 +69,7 @@ A complete, runnable **Part Finder** reference implementation is in progress. Th
 import json
 import srvdb
 
-db = srvdb.Database("./part-finder-db", dimension=768)
+db = srvdb.open("./part-finder-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

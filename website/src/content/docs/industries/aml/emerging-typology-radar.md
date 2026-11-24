@@ -69,7 +69,7 @@ A complete, runnable **Emerging Typology Radar** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./emerging-typology-radar-db", dimension=768, mode="hnsw")
+db = srvdb.open("./emerging-typology-radar-db", dimension=768, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

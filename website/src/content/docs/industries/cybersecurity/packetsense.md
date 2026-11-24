@@ -72,7 +72,7 @@ A complete, runnable **PacketSense** reference implementation is in progress. Th
 import json
 import srvdb
 
-db = srvdb.Database("./packetsense-db", dimension=128, mode="hnsw")
+db = srvdb.open("./packetsense-db", dimension=128, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

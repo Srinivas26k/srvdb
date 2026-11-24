@@ -69,7 +69,7 @@ A complete, runnable **Diagnostic Assistant** reference implementation is in pro
 import json
 import srvdb
 
-db = srvdb.Database("./diagnostic-assistant-db", dimension=384)
+db = srvdb.open("./diagnostic-assistant-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

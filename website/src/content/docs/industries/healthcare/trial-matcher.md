@@ -69,7 +69,7 @@ A complete, runnable **Trial Matcher** reference implementation is in progress. 
 import json
 import srvdb
 
-db = srvdb.Database("./trial-matcher-db", dimension=768)
+db = srvdb.open("./trial-matcher-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
