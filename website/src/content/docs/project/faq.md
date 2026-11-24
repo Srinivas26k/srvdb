@@ -36,4 +36,4 @@ srinivasvarma764@gmail.com.
 
 ### How fast is it?
 We publish numbers only from reproducible benchmarks; see
-[Benchmarks](/srvdb/project/benchmarks/).
+[Benchmarks](/srvdb/benchmarks/).

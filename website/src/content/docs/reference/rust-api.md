@@ -19,7 +19,7 @@ code, run `cargo doc --open -p srvdb` in a clone.
 | `Error`, `Result` | Typed errors; see [Handling errors](/srvdb/guides/errors/). |
 
 `SrvDB` methods beyond the trait: `delete`, `replace`, `is_deleted`,
-`live_count`, `compact`, `set_mode`, `set_ef_search`, `configure_ivf`,
+`live_count`, `compact`, `search_filtered`, `ids_where`, `set_mode`, `set_ef_search`, `configure_ivf`,
 `train_ivf`, `all_metadata`, `get_stats`.
 
 Example: [Using SrvDB from Rust](/srvdb/guides/rust/).

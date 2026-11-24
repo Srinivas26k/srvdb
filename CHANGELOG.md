@@ -45,6 +45,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   synthetic dataset by default (works offline) or user-supplied `.fvecs`
   files, and records CPU, OS, commit and command with every result. See
   `docs/benchmarks.md`.
+- Filtered search (Rust): `SrvDB::search_filtered(query, k, &allowed)`
+  returns the k nearest neighbours among a set of ids, and
+  `SrvDB::ids_where(predicate)` builds that set from metadata. With HNSW
+  the filter is applied during graph traversal (non-matching nodes are
+  walked through but never returned, with ACORN-style two-hop expansion);
+  when scoring the matches directly is cheaper
+  (`matches^2 < 4 * ef * M * live`, measured in `docs/benchmarks.md`), or
+  in other modes, the matching ids are scored exactly. It always returns k results when at
+  least k live vectors match; filtering `search` results afterwards could
+  return fewer. The bench harness gains `--filter-pct P`, which compares
+  filtered search with post-filtering, and the ignored test
+  `filtered_walk_cost` reproduces the threshold measurement. Python
+  bindings are unchanged. Design: ADR 0010.
 
 ### Changed
 - On-disk format: vector file header version 5 and file envelope version 2.

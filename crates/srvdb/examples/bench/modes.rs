@@ -79,6 +79,15 @@ pub fn run(mode: &str, ds: &Dataset, args: &Args, path: &str) -> Result<Value, S
     let (db, ids) = build(mode, path, ds, args).map_err(|e| fail("build", e))?;
     let build_secs = t0.elapsed().as_secs_f64();
 
+    if let Some(pct) = args.filter_pct {
+        let mut v =
+            crate::filtered::run(&db, ds, args, &ids, pct).map_err(|e| fail("search", e))?;
+        v["mode"] = json!(mode);
+        v["build_secs"] = json!(build_secs);
+        v["peak_rss_mib"] = json!(measure::peak_rss_mib());
+        return Ok(v);
+    }
+
     // Map database ids back to dataset positions for recall.
     let pos: std::collections::HashMap<u64, usize> =
         ids.iter().enumerate().map(|(i, id)| (*id, i)).collect();

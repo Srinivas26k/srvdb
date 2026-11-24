@@ -1,0 +1,37 @@
+---
+// Horizontal bar chart of one per-index number (build time or peak RSS).
+import { type Run, forThreads, label, isSrvdb, fmt } from './lib';
+
+interface Props { run: Run; threads: number; metric: 'build_secs' | 'peak_rss_mib'; unit: string; title: string }
+const { run, threads, metric, unit, title } = Astro.props;
+const rs = forThreads(run, threads)
+	.filter((r) => typeof r[metric] === 'number')
+	.sort((a, b) => (a[metric] as number) - (b[metric] as number));
+const W = 720, L = 210, R = 90, rowH = 20;
+const H = rs.length * rowH + 10;
+const max = Math.max(...rs.map((r) => r[metric] as number), Number.MIN_VALUE);
+const w = (v: number) => (v / max) * (W - L - R);
+---
+<figure class="bench-fig">
+	<svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+		<title>{title}</title>
+		{rs.map((r, i) => (
+			<g transform={`translate(0, ${5 + i * rowH})`}>
+				<text x={L - 8} y="13" text-anchor="end" class={isSrvdb(r) ? 'srv' : ''}>{label(r)}</text>
+				<rect x={L} y="3" height="13" width={Math.max(1, w(r[metric] as number))} class={isSrvdb(r) ? 'bar srv' : 'bar'} />
+				<text x={L + w(r[metric] as number) + 6} y="13">{fmt(r[metric] as number)} {unit}</text>
+			</g>
+		))}
+	</svg>
+	<figcaption>{title} ({threads === 1 ? '1 thread' : `${threads} threads`}, {run.dataset.name}). Lower is better.</figcaption>
+</figure>
+
+<style>
+	.bench-fig { margin: var(--srv-space-4) 0; }
+	svg { width: 100%; height: auto; font-size: 11px; }
+	svg text { fill: var(--sl-color-gray-2); }
+	svg text.srv { fill: var(--sl-color-accent); font-weight: 600; }
+	.bar { fill: var(--sl-color-gray-4); }
+	.bar.srv { fill: var(--sl-color-accent); }
+	figcaption { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+</style>

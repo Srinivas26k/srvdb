@@ -21,7 +21,7 @@ impl SplitMix {
 }
 
 /// Seeded Gaussian clusters, like the bench harness's synthetic dataset
-fn clustered(dim: usize, n: usize, clusters: usize, seed: u64) -> Vec<Vec<f32>> {
+pub(super) fn clustered(dim: usize, n: usize, clusters: usize, seed: u64) -> Vec<Vec<f32>> {
     let mut rng = SplitMix(seed);
     let centres: Vec<Vec<f32>> = (0..clusters)
         .map(|_| (0..dim).map(|_| rng.gauss()).collect())
@@ -34,7 +34,7 @@ fn clustered(dim: usize, n: usize, clusters: usize, seed: u64) -> Vec<Vec<f32>> 
         .collect()
 }
 
-fn cosine_distance(a: &[f32], b: &[f32]) -> f32 {
+pub(super) fn cosine_distance(a: &[f32], b: &[f32]) -> f32 {
     let dot: f32 = a.iter().zip(b).map(|(x, y)| x * y).sum();
     let na: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
     let nb: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
@@ -94,4 +94,41 @@ fn every_node_is_reachable_from_the_entry_point() {
         n,
         "layer 0 nodes reachable from the entry point"
     );
+}
+
+/// The filtered graph walk itself (no exact fallback), issue #25:
+/// recall@10 against exact filtered search at 1%, 10% and 50% matching
+#[test]
+fn filtered_walk_recall_at_10_matches_exact_filtered_search() {
+    let (dim, n, nq, k) = (64, 2000, 30, 10);
+    let all = clustered(dim, n + nq, 20, 25);
+    let (base, queries) = all.split_at(n);
+    let index = HNSWIndex::new(HNSWConfig::new(16, 200, 100));
+    let build = |a: u64, b: u64| cosine_distance(&base[a as usize], &base[b as usize]);
+    for id in 0..n as u64 {
+        index.insert(id, &build).unwrap();
+    }
+    for pct in [1u64, 10, 50] {
+        // Hashing the id spreads the filter across clusters
+        let accept = |id: u64| id.wrapping_mul(0x9E37_79B9_7F4A_7C15) % 100 < pct;
+        let mut hits = 0;
+        for q in queries {
+            let mut exact: Vec<(u64, f32)> = (0..n as u64)
+                .filter(|&id| accept(id))
+                .map(|id| (id, cosine_distance(q, &base[id as usize])))
+                .collect();
+            exact.sort_by(|a, b| a.1.total_cmp(&b.1));
+            let truth: HashSet<u64> = exact[..k].iter().map(|&(id, _)| id).collect();
+            let dist = |_: u64, b: u64| cosine_distance(q, &base[b as usize]);
+            let found = index.search_accepted(0, k, &dist, &accept).unwrap();
+            assert_eq!(found.len(), k, "fewer than k at {pct}%");
+            assert!(found.iter().all(|&(id, _)| accept(id)));
+            hits += found.iter().filter(|(id, _)| truth.contains(id)).count();
+        }
+        let recall = hits as f64 / (nq * k) as f64;
+        assert!(
+            recall >= 0.95,
+            "filtered walk recall@10 at {pct}%: {recall:.3}"
+        );
+    }
 }

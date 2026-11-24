@@ -8,6 +8,7 @@
 
 mod args;
 mod dataset;
+mod filtered;
 mod measure;
 mod modes;
 mod report;
@@ -92,9 +93,17 @@ fn main() {
     let dataset = json!({
         "name": ds.name, "dim": ds.dim, "base": ds.base.len(),
         "queries": ds.queries.len(), "k": a.k, "seed": a.seed,
-        "ef_search": a.ef_search, "nprobe": a.nprobe, "nlist": a.nlist,
+        "ef_search": a.ef_search, "filter_pct": a.filter_pct, "nprobe": a.nprobe, "nlist": a.nlist,
         "rerank": a.rerank,
     });
+    if let Some(dir) = &a.export_fvecs {
+        if let Err(e) = dataset::export(&ds, dir) {
+            eprintln!("error: {e}");
+            std::process::exit(1);
+        }
+        println!("{dataset}");
+        return;
+    }
     drop(ds);
 
     let command = format!(
