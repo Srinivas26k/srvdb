@@ -20,6 +20,8 @@ Errors follow one rule: bad input raises `ValueError`, operating-system I/O fail
 | [`srvdb.Database`](/srvdb/reference/python/database/) | An open SrvDB database. |
 | [`srvdb.Database.new_hnsw`](/srvdb/reference/python/database-new-hnsw/) | Open or create an HNSW database with explicit graph parameters. |
 | [`srvdb.Database.new_scalar_quantized`](/srvdb/reference/python/database-new-scalar-quantized/) | Open or create an SQ8 database trained on a sample you choose. |
+| [`srvdb.Database.new_rabitq`](/srvdb/reference/python/database-new-rabitq/) | Open or create a database searched through 1, 2 or 4-bit RaBitQ codes with exact rerank. |
+| [`srvdb.Database.set_rabitq_rerank`](/srvdb/reference/python/database-set-rabitq-rerank/) | Change the rerank factor of a RaBitQ database. |
 | [`srvdb.Database.new_product_quantized`](/srvdb/reference/python/database-new-product-quantized/) | Open or create a PQ database trained on a sample you choose. |
 
 ## Writing

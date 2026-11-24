@@ -82,6 +82,8 @@ export default defineConfig({
 								{ label: 'srvdb.Database', slug: 'reference/python/database' },
 								{ label: 'Database.new_hnsw', slug: 'reference/python/database-new-hnsw' },
 								{ label: 'Database.new_scalar_quantized', slug: 'reference/python/database-new-scalar-quantized' },
+								{ label: 'Database.new_rabitq', slug: 'reference/python/database-new-rabitq' },
+								{ label: 'Database.set_rabitq_rerank', slug: 'reference/python/database-set-rabitq-rerank' },
 								{ label: 'Database.new_product_quantized', slug: 'reference/python/database-new-product-quantized' },
 								{ label: 'Database.add', slug: 'reference/python/database-add' },
 								{ label: 'Database.upsert', slug: 'reference/python/database-upsert' },
