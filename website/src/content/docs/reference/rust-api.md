@@ -9,7 +9,8 @@ code, run `cargo doc --open -p srvdb` in a clone.
 
 | Item | Description |
 |------|-------------|
-| `SrvDB` | An open database. `Send + Sync`. |
+| `SrvDB` | An open database. `Send + Sync`. `SrvDB::create(path, dimension, &options)` makes one, `SrvDB::open_existing(path)` reopens it, `SrvDB::delete_database(path)` removes it. |
+| `CreateOptions`, `IndexChoice` | Index chosen by name (`flat`, `hnsw`, `ivf`, `sq8`, `pq`, `rabitq`, `auto`) and its options, checked against that index, for `SrvDB::create`. |
 | `VectorEngine` | Trait with `add`, `add_batch`, `search`, `search_batch`, `get_metadata`, `persist`, `count`. |
 | `DatabaseConfig` | Dimension, index type and quantization for `SrvDB::new_with_config`. |
 | `HNSWConfig`, `IVFConfig` | Index parameters. |
@@ -20,6 +21,6 @@ code, run `cargo doc --open -p srvdb` in a clone.
 
 `SrvDB` methods beyond the trait: `delete`, `replace`, `is_deleted`,
 `live_count`, `compact`, `search_filtered`, `ids_where`, `set_mode`, `set_ef_search`, `configure_ivf`,
-`train_ivf`, `all_metadata`, `get_stats`.
+`train_ivf`, `all_metadata`, `get_stats`, `index_name`, `dimension`.
 
 Example: [Using SrvDB from Rust](/srvdb/guides/rust/).
