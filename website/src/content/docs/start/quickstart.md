@@ -86,5 +86,6 @@ and nothing else.
 ## Next
 
 - [Choose an index mode](/srvdb/guides/index-modes/) for larger data.
+- [Concepts](/srvdb/concepts/comparison/): how each index mode works inside SrvDB.
 - [Durability](/srvdb/guides/durability/): exactly what `save()` guarantees.
 - [Python API](/srvdb/reference/python/): every verb and method.

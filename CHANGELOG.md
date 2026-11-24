@@ -132,6 +132,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unchanged (#26).
 
 ### Fixed
+- Product-quantized (PQ) similarity scores stay within [-1, 1] (#51). The
+  per-subspace cosine assumed unit-length centroids, but k-means reseeds
+  empty clusters with raw vectors, so scores up to about 1.09 were seen.
+  Both magnitudes are now divided out. Existing codebooks are unchanged;
+  scores from them are corrected on the next search.
+- `SrvDB::new_scalar_quantized` and `SrvDB::new_quantized` (Python
+  `new_scalar_quantized`, `new_product_quantized`) reject a dimension
+  outside 128..=4096 with `InvalidInput` (Python `ValueError`) before
+  creating anything, matching `DatabaseConfig::new` (#48). Existing
+  smaller quantized databases still open with `SrvDB::open_existing`.
+  PQ training with a sub-quantizer count that does not divide the
+  dimension is `InvalidInput`, and codebooks whose shape is inconsistent
+  are rejected on load as `Corrupt` instead of panicking during search.
+- `train_ivf()` returns the first error from placing a vector in its IVF
+  partition instead of discarding it and reporting success with an
+  incomplete index (#49). Its error outside IVF mode names the IVF mode
+  rather than a Rust enum variant.
 - The `ValueError` for an unknown mode now lists every accepted mode; `ivf`
   and the `scalar` and `product` aliases were missing.
 - HNSW recall on clustered data (#28). The graph kept only the M nearest
