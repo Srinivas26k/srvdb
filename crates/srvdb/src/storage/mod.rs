@@ -6,6 +6,7 @@ pub(crate) mod compaction;
 pub mod flat;
 pub(crate) mod format;
 pub mod header;
+pub(crate) mod identity;
 pub mod ivf;
 pub(crate) mod legacy;
 pub(crate) mod lock;

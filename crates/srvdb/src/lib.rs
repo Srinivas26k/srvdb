@@ -21,7 +21,7 @@ pub mod tuning;
 mod vector;
 
 pub use config::{DatabaseConfig, IndexType, QuantizationConfig, QuantizationMode};
-pub use engine::{SrvDB, VectorEngine};
+pub use engine::{CreateOptions, IndexChoice, SrvDB, VectorEngine};
 pub use error::{Error, Result};
 pub use index::hnsw::{HNSWConfig, HNSWIndex};
 pub use index::ivf::{IVFConfig, IVFIndex};
