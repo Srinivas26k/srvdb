@@ -48,7 +48,7 @@ A complete, runnable **Sovereign AI Stack** reference implementation is in progr
 ## SrvDB features it uses
 
 - **[Fully offline](/srvdb/start/introduction/)**: SrvDB runs in-process and never opens a network connection.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 - **[Rust API](/srvdb/guides/rust/)**: embed SrvDB directly in Rust services and devices.
 - **[HNSW graph (`hnsw`)](/srvdb/guides/index-modes/)**: approximate search that visits a small part of large collections; tune with `set_ef_search()`.
 
@@ -69,7 +69,7 @@ A complete, runnable **Sovereign AI Stack** reference implementation is in progr
 import json
 import srvdb
 
-db = srvdb.open("./sovereign-ai-stack-db", dimension=768, mode="hnsw")
+db = srvdb.create("./sovereign-ai-stack-db", dimension=768, index="hnsw", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                      # crash-safe checkpoint
 
 def retrieve(query, k=5):
     hits = db.search(embed(query), k)
@@ -93,7 +93,7 @@ def retrieve(query, k=5):
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 
