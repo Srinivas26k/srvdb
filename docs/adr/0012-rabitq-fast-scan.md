@@ -30,7 +30,8 @@ tables (`code_bytes * 256` entries) and rotated the query with a dense
    32 vectors, with byte `j` of every vector side by side
    (`block[j * 32 + v]`), and the f32 factors in a separate array. The
    copy is built from `rabitq_codes.bin` on open and kept in step on
-   append and truncate. **The file format does not change.** No version
+   append and truncate (resident memory can therefore hold the codes
+   twice; see Consequences). **The file format does not change.** No version
    bump or migration is needed, and the copy is derived data like the file.
 4. **Kernels.** `Kernel::detect()` picks AVX2 (`is_x86_feature_detected!`)
    on x86_64, NEON on aarch64, and otherwise the scalar kernel. The scalar
@@ -73,9 +74,18 @@ tables (`code_bytes * 256` entries) and rotated the query with a dense
 
 ## Consequences
 
-- Resident memory for a RaBitQ database grows by one copy of the codes
-  (`n * ceil(D * b / 8)` bytes, plus up to 31 vectors of padding). The
-  mapped code file is no longer read by queries.
+- Resident memory can hold the codes **twice**: once as the interleaved
+  heap copy (`n * ceil(D * b / 8)` bytes, plus up to 31 vectors of
+  padding), and once as the pages of the mapped `rabitq_codes.bin`
+  touched while the copy is built or appended. The kernel can evict
+  mapped pages, but not the heap copy. Queries no longer read the mapped
+  file.
+- The copy is reserved with `try_reserve`, so a code file too large for
+  memory fails open or append with `Error::Io` (kind `OutOfMemory`; Python
+  `OSError`) instead of aborting the process. It is not `InvalidState`,
+  because that would make the engine delete and rebuild the codes, which
+  cannot help. An append reserves the copy before writing the file and
+  rolls the copy back if the file append fails.
 - Opening a database pays one extra pass over the codes.
 - Each new SIMD kernel must match the scalar sums exactly, and the
   property test enforces this. The NEON kernel is type-checked by
