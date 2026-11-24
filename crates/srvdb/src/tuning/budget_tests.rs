@@ -62,6 +62,13 @@ fn a_rotation_larger_than_the_budget_keeps_flat_only() {
     assert_eq!(select(Tier::Flat, 4096, cap + 1, 0, limit), None);
 }
 
+/// Block padding near u64::MAX saturates instead of overflowing
+#[test]
+fn huge_counts_saturate() {
+    assert_eq!(tier_vector_bytes(Tier::Rabitq(1), 384, u64::MAX), u64::MAX);
+    assert_eq!(tier_bytes(Tier::Rabitq(4), 384, u64::MAX - 1), u64::MAX);
+}
+
 #[test]
 fn huge_budgets_do_not_overflow() {
     let limit = limit_bytes(MAX_MEMORY_MB);

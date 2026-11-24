@@ -47,7 +47,7 @@ pub(crate) fn tier_vector_bytes(tier: Tier, dim: usize, n: u64) -> u64 {
     match tier {
         Tier::Flat => n.saturating_mul(4 * d(dim)),
         Tier::Rabitq(bits) => {
-            let padded = n.div_ceil(BLOCK_VECTORS) * BLOCK_VECTORS;
+            let padded = n.div_ceil(BLOCK_VECTORS).saturating_mul(BLOCK_VECTORS);
             padded
                 .saturating_mul(rabitq_code_bytes(dim, bits))
                 // factor and |g| width, 4 bytes each (ADR 0012, 0017)
