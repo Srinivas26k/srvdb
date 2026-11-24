@@ -21,7 +21,7 @@ impl SplitMix {
 }
 
 /// Seeded Gaussian clusters, like the bench harness's synthetic dataset
-fn clustered(dim: usize, n: usize, clusters: usize, seed: u64) -> Vec<Vec<f32>> {
+pub(super) fn clustered(dim: usize, n: usize, clusters: usize, seed: u64) -> Vec<Vec<f32>> {
     let mut rng = SplitMix(seed);
     let centres: Vec<Vec<f32>> = (0..clusters)
         .map(|_| (0..dim).map(|_| rng.gauss()).collect())
@@ -34,7 +34,7 @@ fn clustered(dim: usize, n: usize, clusters: usize, seed: u64) -> Vec<Vec<f32>> 
         .collect()
 }
 
-fn cosine_distance(a: &[f32], b: &[f32]) -> f32 {
+pub(super) fn cosine_distance(a: &[f32], b: &[f32]) -> f32 {
     let dot: f32 = a.iter().zip(b).map(|(x, y)| x * y).sum();
     let na: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
     let nb: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
