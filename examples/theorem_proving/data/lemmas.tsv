@@ -1,0 +1,211 @@
+# Sample of Lean 4 mathlib / Lean core lemma statements (Apache-2.0; see ../NOTICE).
+# Columns (tab-separated): name, module, statement, uses.
+# "uses" lists lemmas from this sample that the lemma's proof relies on; it is
+# a simplified dependency graph for the example, not mathlib's exact proof terms.
+Nat.add_comm	Init.Data.Nat.Basic	theorem Nat.add_comm (n m : ℕ) : n + m = m + n	Nat.add_zero,Nat.succ_add
+Nat.add_assoc	Init.Data.Nat.Basic	theorem Nat.add_assoc (n m k : ℕ) : n + m + k = n + (m + k)	Nat.add_succ
+Nat.add_zero	Init.Core	theorem Nat.add_zero (n : ℕ) : n + 0 = n
+Nat.zero_add	Init.Data.Nat.Basic	theorem Nat.zero_add (n : ℕ) : 0 + n = n	Nat.add_zero
+Nat.succ_add	Init.Data.Nat.Basic	theorem Nat.succ_add (n m : ℕ) : n.succ + m = (n + m).succ	Nat.add_succ
+Nat.add_succ	Init.Core	theorem Nat.add_succ (n m : ℕ) : n + m.succ = (n + m).succ
+Nat.mul_comm	Init.Data.Nat.Basic	theorem Nat.mul_comm (n m : ℕ) : n * m = m * n	Nat.mul_zero,Nat.succ_mul,Nat.add_comm
+Nat.mul_zero	Init.Core	theorem Nat.mul_zero (n : ℕ) : n * 0 = 0
+Nat.mul_one	Init.Core	theorem Nat.mul_one (n : ℕ) : n * 1 = n	Nat.zero_add
+Nat.succ_mul	Init.Data.Nat.Basic	theorem Nat.succ_mul (n m : ℕ) : n.succ * m = n * m + m	Nat.add_assoc
+Nat.left_distrib	Init.Data.Nat.Basic	theorem Nat.left_distrib (n m k : ℕ) : n * (m + k) = n * m + n * k	Nat.add_assoc,Nat.mul_comm
+Nat.mul_assoc	Init.Data.Nat.Basic	theorem Nat.mul_assoc (n m k : ℕ) : n * m * k = n * (m * k)	Nat.left_distrib
+Nat.le_refl	Init.Prelude	theorem Nat.le_refl (n : ℕ) : n ≤ n
+Nat.le_trans	Init.Prelude	theorem Nat.le_trans {n m k : ℕ} : n ≤ m → m ≤ k → n ≤ k
+Nat.le_antisymm	Init.Data.Nat.Basic	theorem Nat.le_antisymm {n m : ℕ} (h₁ : n ≤ m) (h₂ : m ≤ n) : n = m	Nat.lt_irrefl,Nat.le_trans
+Nat.lt_irrefl	Init.Prelude	theorem Nat.lt_irrefl (n : ℕ) : ¬n < n
+Nat.lt_of_lt_of_le	Init.Data.Nat.Basic	theorem Nat.lt_of_lt_of_le {n m k : ℕ} : n < m → m ≤ k → n < k	Nat.le_trans
+Nat.succ_le_of_lt	Init.Data.Nat.Basic	theorem Nat.succ_le_of_lt {n m : ℕ} (h : n < m) : n.succ ≤ m
+Nat.le_of_lt_succ	Init.Data.Nat.Basic	theorem Nat.le_of_lt_succ {m n : ℕ} : m < n.succ → m ≤ n
+Nat.zero_le	Init.Prelude	theorem Nat.zero_le (n : ℕ) : 0 ≤ n
+Nat.pos_of_ne_zero	Init.Data.Nat.Basic	theorem Nat.pos_of_ne_zero {n : ℕ} : n ≠ 0 → 0 < n	Nat.zero_le
+Nat.sub_add_cancel	Init.Data.Nat.Basic	theorem Nat.sub_add_cancel {n m : ℕ} (h : m ≤ n) : n - m + m = n	Nat.add_comm
+Nat.add_sub_cancel	Init.Data.Nat.Basic	theorem Nat.add_sub_cancel {n m : ℕ} : n + m - m = n
+Nat.mod_lt	Init.Data.Nat.Div	theorem Nat.mod_lt (x : ℕ) {y : ℕ} : y > 0 → x % y < y
+Nat.div_add_mod	Init.Data.Nat.Div	theorem Nat.div_add_mod (m k : ℕ) : k * (m / k) + m % k = m
+Nat.mod_two_eq_zero_or_one	Mathlib.Algebra.Group.Nat.Even	theorem Nat.mod_two_eq_zero_or_one (n : ℕ) : n % 2 = 0 ∨ n % 2 = 1	Nat.mod_lt
+Nat.even_iff	Mathlib.Algebra.Group.Nat.Even	theorem Nat.even_iff {n : ℕ} : Even n ↔ n % 2 = 0	Nat.div_add_mod
+Nat.odd_iff	Mathlib.Algebra.Group.Nat.Even	theorem Nat.odd_iff {n : ℕ} : Odd n ↔ n % 2 = 1	Nat.div_add_mod
+Nat.even_add_one	Mathlib.Algebra.Group.Nat.Even	theorem Nat.even_add_one {n : ℕ} : Even (n + 1) ↔ ¬Even n	Nat.even_iff
+Nat.even_mul	Mathlib.Algebra.Group.Nat.Even	theorem Nat.even_mul {m n : ℕ} : Even (m * n) ↔ Even m ∨ Even n	Nat.even_iff,Nat.mod_two_eq_zero_or_one
+Nat.even_or_odd	Mathlib.Algebra.Group.Nat.Even	theorem Nat.even_or_odd (n : ℕ) : Even n ∨ Odd n	Nat.even_iff,Nat.odd_iff,Nat.mod_two_eq_zero_or_one
+Nat.dvd_refl	Init.Data.Nat.Dvd	theorem Nat.dvd_refl (a : ℕ) : a ∣ a	Nat.mul_one
+Nat.dvd_trans	Init.Data.Nat.Dvd	theorem Nat.dvd_trans {a b c : ℕ} (h₁ : a ∣ b) (h₂ : b ∣ c) : a ∣ c	Nat.mul_assoc
+Nat.dvd_add	Init.Data.Nat.Dvd	theorem Nat.dvd_add {a b c : ℕ} (h₁ : a ∣ b) (h₂ : a ∣ c) : a ∣ b + c	Nat.left_distrib
+Nat.dvd_sub'	Init.Data.Nat.Dvd	theorem Nat.dvd_sub' {k m n : ℕ} (h₁ : k ∣ m) (h₂ : k ∣ n) : k ∣ m - n
+Nat.le_of_dvd	Init.Data.Nat.Dvd	theorem Nat.le_of_dvd {m n : ℕ} (h1 : 0 < n) : m ∣ n → m ≤ n
+Nat.dvd_antisymm	Init.Data.Nat.Dvd	theorem Nat.dvd_antisymm {m n : ℕ} : m ∣ n → n ∣ m → m = n	Nat.le_antisymm,Nat.le_of_dvd
+Nat.gcd_dvd_left	Init.Data.Nat.Gcd	theorem Nat.gcd_dvd_left (m n : ℕ) : Nat.gcd m n ∣ m
+Nat.gcd_dvd_right	Init.Data.Nat.Gcd	theorem Nat.gcd_dvd_right (m n : ℕ) : Nat.gcd m n ∣ n
+Nat.dvd_gcd	Init.Data.Nat.Gcd	theorem Nat.dvd_gcd {k m n : ℕ} : k ∣ m → k ∣ n → k ∣ Nat.gcd m n
+Nat.gcd_comm	Init.Data.Nat.Gcd	theorem Nat.gcd_comm (m n : ℕ) : Nat.gcd m n = Nat.gcd n m	Nat.dvd_antisymm,Nat.gcd_dvd_left,Nat.gcd_dvd_right,Nat.dvd_gcd
+Nat.gcd_mul_lcm	Init.Data.Nat.Lcm	theorem Nat.gcd_mul_lcm (m n : ℕ) : Nat.gcd m n * Nat.lcm m n = m * n	Nat.gcd_dvd_left
+Nat.Coprime.dvd_of_dvd_mul_left	Mathlib.Data.Nat.GCD.Basic	theorem Nat.Coprime.dvd_of_dvd_mul_left {k m n : ℕ} (H1 : Nat.Coprime k n) (H2 : k ∣ m * n) : k ∣ m	Nat.dvd_gcd,Nat.gcd_comm
+Nat.Prime.two_le	Mathlib.Data.Nat.Prime.Defs	theorem Nat.Prime.two_le {p : ℕ} (hp : p.Prime) : 2 ≤ p
+Nat.Prime.pos	Mathlib.Data.Nat.Prime.Defs	theorem Nat.Prime.pos {p : ℕ} (pp : p.Prime) : 0 < p	Nat.Prime.two_le
+Nat.Prime.eq_one_or_self_of_dvd	Mathlib.Data.Nat.Prime.Defs	theorem Nat.Prime.eq_one_or_self_of_dvd {p : ℕ} (pp : p.Prime) (a : ℕ) (h : a ∣ p) : a = 1 ∨ a = p
+Nat.Prime.coprime_iff_not_dvd	Mathlib.Data.Nat.Prime.Basic	theorem Nat.Prime.coprime_iff_not_dvd {p n : ℕ} (pp : p.Prime) : Nat.Coprime p n ↔ ¬p ∣ n	Nat.Prime.eq_one_or_self_of_dvd
+Nat.Prime.dvd_mul	Mathlib.Data.Nat.Prime.Basic	theorem Nat.Prime.dvd_mul {p m n : ℕ} (pp : p.Prime) : p ∣ m * n ↔ p ∣ m ∨ p ∣ n	Nat.Coprime.dvd_of_dvd_mul_left,Nat.Prime.coprime_iff_not_dvd
+Nat.minFac_prime	Mathlib.Data.Nat.Prime.Defs	theorem Nat.minFac_prime {n : ℕ} (n1 : n ≠ 1) : (Nat.minFac n).Prime
+Nat.factorial_pos	Mathlib.Data.Nat.Factorial.Basic	theorem Nat.factorial_pos (n : ℕ) : 0 < n !	Nat.pos_of_ne_zero
+Nat.dvd_factorial	Mathlib.Data.Nat.Factorial.Basic	theorem Nat.dvd_factorial {m n : ℕ} : 0 < m → m ≤ n → m ∣ n !	Nat.dvd_trans
+Nat.factorial_succ	Mathlib.Data.Nat.Factorial.Basic	theorem Nat.factorial_succ (n : ℕ) : (n + 1)! = (n + 1) * n !
+Nat.exists_infinite_primes	Mathlib.Data.Nat.Prime.Infinite	theorem Nat.exists_infinite_primes (n : ℕ) : ∃ p, n ≤ p ∧ p.Prime	Nat.minFac_prime,Nat.factorial_pos,Nat.dvd_factorial
+Nat.pow_succ	Init.Data.Nat.Basic	theorem Nat.pow_succ {b n : ℕ} : b ^ (n + 1) = b ^ n * b
+Nat.pow_le_pow_left	Init.Data.Nat.Basic	theorem Nat.pow_le_pow_left {m n : ℕ} (h : m ≤ n) (i : ℕ) : m ^ i ≤ n ^ i	Nat.pow_succ
+Nat.lt_pow_self	Mathlib.Algebra.Order.Group.Nat	theorem Nat.lt_pow_self {b : ℕ} (hb : 1 < b) (n : ℕ) : n < b ^ n	Nat.pow_succ
+Finset.sum_range_succ	Mathlib.Algebra.BigOperators.Basic	theorem Finset.sum_range_succ (f : ℕ → M) (n : ℕ) : ∑ x ∈ Finset.range (n + 1), f x = ∑ x ∈ Finset.range n, f x + f n
+Finset.prod_range_succ	Mathlib.Algebra.BigOperators.Basic	theorem Finset.prod_range_succ (f : ℕ → M) (n : ℕ) : ∏ x ∈ Finset.range (n + 1), f x = (∏ x ∈ Finset.range n, f x) * f n
+Finset.sum_range_id_mul_two	Mathlib.Algebra.BigOperators.Intervals	theorem Finset.sum_range_id_mul_two (n : ℕ) : (∑ i ∈ Finset.range n, i) * 2 = n * (n - 1)	Finset.sum_range_succ
+Finset.sum_const	Mathlib.Algebra.BigOperators.Basic	theorem Finset.sum_const (b : M) : ∑ _x ∈ s, b = s.card • b
+Finset.card_range	Mathlib.Data.Finset.Range	theorem Finset.card_range (n : ℕ) : (Finset.range n).card = n
+Finset.sum_le_sum	Mathlib.Algebra.Order.BigOperators.Group.Finset	theorem Finset.sum_le_sum (h : ∀ i ∈ s, f i ≤ g i) : s.sum f ≤ s.sum g
+Finset.card_union_add_card_inter	Mathlib.Data.Finset.Card	theorem Finset.card_union_add_card_inter (s t : Finset α) : (s ∪ t).card + (s ∩ t).card = s.card + t.card
+Finset.card_le_card	Mathlib.Data.Finset.Card	theorem Finset.card_le_card {s t : Finset α} : s ⊆ t → s.card ≤ t.card
+Finset.exists_ne_map_eq_of_card_lt_of_maps_to	Mathlib.Combinatorics.Pigeonhole	theorem Finset.exists_ne_map_eq_of_card_lt_of_maps_to (hc : t.card < s.card) {f : α → β} (hf : ∀ a ∈ s, f a ∈ t) : ∃ x ∈ s, ∃ y ∈ s, x ≠ y ∧ f x = f y	Finset.card_le_card
+Finset.inner_mul_le_norm_mul_norm	Mathlib.Algebra.Order.Chebyshev	theorem Finset.inner_mul_le_norm_mul_norm (s : Finset ι) (f g : ι → R) : (∑ i ∈ s, f i * g i) ^ 2 ≤ (∑ i ∈ s, f i ^ 2) * ∑ i ∈ s, g i ^ 2	sq_nonneg
+Int.add_comm	Init.Data.Int.Basic	theorem Int.add_comm (a b : ℤ) : a + b = b + a
+Int.mul_comm	Init.Data.Int.Basic	theorem Int.mul_comm (a b : ℤ) : a * b = b * a
+Int.neg_neg	Init.Data.Int.Basic	theorem Int.neg_neg (a : ℤ) : - -a = a
+Int.natAbs_mul	Init.Data.Int.Order	theorem Int.natAbs_mul (a b : ℤ) : (a * b).natAbs = a.natAbs * b.natAbs
+Int.emod_emod_of_dvd	Init.Data.Int.DivMod	theorem Int.emod_emod_of_dvd (n : ℤ) {m k : ℤ} (h : m ∣ k) : n % k % m = n % m
+Int.emod_two_eq_zero_or_one	Mathlib.Algebra.Group.Int.Even	theorem Int.emod_two_eq_zero_or_one (n : ℤ) : n % 2 = 0 ∨ n % 2 = 1
+Int.even_or_odd	Mathlib.Algebra.Group.Int.Even	theorem Int.even_or_odd (n : ℤ) : Even n ∨ Odd n	Int.emod_two_eq_zero_or_one
+Int.ModEq.add	Mathlib.Data.Int.ModEq	theorem Int.ModEq.add {n a b c d : ℤ} (h₁ : a ≡ b [ZMOD n]) (h₂ : c ≡ d [ZMOD n]) : a + c ≡ b + d [ZMOD n]
+Int.ModEq.mul	Mathlib.Data.Int.ModEq	theorem Int.ModEq.mul {n a b c d : ℤ} (h₁ : a ≡ b [ZMOD n]) (h₂ : c ≡ d [ZMOD n]) : a * c ≡ b * d [ZMOD n]
+Int.ModEq.pow	Mathlib.Data.Int.ModEq	theorem Int.ModEq.pow {n a b : ℤ} (m : ℕ) (h : a ≡ b [ZMOD n]) : a ^ m ≡ b ^ m [ZMOD n]	Int.ModEq.mul
+add_comm	Mathlib.Algebra.Group.Defs	theorem add_comm [AddCommMagma G] (a b : G) : a + b = b + a
+mul_comm	Mathlib.Algebra.Group.Defs	theorem mul_comm [CommMagma G] (a b : G) : a * b = b * a
+mul_assoc	Mathlib.Algebra.Group.Defs	theorem mul_assoc [Semigroup G] (a b c : G) : a * b * c = a * (b * c)
+mul_one	Mathlib.Algebra.Group.Defs	theorem mul_one [MulOneClass M] (a : M) : a * 1 = a
+one_mul	Mathlib.Algebra.Group.Defs	theorem one_mul [MulOneClass M] (a : M) : 1 * a = a
+inv_mul_cancel	Mathlib.Algebra.Group.Defs	theorem inv_mul_cancel [Group G] (a : G) : a⁻¹ * a = 1
+mul_inv_cancel	Mathlib.Algebra.Group.Defs	theorem mul_inv_cancel [Group G] (a : G) : a * a⁻¹ = 1	inv_mul_cancel,mul_assoc
+mul_left_cancel	Mathlib.Algebra.Group.Defs	theorem mul_left_cancel [IsLeftCancelMul G] {a b c : G} : a * b = a * c → b = c
+inv_inv	Mathlib.Algebra.Group.Basic	theorem inv_inv [InvolutiveInv G] (a : G) : a⁻¹⁻¹ = a
+mul_inv_rev	Mathlib.Algebra.Group.Basic	theorem mul_inv_rev [DivisionMonoid G] (a b : G) : (a * b)⁻¹ = b⁻¹ * a⁻¹	mul_assoc,mul_inv_cancel
+inv_eq_of_mul_eq_one_right	Mathlib.Algebra.Group.Basic	theorem inv_eq_of_mul_eq_one_right [DivisionMonoid G] {a b : G} : a * b = 1 → a⁻¹ = b	mul_left_cancel,mul_inv_cancel
+pow_succ	Mathlib.Algebra.Group.Defs	theorem pow_succ [Monoid M] (a : M) (n : ℕ) : a ^ (n + 1) = a ^ n * a
+pow_add	Mathlib.Algebra.Group.Defs	theorem pow_add [Monoid M] (a : M) (m n : ℕ) : a ^ (m + n) = a ^ m * a ^ n	pow_succ,mul_assoc
+pow_mul	Mathlib.Algebra.Group.Defs	theorem pow_mul [Monoid M] (a : M) (m n : ℕ) : a ^ (m * n) = (a ^ m) ^ n	pow_add
+Subgroup.card_subgroup_dvd_card	Mathlib.GroupTheory.Coset.Card	theorem Subgroup.card_subgroup_dvd_card [Fintype G] (s : Subgroup G) [Fintype s] : Fintype.card s ∣ Fintype.card G
+orderOf_dvd_card	Mathlib.GroupTheory.OrderOfElement	theorem orderOf_dvd_card [Fintype G] {x : G} : orderOf x ∣ Fintype.card G	Subgroup.card_subgroup_dvd_card
+pow_card_eq_one	Mathlib.GroupTheory.OrderOfElement	theorem pow_card_eq_one [Fintype G] {x : G} : x ^ Fintype.card G = 1	orderOf_dvd_card,pow_mul
+ZMod.pow_card_sub_one_eq_one	Mathlib.FieldTheory.Finite.Basic	theorem ZMod.pow_card_sub_one_eq_one {p : ℕ} [Fact p.Prime] {a : ZMod p} (ha : a ≠ 0) : a ^ (p - 1) = 1	pow_card_eq_one
+Int.ModEq.pow_card_sub_one_eq_one	Mathlib.FieldTheory.Finite.Basic	theorem Int.ModEq.pow_card_sub_one_eq_one {p : ℕ} (hp : p.Prime) {n : ℤ} (hpn : IsCoprime n p) : n ^ (p - 1) ≡ 1 [ZMOD p]	ZMod.pow_card_sub_one_eq_one
+add_mul	Mathlib.Algebra.Ring.Defs	theorem add_mul [Mul R] [Add R] [RightDistribClass R] (a b c : R) : (a + b) * c = a * c + b * c
+mul_add	Mathlib.Algebra.Ring.Defs	theorem mul_add [Mul R] [Add R] [LeftDistribClass R] (a b c : R) : a * (b + c) = a * b + a * c
+add_sq	Mathlib.Algebra.Ring.Commute	theorem add_sq [CommSemiring R] (a b : R) : (a + b) ^ 2 = a ^ 2 + 2 * a * b + b ^ 2	add_mul,mul_add,pow_succ
+sub_sq	Mathlib.Algebra.Ring.Commute	theorem sub_sq [CommRing R] (a b : R) : (a - b) ^ 2 = a ^ 2 - 2 * a * b + b ^ 2	add_sq
+mul_self_sub_mul_self	Mathlib.Algebra.Ring.Commute	theorem mul_self_sub_mul_self [CommRing R] (a b : R) : a * a - b * b = (a + b) * (a - b)	add_mul,mul_add
+mul_pos	Mathlib.Algebra.Order.Ring.Defs	theorem mul_pos [StrictOrderedSemiring R] {a b : R} (ha : 0 < a) (hb : 0 < b) : 0 < a * b
+mul_nonneg	Mathlib.Algebra.Order.Ring.Defs	theorem mul_nonneg [OrderedSemiring R] {a b : R} (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b
+mul_self_nonneg	Mathlib.Algebra.Order.Ring.Lemmas	theorem mul_self_nonneg [LinearOrderedRing R] (a : R) : 0 ≤ a * a	mul_pos,mul_nonneg
+sq_nonneg	Mathlib.Algebra.Order.Ring.Lemmas	theorem sq_nonneg [LinearOrderedRing R] (a : R) : 0 ≤ a ^ 2	mul_self_nonneg
+two_mul_le_add_sq	Mathlib.Algebra.Order.Ring.Lemmas	theorem two_mul_le_add_sq [LinearOrderedCommRing R] (a b : R) : 2 * a * b ≤ a ^ 2 + b ^ 2	sub_sq,sq_nonneg
+abs_nonneg	Mathlib.Algebra.Order.Group.Abs	theorem abs_nonneg [LinearOrderedAddCommGroup G] (a : G) : 0 ≤ |a|
+abs_le	Mathlib.Algebra.Order.Group.Abs	theorem abs_le [LinearOrderedAddCommGroup G] {a b : G} : |a| ≤ b ↔ -b ≤ a ∧ a ≤ b
+le_abs_self	Mathlib.Algebra.Order.Group.Abs	theorem le_abs_self [LinearOrderedAddCommGroup G] (a : G) : a ≤ |a|
+neg_abs_le	Mathlib.Algebra.Order.Group.Abs	theorem neg_abs_le [LinearOrderedAddCommGroup G] (a : G) : -|a| ≤ a
+abs_add	Mathlib.Algebra.Order.Group.Abs	theorem abs_add [LinearOrderedAddCommGroup G] (a b : G) : |a + b| ≤ |a| + |b|	abs_le,le_abs_self,neg_abs_le
+abs_sub_comm	Mathlib.Algebra.Order.Group.Abs	theorem abs_sub_comm [LinearOrderedAddCommGroup G] (a b : G) : |a - b| = |b - a|
+abs_sub_lt_iff	Mathlib.Algebra.Order.Group.Abs	theorem abs_sub_lt_iff [LinearOrderedAddCommGroup G] {a b c : G} : |a - b| < c ↔ a - b < c ∧ b - a < c	abs_le
+le_antisymm	Mathlib.Order.Basic	theorem le_antisymm [PartialOrder α] {a b : α} : a ≤ b → b ≤ a → a = b
+le_trans	Mathlib.Order.Basic	theorem le_trans [Preorder α] {a b c : α} : a ≤ b → b ≤ c → a ≤ c
+le_of_lt	Mathlib.Order.Basic	theorem le_of_lt [Preorder α] {a b : α} : a < b → a ≤ b
+lt_of_le_of_lt	Mathlib.Order.Basic	theorem lt_of_le_of_lt [Preorder α] {a b c : α} : a ≤ b → b < c → a < c	le_trans
+max_le	Mathlib.Order.Lattice	theorem max_le [LinearOrder α] {a b c : α} (h₁ : a ≤ c) (h₂ : b ≤ c) : max a b ≤ c
+le_max_left	Mathlib.Order.Lattice	theorem le_max_left [LinearOrder α] (a b : α) : a ≤ max a b
+min_le_left	Mathlib.Order.Lattice	theorem min_le_left [LinearOrder α] (a b : α) : min a b ≤ a
+add_pos	Mathlib.Algebra.Order.Monoid.Lemmas	theorem add_pos [OrderedCancelAddCommMonoid α] {a b : α} (ha : 0 < a) (hb : 0 < b) : 0 < a + b
+add_le_add	Mathlib.Algebra.Order.Monoid.Lemmas	theorem add_le_add [OrderedAddCommMonoid α] {a b c d : α} (h₁ : a ≤ b) (h₂ : c ≤ d) : a + c ≤ b + d	le_trans
+div_pos	Mathlib.Algebra.Order.Field.Basic	theorem div_pos [LinearOrderedSemifield α] {a b : α} (ha : 0 < a) (hb : 0 < b) : 0 < a / b	mul_pos
+half_pos	Mathlib.Algebra.Order.Field.Basic	theorem half_pos [LinearOrderedField α] {a : α} (h : 0 < a) : 0 < a / 2	div_pos
+add_halves	Mathlib.Algebra.Order.Field.Basic	theorem add_halves [DivisionRing α] [CharZero α] (a : α) : a / 2 + a / 2 = a
+div_le_iff	Mathlib.Algebra.Order.Field.Basic	theorem div_le_iff [LinearOrderedSemifield α] {a b c : α} (hc : 0 < c) : a / c ≤ b ↔ a ≤ b * c
+Real.sqrt_nonneg	Mathlib.Analysis.SpecialFunctions.Pow.NNRpow	theorem Real.sqrt_nonneg (x : ℝ) : 0 ≤ √x
+Real.sq_sqrt	Mathlib.Analysis.SpecialFunctions.Sqrt	theorem Real.sq_sqrt {x : ℝ} (h : 0 ≤ x) : √x ^ 2 = x	Real.sqrt_nonneg
+Real.sqrt_lt_sqrt	Mathlib.Analysis.SpecialFunctions.Sqrt	theorem Real.sqrt_lt_sqrt {x y : ℝ} (hx : 0 ≤ x) (h : x < y) : √x < √y	Real.sq_sqrt
+Real.exp_pos	Mathlib.Analysis.SpecialFunctions.Exp	theorem Real.exp_pos (x : ℝ) : 0 < Real.exp x
+Real.exp_add	Mathlib.Analysis.SpecialFunctions.Exp	theorem Real.exp_add (x y : ℝ) : Real.exp (x + y) = Real.exp x * Real.exp y
+Real.add_one_le_exp	Mathlib.Analysis.SpecialFunctions.Exp	theorem Real.add_one_le_exp (x : ℝ) : x + 1 ≤ Real.exp x	Real.exp_pos
+Real.log_exp	Mathlib.Analysis.SpecialFunctions.Log.Basic	theorem Real.log_exp (x : ℝ) : Real.log (Real.exp x) = x
+Real.exp_log	Mathlib.Analysis.SpecialFunctions.Log.Basic	theorem Real.exp_log {x : ℝ} (hx : 0 < x) : Real.exp (Real.log x) = x
+Real.log_mul	Mathlib.Analysis.SpecialFunctions.Log.Basic	theorem Real.log_mul {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) : Real.log (x * y) = Real.log x + Real.log y	Real.exp_log,Real.exp_add
+Real.log_le_sub_one_of_pos	Mathlib.Analysis.SpecialFunctions.Log.Basic	theorem Real.log_le_sub_one_of_pos {x : ℝ} (hx : 0 < x) : Real.log x ≤ x - 1	Real.add_one_le_exp,Real.exp_log
+Real.sin_sq_add_cos_sq	Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic	theorem Real.sin_sq_add_cos_sq (x : ℝ) : Real.sin x ^ 2 + Real.cos x ^ 2 = 1
+Real.cos_sq_le_one	Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic	theorem Real.cos_sq_le_one (x : ℝ) : Real.cos x ^ 2 ≤ 1	Real.sin_sq_add_cos_sq,sq_nonneg
+Real.sin_le_one	Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic	theorem Real.sin_le_one (x : ℝ) : Real.sin x ≤ 1	Real.sin_sq_add_cos_sq
+Real.pi_gt_three	Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds	theorem Real.pi_gt_three : 3 < Real.pi
+Real.hasDerivAt_exp	Mathlib.Analysis.SpecialFunctions.ExpDeriv	theorem Real.hasDerivAt_exp (x : ℝ) : HasDerivAt Real.exp (Real.exp x) x
+Real.hasDerivAt_sin	Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv	theorem Real.hasDerivAt_sin (x : ℝ) : HasDerivAt Real.sin (Real.cos x) x
+Real.geom_mean_le_arith_mean2_weighted	Mathlib.Analysis.MeanInequalities	theorem Real.geom_mean_le_arith_mean2_weighted {w₁ w₂ p₁ p₂ : ℝ} (hw₁ : 0 ≤ w₁) (hw₂ : 0 ≤ w₂) (hp₁ : 0 ≤ p₁) (hp₂ : 0 ≤ p₂) (hw : w₁ + w₂ = 1) : p₁ ^ w₁ * p₂ ^ w₂ ≤ w₁ * p₁ + w₂ * p₂
+real_inner_mul_le_norm_mul_norm	Mathlib.Analysis.InnerProductSpace.Basic	theorem real_inner_mul_le_norm_mul_norm (x y : F) : ⟪x, y⟫_ℝ ≤ ‖x‖ * ‖y‖
+norm_add_le	Mathlib.Analysis.Normed.Group.Basic	theorem norm_add_le [SeminormedAddGroup E] (a b : E) : ‖a + b‖ ≤ ‖a‖ + ‖b‖
+norm_nonneg	Mathlib.Analysis.Normed.Group.Basic	theorem norm_nonneg [SeminormedAddGroup E] (a : E) : 0 ≤ ‖a‖	norm_add_le
+norm_sub_rev	Mathlib.Analysis.Normed.Group.Basic	theorem norm_sub_rev [SeminormedAddGroup E] (a b : E) : ‖a - b‖ = ‖b - a‖
+dist_triangle	Mathlib.Topology.MetricSpace.Pseudo.Defs	theorem dist_triangle [PseudoMetricSpace α] (x y z : α) : dist x z ≤ dist x y + dist y z
+dist_comm	Mathlib.Topology.MetricSpace.Pseudo.Defs	theorem dist_comm [PseudoMetricSpace α] (x y : α) : dist x y = dist y x
+Metric.tendsto_atTop	Mathlib.Topology.MetricSpace.Pseudo.Lemmas	theorem Metric.tendsto_atTop [Nonempty β] [SemilatticeSup β] {u : β → α} {a : α} : Filter.Tendsto u Filter.atTop (nhds a) ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, dist (u n) a < ε
+tendsto_nhds_unique	Mathlib.Topology.Separation.Hausdorff	theorem tendsto_nhds_unique [T2Space X] {f : Y → X} {l : Filter Y} {a b : X} [l.NeBot] (ha : Filter.Tendsto f l (nhds a)) (hb : Filter.Tendsto f l (nhds b)) : a = b
+Continuous.add	Mathlib.Topology.Algebra.Monoid	theorem Continuous.add {f g : X → M} (hf : Continuous f) (hg : Continuous g) : Continuous fun x => f x + g x
+Continuous.mul	Mathlib.Topology.Algebra.Monoid	theorem Continuous.mul {f g : X → M} (hf : Continuous f) (hg : Continuous g) : Continuous fun x => f x * g x
+Filter.Tendsto.add	Mathlib.Topology.Algebra.Monoid	theorem Filter.Tendsto.add {f g : α → M} {x : Filter α} {a b : M} (hf : Filter.Tendsto f x (nhds a)) (hg : Filter.Tendsto g x (nhds b)) : Filter.Tendsto (fun x => f x + g x) x (nhds (a + b))	Continuous.add
+Filter.Tendsto.mul	Mathlib.Topology.Algebra.Monoid	theorem Filter.Tendsto.mul {f g : α → M} {x : Filter α} {a b : M} (hf : Filter.Tendsto f x (nhds a)) (hg : Filter.Tendsto g x (nhds b)) : Filter.Tendsto (fun x => f x * g x) x (nhds (a * b))	Continuous.mul
+tendsto_const_nhds	Mathlib.Topology.Basic	theorem tendsto_const_nhds {a : α} {f : Filter β} : Filter.Tendsto (fun _ : β => a) f (nhds a)
+tendsto_inverse_atTop_nhds_zero_nat	Mathlib.Analysis.SpecificLimits.Basic	theorem tendsto_inverse_atTop_nhds_zero_nat : Filter.Tendsto (fun n : ℕ => (n : ℝ)⁻¹) Filter.atTop (nhds 0)	Metric.tendsto_atTop
+tendsto_of_tendsto_of_tendsto_of_le_of_le	Mathlib.Topology.Order.Basic	theorem tendsto_of_tendsto_of_tendsto_of_le_of_le {f g h : β → α} {b : Filter β} {a : α} (hg : Filter.Tendsto g b (nhds a)) (hh : Filter.Tendsto h b (nhds a)) (hgf : g ≤ f) (hfh : f ≤ h) : Filter.Tendsto f b (nhds a)
+Continuous.comp	Mathlib.Topology.Basic	theorem Continuous.comp {g : Y → Z} {f : X → Y} (hg : Continuous g) (hf : Continuous f) : Continuous (g ∘ f)
+continuous_id	Mathlib.Topology.Basic	theorem continuous_id : Continuous (id : X → X)
+continuous_const	Mathlib.Topology.Basic	theorem continuous_const {b : Y} : Continuous fun _ : X => b
+intermediate_value_Icc	Mathlib.Topology.Order.IntermediateValue	theorem intermediate_value_Icc {a b : α} (hab : a ≤ b) {f : α → δ} (hf : ContinuousOn f (Set.Icc a b)) : Set.Icc (f a) (f b) ⊆ f '' Set.Icc a b
+isCompact_Icc	Mathlib.Topology.Order.Compact	theorem isCompact_Icc {a b : α} : IsCompact (Set.Icc a b)
+IsCompact.exists_isMinOn	Mathlib.Topology.Order.Compact	theorem IsCompact.exists_isMinOn {s : Set β} (hs : IsCompact s) (ne_s : s.Nonempty) {f : β → α} (hf : ContinuousOn f s) : ∃ x ∈ s, IsMinOn f s x
+HasDerivAt.add	Mathlib.Analysis.Calculus.Deriv.Add	theorem HasDerivAt.add (hf : HasDerivAt f f' x) (hg : HasDerivAt g g' x) : HasDerivAt (fun x => f x + g x) (f' + g') x
+HasDerivAt.mul	Mathlib.Analysis.Calculus.Deriv.Mul	theorem HasDerivAt.mul (hc : HasDerivAt c c' x) (hd : HasDerivAt d d' x) : HasDerivAt (fun y => c y * d y) (c' * d x + c x * d') x
+HasDerivAt.comp	Mathlib.Analysis.Calculus.Deriv.Comp	theorem HasDerivAt.comp (hh₂ : HasDerivAt h₂ h₂' (h x)) (hh : HasDerivAt h h' x) : HasDerivAt (h₂ ∘ h) (h₂' * h') x
+hasDerivAt_pow	Mathlib.Analysis.Calculus.Deriv.Pow	theorem hasDerivAt_pow (n : ℕ) (x : 𝕜) : HasDerivAt (fun x => x ^ n) (↑n * x ^ (n - 1)) x	HasDerivAt.mul
+exists_hasDerivAt_eq_zero	Mathlib.Analysis.Calculus.LocalExtr.Rolle	theorem exists_hasDerivAt_eq_zero (hab : a < b) (hfc : ContinuousOn f (Set.Icc a b)) (hfI : f a = f b) (hff' : ∀ x ∈ Set.Ioo a b, HasDerivAt f (f' x) x) : ∃ c ∈ Set.Ioo a b, f' c = 0	IsCompact.exists_isMinOn,isCompact_Icc
+exists_deriv_eq_slope	Mathlib.Analysis.Calculus.MeanValue	theorem exists_deriv_eq_slope (f : ℝ → ℝ) {a b : ℝ} (hab : a < b) (hfc : ContinuousOn f (Set.Icc a b)) (hfd : DifferentiableOn ℝ f (Set.Ioo a b)) : ∃ c ∈ Set.Ioo a b, deriv f c = (f b - f a) / (b - a)	exists_hasDerivAt_eq_zero
+intervalIntegral.integral_add	Mathlib.MeasureTheory.Integral.IntervalIntegral	theorem intervalIntegral.integral_add (hf : IntervalIntegrable f μ a b) (hg : IntervalIntegrable g μ a b) : ∫ x in a..b, f x + g x ∂μ = (∫ x in a..b, f x ∂μ) + ∫ x in a..b, g x ∂μ
+intervalIntegral.integral_eq_sub_of_hasDerivAt	Mathlib.MeasureTheory.Integral.FundThmCalculus	theorem intervalIntegral.integral_eq_sub_of_hasDerivAt (hderiv : ∀ x ∈ Set.uIcc a b, HasDerivAt f (f' x) x) (hint : IntervalIntegrable f' volume a b) : ∫ y in a..b, f' y = f b - f a
+integral_pow	Mathlib.Analysis.SpecialFunctions.Integrals	theorem integral_pow (n : ℕ) : ∫ x in a..b, x ^ n = (b ^ (n + 1) - a ^ (n + 1)) / (n + 1)	intervalIntegral.integral_eq_sub_of_hasDerivAt,hasDerivAt_pow
+Set.ext	Mathlib.Data.Set.Defs	theorem Set.ext {a b : Set α} (h : ∀ x, x ∈ a ↔ x ∈ b) : a = b
+Set.subset_def	Mathlib.Data.Set.Basic	theorem Set.subset_def {s t : Set α} : (s ⊆ t) = ∀ x, x ∈ s → x ∈ t
+Set.Subset.antisymm	Mathlib.Data.Set.Basic	theorem Set.Subset.antisymm {a b : Set α} (h₁ : a ⊆ b) (h₂ : b ⊆ a) : a = b	Set.ext
+Set.inter_comm	Mathlib.Data.Set.Basic	theorem Set.inter_comm (a b : Set α) : a ∩ b = b ∩ a	Set.ext
+Set.union_comm	Mathlib.Data.Set.Basic	theorem Set.union_comm (a b : Set α) : a ∪ b = b ∪ a	Set.ext
+Set.inter_union_distrib_left	Mathlib.Data.Set.Basic	theorem Set.inter_union_distrib_left (s t u : Set α) : s ∩ (t ∪ u) = s ∩ t ∪ s ∩ u	Set.ext
+Set.compl_union	Mathlib.Order.BooleanAlgebra	theorem Set.compl_union (s t : Set α) : (s ∪ t)ᶜ = sᶜ ∩ tᶜ	Set.ext
+Set.compl_inter	Mathlib.Order.BooleanAlgebra	theorem Set.compl_inter (s t : Set α) : (s ∩ t)ᶜ = sᶜ ∪ tᶜ	Set.ext
+Set.image_union	Mathlib.Data.Set.Image	theorem Set.image_union (f : α → β) (s t : Set α) : f '' (s ∪ t) = f '' s ∪ f '' t	Set.ext
+Set.preimage_inter	Mathlib.Data.Set.Image	theorem Set.preimage_inter {f : α → β} {s t : Set β} : f ⁻¹' (s ∩ t) = f ⁻¹' s ∩ f ⁻¹' t
+Function.Injective.comp	Mathlib.Logic.Function.Basic	theorem Function.Injective.comp {g : β → φ} {f : α → β} (hg : Function.Injective g) (hf : Function.Injective f) : Function.Injective (g ∘ f)
+Function.Surjective.comp	Mathlib.Logic.Function.Basic	theorem Function.Surjective.comp {g : β → φ} {f : α → β} (hg : Function.Surjective g) (hf : Function.Surjective f) : Function.Surjective (g ∘ f)
+Function.Bijective.comp	Mathlib.Logic.Function.Basic	theorem Function.Bijective.comp {g : β → φ} {f : α → β} : Function.Bijective g → Function.Bijective f → Function.Bijective (g ∘ f)	Function.Injective.comp,Function.Surjective.comp
+Function.LeftInverse.injective	Mathlib.Logic.Function.Basic	theorem Function.LeftInverse.injective {g : β → α} {f : α → β} : Function.LeftInverse g f → Function.Injective f
+Function.cantor_surjective	Mathlib.Logic.Function.Basic	theorem Function.cantor_surjective {α} (f : α → Set α) : ¬Function.Surjective f
+List.append_assoc	Init.Data.List.Basic	theorem List.append_assoc (as bs cs : List α) : as ++ bs ++ cs = as ++ (bs ++ cs)
+List.length_append	Init.Data.List.Lemmas	theorem List.length_append (as bs : List α) : (as ++ bs).length = as.length + bs.length
+List.reverse_append	Init.Data.List.Lemmas	theorem List.reverse_append (as bs : List α) : (as ++ bs).reverse = bs.reverse ++ as.reverse	List.append_assoc
+List.reverse_reverse	Init.Data.List.Lemmas	theorem List.reverse_reverse (as : List α) : as.reverse.reverse = as	List.reverse_append
+List.length_reverse	Init.Data.List.Lemmas	theorem List.length_reverse (as : List α) : as.reverse.length = as.length	List.length_append
+List.map_map	Init.Data.List.Lemmas	theorem List.map_map (g : β → γ) (f : α → β) (l : List α) : List.map g (List.map f l) = List.map (g ∘ f) l
+List.length_map	Init.Data.List.Lemmas	theorem List.length_map (as : List α) (f : α → β) : (as.map f).length = as.length
+List.mem_append	Init.Data.List.Lemmas	theorem List.mem_append {a : α} {s t : List α} : a ∈ s ++ t ↔ a ∈ s ∨ a ∈ t
+List.sum_append	Mathlib.Algebra.BigOperators.Group.List	theorem List.sum_append {l₁ l₂ : List M} : (l₁ ++ l₂).sum = l₁.sum + l₂.sum
+Polynomial.degree_mul	Mathlib.Algebra.Polynomial.Degree.Definitions	theorem Polynomial.degree_mul [NoZeroDivisors R] {p q : R[X]} : (p * q).degree = p.degree + q.degree
+Polynomial.card_roots'	Mathlib.Algebra.Polynomial.Roots	theorem Polynomial.card_roots' (p : R[X]) : Multiset.card p.roots ≤ p.natDegree
+Polynomial.eval_add	Mathlib.Algebra.Polynomial.Eval	theorem Polynomial.eval_add {p q : R[X]} {x : R} : (p + q).eval x = p.eval x + q.eval x
+Polynomial.dvd_iff_isRoot	Mathlib.Algebra.Polynomial.Div	theorem Polynomial.dvd_iff_isRoot {p : R[X]} {a : R} : Polynomial.X - Polynomial.C a ∣ p ↔ p.IsRoot a
+Matrix.det_mul	Mathlib.LinearAlgebra.Matrix.Determinant.Basic	theorem Matrix.det_mul (M N : Matrix n n R) : (M * N).det = M.det * N.det
+Matrix.det_transpose	Mathlib.LinearAlgebra.Matrix.Determinant.Basic	theorem Matrix.det_transpose (M : Matrix n n R) : Mᵀ.det = M.det
+LinearMap.finrank_range_add_finrank_ker	Mathlib.LinearAlgebra.FiniteDimensional	theorem LinearMap.finrank_range_add_finrank_ker (f : V →ₗ[K] V₂) : Module.finrank K (LinearMap.range f) + Module.finrank K (LinearMap.ker f) = Module.finrank K V
+Complex.abs_mul	Mathlib.Analysis.Complex.Basic	theorem Complex.abs_mul (z w : ℂ) : Complex.abs (z * w) = Complex.abs z * Complex.abs w
+Complex.exp_add	Mathlib.Analysis.SpecialFunctions.Exp	theorem Complex.exp_add (x y : ℂ) : Complex.exp (x + y) = Complex.exp x * Complex.exp y
+Irrational.add_rat	Mathlib.Data.Real.Irrational	theorem Irrational.add_rat (q : ℚ) {x : ℝ} (h : Irrational x) : Irrational (x + q)
+irrational_sqrt_two	Mathlib.Data.Real.Irrational	theorem irrational_sqrt_two : Irrational (√2)	Nat.Prime.dvd_mul
