@@ -6,7 +6,7 @@ description: Run several searches in one call.
 Run several searches in one call.
 
 ```python
-db.search_batch(queries: Sequence[Sequence[float]], k: int) -> list[list[tuple[str, float]]]
+db.search_batch(queries: Sequence[Sequence[float]], k: int, *, where: dict | None = None) -> list[list[tuple[str, float]]]
 ```
 
 ## Parameters
@@ -17,6 +17,9 @@ db.search_batch(queries: Sequence[Sequence[float]], k: int) -> list[list[tuple[s
 - **k** : *int*
   Maximum number of results, at least 1.
 
+- **where** : *dict, optional, keyword-only*
+  Metadata filter, for example `{"genre": "jazz"}` or `{"year": {"$gte": 1950}}`. Operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$and`, `$or`, `$not`; `"a.b"` names a nested field. See [Filtered search](/srvdb/guides/filtered-search/). Evaluated once for the whole batch. Default `None` searches every vector.
+
 ## Returns
 
 `list[list[tuple[str, float]]]`: one `search` result list per query, in query order. No queries gives `[]`.
@@ -24,7 +27,7 @@ db.search_batch(queries: Sequence[Sequence[float]], k: int) -> list[list[tuple[s
 ## Raises
 
 - **ValueError**
-  `k` is 0, or a query does not match the database dimension or contains NaN or infinity. Also raised for a negative value.
+  `k` is 0, or a query does not match the database dimension or contains NaN or infinity, or `where` is not a valid filter. Also raised for a negative `k`.
 
 - **RuntimeError**
   An internal fault occurred.

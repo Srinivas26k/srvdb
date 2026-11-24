@@ -5,6 +5,7 @@
 //! selective filter, scores exactly the allowed ids.
 
 use super::*;
+use crate::filter::Filter;
 use rayon::prelude::*;
 use std::collections::HashSet;
 
@@ -105,6 +106,53 @@ impl SrvDB {
             .filter(|(id, meta)| !self.deleted.contains(id) && predicate(meta))
             .map(|(id, _)| id)
             .collect())
+    }
+
+    /// Search for the `k` nearest neighbours of `query` among the live
+    /// vectors whose metadata matches `filter`.
+    ///
+    /// Same as [`SrvDB::ids_where`] with [`Filter::matches`] followed by
+    /// [`SrvDB::search_filtered`]: reads every metadata record once (O(n))
+    /// and then returns `min(k, matches)` results, best first. To run many
+    /// queries with one filter, use [`SrvDB::search_batch_where`] or build
+    /// the id set yourself.
+    ///
+    /// # Errors
+    /// As [`SrvDB::search_filtered`] and [`SrvDB::ids_where`].
+    pub fn search_where(
+        &self,
+        query: &Vector,
+        k: usize,
+        filter: &Filter,
+    ) -> Result<Vec<SearchResult>> {
+        validate::k(k)?;
+        validate::vector(&query.data, self.dimension)?;
+        let allowed = self.ids_where(|meta| filter.matches(meta))?;
+        log::debug!("filtered search: {} matching ids", allowed.len());
+        self.search_filtered(query, k, &allowed)
+    }
+
+    /// [`SrvDB::search_where`] for several queries, evaluating `filter`
+    /// once. Returns one result list per query, in query order.
+    ///
+    /// # Errors
+    /// As [`SrvDB::search_where`]; every query is validated before the
+    /// metadata is read.
+    pub fn search_batch_where(
+        &self,
+        queries: &[Vector],
+        k: usize,
+        filter: &Filter,
+    ) -> Result<Vec<Vec<SearchResult>>> {
+        validate::k(k)?;
+        for query in queries {
+            validate::vector(&query.data, self.dimension)?;
+        }
+        let allowed = self.ids_where(|meta| filter.matches(meta))?;
+        queries
+            .iter()
+            .map(|q| self.search_filtered(q, k, &allowed))
+            .collect()
     }
 
     /// Similarity of `query` to one stored vector, using the same storage

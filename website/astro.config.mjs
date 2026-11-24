@@ -74,6 +74,7 @@ export default defineConfig({
 					label: 'Guides',
 					items: [
 						{ label: 'Build a local RAG app', slug: 'guides/local-rag' },
+						{ label: 'Filtered search', slug: 'guides/filtered-search' },
 						{ label: 'LangChain and LlamaIndex', slug: 'guides/frameworks' },
 						{ label: 'Choosing an index mode', slug: 'guides/index-modes' },
 						{ label: 'RaBitQ low-bit search', slug: 'guides/rabitq' },

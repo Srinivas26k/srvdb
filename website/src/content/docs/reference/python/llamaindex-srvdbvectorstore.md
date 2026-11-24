@@ -35,7 +35,7 @@ class srvdb.integrations.llamaindex.SrvDBVectorStore(database, **kwargs)
 
 - Methods: `add(nodes)`, `delete(ref_doc_id)`, `delete_nodes(node_ids=None, filters=None)`, `query(VectorStoreQuery)`. Property: `client` (the database object). `stores_text` is True.
 - Nodes must carry embeddings; LlamaIndex computes them before `add`. Existing node ids are replaced.
-- `MetadataFilters` support EQ, NE, GT, GTE, LT, LTE, IN and NIN with AND, OR and NOT, applied to search results with over-fetching. `delete` by document id scans every record, O(n).
+- `MetadataFilters` support EQ, NE, GT, GTE, LT, LTE, IN and NIN with AND, OR and NOT. Filters, `node_ids` and `doc_ids` run inside SrvDB (see [Filtered search](/srvdb/guides/filtered-search/)), so a query returns `similarity_top_k` nodes whenever that many match; a key containing a dot falls back to filtering search results. A missing key matches only NE and NIN. More than 10,000 `node_ids` or `doc_ids` raise `ValueError`; so do an empty nested filter group, IN or NIN with a string value, and EQ or NE with a list value. `delete` by document id scans every record, O(n).
 - Durability: every write calls `save()` before it returns.
 - Thread safety: as thread-safe as the underlying database. The adapter makes no network calls.
 
