@@ -1,0 +1,54 @@
+---
+// Landing-page card: a small monochrome line icon, a bold title and a
+// one-line description. Icons are simple geometric drawings, not logos.
+interface Props {
+	title: string;
+	description: string;
+	href: string;
+	icon: 'python' | 'rust' | 'langchain' | 'llamaindex';
+}
+const { title, description, href, icon } = Astro.props;
+---
+
+<a class="srv-card" href={href}>
+	<span class="srv-card-icon">
+		<svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			{icon === 'python' && <><path d="M10 2.5H7a2 2 0 0 0-2 2V8h5" /><path d="M5 8H4a1.5 1.5 0 0 0-1.5 1.5v2A1.5 1.5 0 0 0 4 13h3" /><path d="M10 17.5h3a2 2 0 0 0 2-2V12h-5" /><path d="M15 12h1a1.5 1.5 0 0 0 1.5-1.5v-2A1.5 1.5 0 0 0 16 7h-3" /><circle cx="7.5" cy="5" r=".6" fill="currentColor" /><circle cx="12.5" cy="15" r=".6" fill="currentColor" /></>}
+			{icon === 'rust' && <><circle cx="10" cy="10" r="6" /><circle cx="10" cy="10" r="2" /><path d="M10 1.5V4M10 16v2.5M1.5 10H4M16 10h2.5M4 4l1.8 1.8M14.2 14.2 16 16M4 16l1.8-1.8M14.2 5.8 16 4" /></>}
+			{icon === 'langchain' && <><rect x="2.5" y="7" width="7" height="6" rx="3" /><rect x="10.5" y="7" width="7" height="6" rx="3" /></>}
+			{icon === 'llamaindex' && <><rect x="3" y="3" width="14" height="14" rx="2" /><path d="M6.5 7h7M6.5 10h7M6.5 13h4" /></>}
+		</svg>
+	</span>
+	<span class="srv-card-title">{title}</span>
+	<span class="srv-card-desc">{description}</span>
+</a>
+
+<style>
+	.srv-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		padding: 1.25rem;
+		text-decoration: none;
+		color: var(--sl-color-white);
+	}
+	.srv-card-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		margin-bottom: 0.5rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 8px;
+	}
+	.srv-card-title {
+		font-weight: 600;
+		line-height: 1.35;
+	}
+	.srv-card-desc {
+		font-size: var(--sl-text-sm);
+		line-height: 1.5;
+		color: var(--sl-color-gray-3);
+	}
+</style>
