@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `SrvDB::rebuild_checksums(path)` / `srvdb.rebuild_checksums(path)`
+  recomputes missing or damaged `.crc` checksum files of a closed database
+  so it opens again (#33, ADR 0007). It never runs implicitly; an intact
+  checksum file that disagrees with the data is refused with
+  `ChecksumMismatch` (`RuntimeError` in Python) and nothing is rewritten.
+
 ### Changed
 - The Python API is a few verbs (#57, ADR 0013):
   `srvdb.create(path, dimension, index="hnsw", *, exist_ok=False, **options)`

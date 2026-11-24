@@ -14,6 +14,7 @@ pub mod metadata;
 pub mod pq;
 pub(crate) mod rabitq;
 mod record_file;
+pub(crate) mod repair;
 pub(crate) mod settings;
 pub mod sq;
 
