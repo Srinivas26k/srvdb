@@ -120,3 +120,61 @@ def test_llamaindex_filters_node_ids_and_doc_ids_run_in_srvdb(spy):
     )
     assert sorted(store.query(q).ids) == ["n7", "n8"]
     assert spy.searches[-1][1] == {"$and": [{"__id__": {"$in": ["n7", "n8"]}}]}
+
+
+def test_langchain_dotted_key_keeps_its_literal_meaning(spy):
+    store = langchain_store(spy)
+    store.add_texts(["dotted note"], [{"a.b": "x", "a": {"b": "y"}}], ids=["dot"])
+    docs = store.similarity_search("note", k=3, filter={"a.b": "x"})
+    assert [d.id for d in docs] == ["dot"]
+    assert store.similarity_search("note", k=3, filter={"a.b": "y"}) == []
+    assert spy.searches[-1][1] is None  # matched in Python, not by SrvDB
+    with pytest.raises(ValueError, match="supports only equality"):
+        store.similarity_search("note", k=3, filter={"a.b": {"$gt": 1}})
+
+
+@pytest.mark.parametrize("field", ["node_ids", "doc_ids"])
+def test_llamaindex_rejects_more_ids_than_the_filter_cap(spy, field):
+    pytest.importorskip("llama_index.core")
+    from llama_index.core.vector_stores.types import VectorStoreQuery
+
+    from srvdb.integrations.llamaindex import SrvDBVectorStore
+
+    store = SrvDBVectorStore(spy)
+    ids = [f"x{i}" for i in range(10_001)]
+    q = VectorStoreQuery(query_embedding=embed("x"), similarity_top_k=1, **{field: ids})
+    with pytest.raises(ValueError, match=f"query.{field} has 10001 ids; .*10000"):
+        store.query(q)
+    assert spy.searches == []
+
+
+def test_llamaindex_filters_that_now_raise(spy):
+    """Behaviour changes recorded in ADR 0014 and the CHANGELOG."""
+    pytest.importorskip("llama_index.core")
+    from llama_index.core.vector_stores.types import (
+        FilterOperator,
+        MetadataFilter,
+        MetadataFilters,
+        VectorStoreQuery,
+    )
+
+    from srvdb.integrations.llamaindex import SrvDBVectorStore
+
+    store = SrvDBVectorStore(spy)
+    spy.add(["z"], [embed("z")], ['{"metadata": {"k": "abc"}}'])
+
+    def run(*filters):
+        q = VectorStoreQuery(
+            query_embedding=embed("z"),
+            similarity_top_k=1,
+            filters=MetadataFilters(filters=list(filters)),
+        )
+        return store.query(q)
+
+    key = MetadataFilter
+    with pytest.raises(ValueError, match="non-empty list"):
+        run(key(key="k", value="abc"), MetadataFilters(filters=[]))
+    with pytest.raises(ValueError, match=r"\$in on filter field .* needs a list"):
+        run(key(key="k", value="abc", operator=FilterOperator.IN))
+    with pytest.raises(ValueError, match=r"\$eq on filter field .* needs a string"):
+        run(key(key="k", value=["abc"]))

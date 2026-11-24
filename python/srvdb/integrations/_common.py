@@ -15,6 +15,38 @@ TEXT_KEY = "text"
 META_KEY = "metadata"
 
 
+#: Most values SrvDB accepts in one ``$in`` / ``$nin`` list
+#: (``srvdb::Filter::MAX_LIST_LEN`` in the core).
+MAX_IN_VALUES = 10_000
+
+
+def has_dotted_key(where: dict[str, Any]) -> bool:
+    """Whether any field name in ``where`` contains a dot, at any level.
+
+    SrvDB reads ``"a.b"`` as the field ``b`` inside ``a``; the adapters
+    store user metadata flat, so such a key must be matched in Python.
+    """
+    for key, value in where.items():
+        if key in ("$and", "$or") and isinstance(value, list):
+            if any(isinstance(v, dict) and has_dotted_key(v) for v in value):
+                return True
+        elif key == "$not" and isinstance(value, dict):
+            if has_dotted_key(value):
+                return True
+        elif "." in key:
+            return True
+    return False
+
+
+def check_id_count(name: str, ids: Sequence[str]) -> None:
+    """Raise ValueError if ``ids`` exceeds the SrvDB ``$in`` limit."""
+    if len(ids) > MAX_IN_VALUES:
+        raise ValueError(
+            f"{name} has {len(ids)} ids; SrvDB filters accept at most "
+            f"{MAX_IN_VALUES}. Split the query or filter on a metadata field."
+        )
+
+
 def new_ids(n: int) -> list[str]:
     """Return ``n`` fresh random string ids."""
     return [str(uuid.uuid4()) for _ in range(n)]

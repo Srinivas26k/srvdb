@@ -34,10 +34,30 @@ from srvdb.integrations import _common
 Filter = Union[dict[str, Any], Callable[[dict[str, Any]], bool]]
 
 
+def _equal_keep(wanted: dict[str, Any]) -> Callable[[str, dict[str, Any]], bool]:
+    """Python equality test, for dict filters whose keys contain a dot."""
+    for key, value in wanted.items():
+        if key.startswith("$") or isinstance(value, dict):
+            raise ValueError(
+                f"filter key {key!r} contains a dot or is an operator next to "
+                "one; a dict filter with dotted metadata keys supports only "
+                "equality ({'a.b': value}). Use a callable filter instead."
+            )
+
+    def keep(_id: str, rec: dict[str, Any]) -> bool:
+        meta = rec.get(_common.META_KEY, {})
+        return all(k in meta and meta[k] == v for k, v in wanted.items())
+
+    return keep
+
+
 def _keep(filter: Filter | None) -> Callable[[str, dict[str, Any]], bool] | None:
-    """A Python test for a callable filter; dict filters run natively."""
-    if filter is None or isinstance(filter, dict):
+    """A Python test for callables and for dict filters with dotted keys
+    (which SrvDB would read as nesting); other dict filters run natively."""
+    if filter is None:
         return None
+    if isinstance(filter, dict):
+        return _equal_keep(filter) if _common.has_dotted_key(filter) else None
     if callable(filter):
         pred = filter
         return lambda _id, rec: bool(pred(rec.get(_common.META_KEY, {})))
@@ -46,7 +66,7 @@ def _keep(filter: Filter | None) -> Callable[[str, dict[str, Any]], bool] | None
 
 def _where(filter: Filter | None) -> dict[str, Any] | None:
     """A dict filter as a native SrvDB ``where`` over the stored metadata."""
-    if isinstance(filter, dict) and filter:
+    if isinstance(filter, dict) and filter and not _common.has_dotted_key(filter):
         return _common.nested(filter)
     return None
 
@@ -72,8 +92,9 @@ class SrvDBVectorStore(VectorStore):
     ``k`` match: ``{"genre": "jazz"}`` (equality), operator dicts such as
     ``{"year": {"$gte": 1950}}`` (``$eq``, ``$ne``, ``$gt``, ``$gte``,
     ``$lt``, ``$lte``, ``$in``, ``$nin``) and ``$and`` / ``$or`` / ``$not``.
-    A callable runs on the search results, over-fetching until ``k``
-    matches are found.
+    A callable, or a dict whose keys contain a dot (which SrvDB would read
+    as nesting; equality only, as before), runs on the search results,
+    over-fetching until ``k`` matches are found.
     """
 
     def __init__(self, database: Database, embedding: Embeddings) -> None:

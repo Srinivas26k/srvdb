@@ -198,7 +198,8 @@ class SrvDBVectorStore(BasePydanticVectorStore):
         _common.remove(self._db, doomed)
 
     def query(self, query: VectorStoreQuery, **kwargs: Any) -> VectorStoreQueryResult:
-        """Dense top-k search; ValueError if the query has no embedding.
+        """Dense top-k search; ValueError if the query has no embedding or
+        more than 10,000 ``node_ids`` or ``doc_ids``.
 
         Raises NotImplementedError for an unsupported filter operator.
         """
@@ -208,8 +209,10 @@ class SrvDBVectorStore(BasePydanticVectorStore):
         conditions: list[dict[str, Any]] = []
         # LlamaIndex passes an empty list to mean "no restriction".
         if query.node_ids:
+            _common.check_id_count("query.node_ids", query.node_ids)
             conditions.append({"__id__": {"$in": list(query.node_ids)}})
         if query.doc_ids:
+            _common.check_id_count("query.doc_ids", query.doc_ids)
             key = f"{_common.META_KEY}.ref_doc_id"
             conditions.append({key: {"$in": list(query.doc_ids)}})
         keep = None
