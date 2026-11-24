@@ -69,7 +69,7 @@ A complete, runnable **Datasheet Q&A** reference implementation is in progress. 
 import json
 import srvdb
 
-db = srvdb.Database("./datasheet-qa-db", dimension=768)
+db = srvdb.open("./datasheet-qa-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

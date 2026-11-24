@@ -69,7 +69,7 @@ A complete, runnable **Control Mapper** reference implementation is in progress.
 import json
 import srvdb
 
-db = srvdb.Database("./control-mapper-db", dimension=768)
+db = srvdb.open("./control-mapper-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

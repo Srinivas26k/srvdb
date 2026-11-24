@@ -21,7 +21,7 @@ def main():
     print("Initializing database...")
     # v0.2.0 requirement: dimension argument
     dim = 1536
-    db = srvdb.Database("./python_demo_db", dimension=dim)
+    db = srvdb.open("./python_demo_db", dimension=dim)
     print(f"✓ Created: {db}\n")
 
     # Prepare data

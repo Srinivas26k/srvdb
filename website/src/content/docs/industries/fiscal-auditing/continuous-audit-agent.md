@@ -69,7 +69,7 @@ A complete, runnable **Continuous Audit Agent** reference implementation is in p
 import json
 import srvdb
 
-db = srvdb.Database("./continuous-audit-agent-db", dimension=384)
+db = srvdb.open("./continuous-audit-agent-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

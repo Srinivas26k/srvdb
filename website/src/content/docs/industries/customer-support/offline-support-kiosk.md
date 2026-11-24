@@ -69,7 +69,7 @@ A complete, runnable **Offline Support Kiosk** reference implementation is in pr
 import json
 import srvdb
 
-db = srvdb.Database("./offline-support-kiosk-db", dimension=384)
+db = srvdb.open("./offline-support-kiosk-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

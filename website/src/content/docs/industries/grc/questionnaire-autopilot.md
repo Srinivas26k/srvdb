@@ -69,7 +69,7 @@ A complete, runnable **Questionnaire Autopilot** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./questionnaire-autopilot-db", dimension=384)
+db = srvdb.open("./questionnaire-autopilot-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

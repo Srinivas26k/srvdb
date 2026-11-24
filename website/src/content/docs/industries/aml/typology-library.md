@@ -69,7 +69,7 @@ A complete, runnable **Typology Library** reference implementation is in progres
 import json
 import srvdb
 
-db = srvdb.Database("./typology-library-db", dimension=384)
+db = srvdb.open("./typology-library-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

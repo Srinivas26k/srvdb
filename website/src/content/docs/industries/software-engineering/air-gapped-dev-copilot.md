@@ -69,7 +69,7 @@ A complete, runnable **Air-gapped Dev Copilot** reference implementation is in p
 import json
 import srvdb
 
-db = srvdb.Database("./air-gapped-dev-copilot-db", dimension=768, mode="hnsw")
+db = srvdb.open("./air-gapped-dev-copilot-db", dimension=768, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

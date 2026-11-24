@@ -69,7 +69,7 @@ A complete, runnable **Calibration Drift Detector** reference implementation is 
 import json
 import srvdb
 
-db = srvdb.Database("./calibration-drift-detector-db", dimension=128)
+db = srvdb.open("./calibration-drift-detector-db", dimension=128)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

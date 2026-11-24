@@ -69,7 +69,7 @@ A complete, runnable **Fact-check Assistant** reference implementation is in pro
 import json
 import srvdb
 
-db = srvdb.Database("./fact-check-assistant-db", dimension=384)
+db = srvdb.open("./fact-check-assistant-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -69,7 +69,7 @@ A complete, runnable **Public Funds Analytics** reference implementation is in p
 import json
 import srvdb
 
-db = srvdb.Database("./public-funds-analytics-db", dimension=768, mode="hnsw")
+db = srvdb.open("./public-funds-analytics-db", dimension=768, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

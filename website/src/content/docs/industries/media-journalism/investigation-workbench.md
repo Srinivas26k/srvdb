@@ -69,7 +69,7 @@ A complete, runnable **Investigation Workbench** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./investigation-workbench-db", dimension=512)
+db = srvdb.open("./investigation-workbench-db", dimension=512)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

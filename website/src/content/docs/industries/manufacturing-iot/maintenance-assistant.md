@@ -69,7 +69,7 @@ A complete, runnable **Maintenance Assistant** reference implementation is in pr
 import json
 import srvdb
 
-db = srvdb.Database("./maintenance-assistant-db", dimension=384)
+db = srvdb.open("./maintenance-assistant-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

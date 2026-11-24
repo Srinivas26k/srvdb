@@ -69,7 +69,7 @@ A complete, runnable **Clause Finder** reference implementation is in progress. 
 import json
 import srvdb
 
-db = srvdb.Database("./clause-finder-db", dimension=768)
+db = srvdb.open("./clause-finder-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

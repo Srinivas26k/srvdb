@@ -69,7 +69,7 @@ A complete, runnable **Circuit Similarity Research** reference implementation is
 import json
 import srvdb
 
-db = srvdb.Database("./circuit-similarity-research-db", dimension=256)
+db = srvdb.open("./circuit-similarity-research-db", dimension=256)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -69,7 +69,7 @@ A complete, runnable **Fleet Finding Matcher** reference implementation is in pr
 import json
 import srvdb
 
-db = srvdb.Database("./fleet-finding-matcher-db", dimension=384)
+db = srvdb.open("./fleet-finding-matcher-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

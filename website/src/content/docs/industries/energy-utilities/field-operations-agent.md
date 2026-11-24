@@ -69,7 +69,7 @@ A complete, runnable **Field Operations Agent** reference implementation is in p
 import json
 import srvdb
 
-db = srvdb.Database("./field-operations-agent-db", dimension=384, mode="sq8")
+db = srvdb.open("./field-operations-agent-db", dimension=384, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

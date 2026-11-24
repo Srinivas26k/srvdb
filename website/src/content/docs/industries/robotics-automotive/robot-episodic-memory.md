@@ -69,7 +69,7 @@ A complete, runnable **Robot Episodic Memory** reference implementation is in pr
 import json
 import srvdb
 
-db = srvdb.Database("./robot-episodic-memory-db", dimension=256, mode="sq8")
+db = srvdb.open("./robot-episodic-memory-db", dimension=256, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

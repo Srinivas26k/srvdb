@@ -69,7 +69,7 @@ A complete, runnable **Policy Assistant** reference implementation is in progres
 import json
 import srvdb
 
-db = srvdb.Database("./policy-assistant-db", dimension=384)
+db = srvdb.open("./policy-assistant-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

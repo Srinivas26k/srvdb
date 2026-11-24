@@ -69,7 +69,7 @@ A complete, runnable **Research Group Brain** reference implementation is in pro
 import json
 import srvdb
 
-db = srvdb.Database("./research-group-brain-db", dimension=512)
+db = srvdb.open("./research-group-brain-db", dimension=512)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

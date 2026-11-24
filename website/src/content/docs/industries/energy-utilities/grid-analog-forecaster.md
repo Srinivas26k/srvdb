@@ -69,7 +69,7 @@ A complete, runnable **Grid Analog Forecaster** reference implementation is in p
 import json
 import srvdb
 
-db = srvdb.Database("./grid-analog-forecaster-db", dimension=128)
+db = srvdb.open("./grid-analog-forecaster-db", dimension=128)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

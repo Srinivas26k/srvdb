@@ -69,7 +69,7 @@ A complete, runnable **Archive Search** reference implementation is in progress.
 import json
 import srvdb
 
-db = srvdb.Database("./archive-search-db", dimension=384, mode="hnsw")
+db = srvdb.open("./archive-search-db", dimension=384, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
