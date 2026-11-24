@@ -124,12 +124,30 @@ class Database:
         metadatas: Sequence[str],
     ) -> int:
         """Add vectors, replacing existing ids. Returns the count written."""
-    def search(self, query: Sequence[float], k: int) -> list[tuple[str, float]]:
-        """Up to ``k`` ``(id, cosine score)`` pairs, best first."""
+    def search(
+        self,
+        query: Sequence[float],
+        k: int,
+        *,
+        where: Mapping[str, Any] | None = None,
+    ) -> list[tuple[str, float]]:
+        """Up to ``k`` ``(id, cosine score)`` pairs, best first.
+
+        ``where`` keeps only vectors whose metadata matches, e.g.
+        ``{"genre": "jazz", "year": {"$gte": 1950}}``. Operators: ``$eq``,
+        ``$ne``, ``$gt``, ``$gte``, ``$lt``, ``$lte``, ``$in``, ``$nin``,
+        ``$and``, ``$or``, ``$not``; ``"a.b"`` names a nested field.
+        ValueError for an unknown operator or a wrong operand type.
+        """
     def search_batch(
-        self, queries: Sequence[Sequence[float]], k: int
+        self,
+        queries: Sequence[Sequence[float]],
+        k: int,
+        *,
+        where: Mapping[str, Any] | None = None,
     ) -> list[list[tuple[str, float]]]:
-        """One search() result list per query, in query order."""
+        """One search() result list per query, in query order; ``where``
+        is evaluated once for the batch."""
     def get(self, id: str) -> str | None:
         """Stored metadata JSON (with ``"__id__"``), or None for an unknown id."""
     def count(self) -> int:

@@ -9,6 +9,7 @@ mod errors;
 mod lifecycle;
 mod operations;
 mod rabitq;
+mod where_arg;
 mod writes;
 
 use database::PyDatabase;

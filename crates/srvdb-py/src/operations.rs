@@ -5,6 +5,7 @@
 
 use crate::database::{PyDatabase, State};
 use crate::errors::{non_negative, to_py};
+use crate::where_arg::to_filter;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use srvdb::{SearchResult, VectorEngine};
@@ -29,22 +30,42 @@ impl PyDatabase {
     /// Args:
     ///     query: vector matching the database dimension, finite values
     ///     k: maximum number of results, at least 1
+    ///     where: optional metadata filter, e.g. {"genre": "jazz"} or
+    ///         {"year": {"$gte": 1950}}. Operators: $eq, $ne, $gt, $gte,
+    ///         $lt, $lte, $in, $nin, $and, $or, $not; "a.b" names a nested
+    ///         field. Only matching vectors are returned, and k of them
+    ///         whenever at least k match.
     ///
     /// Returns:
     ///     Up to k (id, score) tuples, best first. Scores are cosine
     ///     similarities (approximate in "pq" mode).
     ///
     /// Raises:
-    ///     ValueError: k is 0 or negative, or the query has the wrong
-    ///         dimension or a NaN or infinite value.
+    ///     ValueError: k is 0 or negative, the query has the wrong
+    ///         dimension or a NaN or infinite value, or `where` is not a
+    ///         valid filter (unknown operator, wrong operand type, empty).
     ///     RuntimeError: an internal fault occurred.
     ///
-    /// Releases the GIL; searches from several threads run in parallel.
-    fn search(&self, py: Python<'_>, query: Vec<f32>, k: i64) -> PyResult<Vec<(String, f32)>> {
+    /// A filter reads every metadata record once per call (O(n)); use
+    /// search_batch() to share that cost across queries. Releases the GIL;
+    /// searches from several threads run in parallel.
+    #[pyo3(signature = (query, k, *, r#where=None))]
+    fn search(
+        &self,
+        py: Python<'_>,
+        query: Vec<f32>,
+        k: i64,
+        r#where: Option<Bound<'_, PyAny>>,
+    ) -> PyResult<Vec<(String, f32)>> {
         let k = non_negative("k", k)?;
+        let filter = r#where.map(|w| to_filter(py, &w)).transpose()?;
         let query = srvdb::Vector::new(query);
         self.read(py, |s| {
-            let results = VectorEngine::search(&s.db, &query, k).map_err(to_py)?;
+            let results = match &filter {
+                Some(f) => s.db.search_where(&query, k, f),
+                None => VectorEngine::search(&s.db, &query, k),
+            }
+            .map_err(to_py)?;
             Ok(named(s, results))
         })
     }
@@ -52,17 +73,25 @@ impl PyDatabase {
     /// Search for several queries at once.
     ///
     /// Returns one result list per query, in query order. Arguments, scores
-    /// and errors as for search(). Releases the GIL like search().
+    /// and errors as for search(); a `where` filter is evaluated once for
+    /// the whole batch. Releases the GIL like search().
+    #[pyo3(signature = (queries, k, *, r#where=None))]
     fn search_batch(
         &self,
         py: Python<'_>,
         queries: Vec<Vec<f32>>,
         k: i64,
+        r#where: Option<Bound<'_, PyAny>>,
     ) -> PyResult<Vec<Vec<(String, f32)>>> {
         let k = non_negative("k", k)?;
+        let filter = r#where.map(|w| to_filter(py, &w)).transpose()?;
         let queries: Vec<srvdb::Vector> = queries.into_iter().map(srvdb::Vector::new).collect();
         self.read(py, |s| {
-            let batches = VectorEngine::search_batch(&s.db, &queries, k).map_err(to_py)?;
+            let batches = match &filter {
+                Some(f) => s.db.search_batch_where(&queries, k, f),
+                None => VectorEngine::search_batch(&s.db, &queries, k),
+            }
+            .map_err(to_py)?;
             Ok(batches.into_iter().map(|b| named(s, b)).collect())
         })
     }
