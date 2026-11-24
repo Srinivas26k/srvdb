@@ -1,0 +1,106 @@
+---
+// Top bar: logo on the left, section tabs in the middle, GitHub on the right.
+// Search and the theme switcher live in the sidebar; pages without a sidebar
+// (the splash home page) keep them here so they are always reachable.
+import Search from 'virtual:starlight/components/Search';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+
+const { id, hasSidebar } = Astro.locals.starlightRoute;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const tabs = [
+	{ label: 'Documentation', href: `${base}/start/introduction/`, icon: 'book', match: (s: string) => !/^(guides|reference|benchmarks)(\/|$)/.test(s) && s !== '' },
+	{ label: 'Guides', href: `${base}/guides/local-rag/`, icon: 'compass', match: (s: string) => s.startsWith('guides/') },
+	{ label: 'API Reference', href: `${base}/reference/python/`, icon: 'braces', match: (s: string) => s.startsWith('reference/') },
+	{ label: 'Benchmarks', href: `${base}/benchmarks/`, icon: 'bars', match: (s: string) => s === 'benchmarks' },
+];
+---
+
+<div class="srv-header">
+	<div class="srv-title"><SiteTitle /></div>
+	<nav class="srv-tabs sl-hidden md:sl-flex" aria-label="Sections">
+		{
+			tabs.map((t) => (
+				<a href={t.href} aria-current={t.match(id) ? 'page' : undefined}>
+					<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+						{t.icon === 'book' && <path d="M3 2.5h7.5a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2zM3 11.5a2 2 0 0 1 2-2h7.5" />}
+						{t.icon === 'compass' && <><circle cx="8" cy="8" r="5.5" /><path d="m10.5 5.5-1.5 3.5-3.5 1.5 1.5-3.5z" /></>}
+						{t.icon === 'braces' && <path d="M5.5 2.5c-1.5 0-2 .7-2 2v1.5c0 1-.5 2-1.5 2 1 0 1.5 1 1.5 2v1.5c0 1.3.5 2 2 2M10.5 2.5c1.5 0 2 .7 2 2v1.5c0 1 .5 2 1.5 2-1 0-1.5 1-1.5 2v1.5c0 1.3-.5 2-2 2" />}
+						{t.icon === 'bars' && <path d="M2.5 13.5h11M4.5 11V7.5M8 11V3.5M11.5 11V6" />}
+					</svg>
+					{t.label}
+				</a>
+			))
+		}
+	</nav>
+	<div class="srv-right print:hidden">
+		{!hasSidebar && <Search />}
+		{!hasSidebar && <div class="sl-hidden md:sl-flex"><ThemeSelect /></div>}
+		<a class="srv-github" aria-label="GitHub" href="https://github.com/Srinivas26k/srvdb">
+			<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.2.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3" /></svg>
+			<span class="srv-github-label">GitHub</span>
+		</a>
+	</div>
+</div>
+
+<style>
+	.srv-header {
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+		height: 100%;
+	}
+	.srv-title {
+		display: flex;
+		min-width: 0;
+		overflow: clip;
+		padding: 0.25rem;
+		margin: -0.25rem;
+	}
+	.srv-tabs {
+		gap: 0.25rem;
+		align-items: center;
+	}
+	.srv-tabs a,
+	.srv-github {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.375rem 0.625rem;
+		border-radius: 8px;
+		font-size: var(--sl-text-sm);
+		font-weight: 500;
+		color: var(--sl-color-gray-3);
+		text-decoration: none;
+	}
+	.srv-tabs a:hover,
+	.srv-tabs a[aria-current='page'] {
+		color: var(--sl-color-white);
+	}
+	.srv-tabs a[aria-current='page'] {
+		background: var(--srv-pill);
+	}
+	.srv-right {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-inline-start: auto;
+	}
+	.srv-github {
+		color: var(--sl-color-white);
+		border: 1px solid var(--sl-color-gray-5);
+		background: var(--srv-panel-bg);
+	}
+	.srv-github-label {
+		display: none;
+	}
+	@media (min-width: 50rem) {
+		.srv-github-label {
+			display: inline;
+		}
+	}
+	.srv-github:hover {
+		background: var(--srv-pill);
+	}
+</style>

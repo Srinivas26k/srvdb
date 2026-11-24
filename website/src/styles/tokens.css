@@ -1,13 +1,13 @@
 /* SrvDB documentation design tokens.
    One sans-serif text face (Inter), one monospace (JetBrains Mono).
    Colours are set through Starlight's custom properties so every built-in
-   component picks them up. Neutral greys, one blue accent.
-   Contrast (WCAG 2.1, checked against the page background):
-     dark:  body #e4e6eb on #15171c ~ 14:1, accent #8ab4ff ~ 8.6:1,
-            muted gray-3 #9aa1ad ~ 6.9:1
-     light: body #1f2329 on #ffffff ~ 15.6:1, accent #1d4ed8 ~ 6.7:1,
-            muted gray-3 #5b6370 ~ 6.0:1
-   All text pairs meet AA (4.5:1). */
+   component picks them up. Monochrome: greys only, no colour accent;
+   links are underlined in the text colour.
+   `npm run check:contrast` (scripts/contrast.mjs) checks a hand-listed
+   set of text/background pairs from this file (body, muted, sidebar,
+   pill, button and code text) and the syntax colours in
+   src/code-theme.mjs against WCAG AA (4.5:1). Pairs not in that list,
+   such as hover states and borders, are not checked. */
 
 /* Typography, spacing and radii (theme independent) */
 :root {
@@ -25,11 +25,11 @@
 	--sl-text-3xl: 1.75rem;
 	--sl-text-4xl: 2rem;
 	--sl-text-5xl: 2.5rem;
-	--sl-text-h1: var(--sl-text-4xl);
+	--sl-text-h1: 2.25rem;
 	--sl-text-h2: var(--sl-text-2xl);
 	--sl-text-h3: var(--sl-text-xl);
 	--sl-text-h4: var(--sl-text-lg);
-	--sl-line-height: 1.65;
+	--sl-line-height: 1.75;
 	--sl-line-height-headings: 1.25;
 
 	/* Spacing and radii used by the overrides below */
@@ -42,35 +42,47 @@
 	--srv-radius-md: 8px;
 }
 
-/* Dark theme (Starlight's default) */
+/* Dark theme (Starlight's default): near-black page, #111 panel, light text */
 :root {
-	--sl-color-accent-low: #1b2a4a;
-	--sl-color-accent: #8ab4ff;
-	--sl-color-accent-high: #d6e4ff;
-	--sl-color-white: #ffffff;
-	--sl-color-gray-1: #e4e6eb;
-	--sl-color-gray-2: #c3c7cf;
-	--sl-color-gray-3: #9aa1ad;
-	--sl-color-gray-4: #5f6672;
-	--sl-color-gray-5: #393e47;
-	--sl-color-gray-6: #23262d;
-	--sl-color-black: #15171c;
+	--sl-color-accent-low: #262626;
+	--sl-color-accent: #fafafa;
+	--sl-color-accent-high: #fafafa;
+	--sl-color-white: #fafafa;
+	--sl-color-gray-1: #ededed;
+	--sl-color-gray-2: #d4d4d4;
+	--sl-color-gray-3: #a3a3a3;
+	--sl-color-gray-4: #737373;
+	--sl-color-gray-5: #2a2a2a;
+	--sl-color-gray-6: #1c1c1c;
+	--sl-color-black: #111111;
+	--srv-page-bg: #0a0a0a;
+	--srv-panel-bg: #111111;
+	--srv-pill: #262626;
+	--srv-code-bg: #171717;
+	--srv-button-bg: #fafafa;
+	--srv-button-fg: #111111;
 }
 
-/* Light theme */
+/* Light theme: light-grey page, white panel, near-black text */
 :root[data-theme='light'] {
-	--sl-color-accent-low: #dbe6fe;
-	--sl-color-accent: #1d4ed8;
-	--sl-color-accent-high: #1e3a8a;
-	--sl-color-white: #111318;
-	--sl-color-gray-1: #1f2329;
-	--sl-color-gray-2: #3a404a;
-	--sl-color-gray-3: #5b6370;
-	--sl-color-gray-4: #8b929d;
-	--sl-color-gray-5: #d5d9df;
-	--sl-color-gray-6: #eef0f3;
-	--sl-color-gray-7: #f7f8fa;
+	--sl-color-accent-low: #ececec;
+	--sl-color-accent: #111111;
+	--sl-color-accent-high: #111111;
+	--sl-color-white: #111111;
+	--sl-color-gray-1: #1a1a1a;
+	--sl-color-gray-2: #333333;
+	--sl-color-gray-3: #6b6b6b;
+	--sl-color-gray-4: #8f8f8f;
+	--sl-color-gray-5: #e5e5e5;
+	--sl-color-gray-6: #ececec;
+	--sl-color-gray-7: #f5f5f5;
 	--sl-color-black: #ffffff;
+	--srv-page-bg: #f5f5f5;
+	--srv-panel-bg: #ffffff;
+	--srv-pill: #ececec;
+	--srv-code-bg: #fafafa;
+	--srv-button-bg: #111111;
+	--srv-button-fg: #ffffff;
 }
 
 /* Headings: same face as body, tighter tracking, semibold */

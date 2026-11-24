@@ -1,0 +1,228 @@
+/* Monochrome documentation layout (issue #59).
+   Light-grey page, content in a bordered white panel, quiet sidebar,
+   right rail with a thin rule. Colours come from tokens.css. */
+
+:root {
+	--sl-content-width: 44rem; /* about 70ch of Inter at 16px */
+	--sl-color-bg: var(--srv-panel-bg);
+	--sl-color-bg-nav: var(--srv-page-bg);
+	--sl-color-bg-sidebar: var(--srv-page-bg);
+	--sl-color-hairline: var(--sl-color-gray-5);
+	--sl-color-hairline-light: var(--sl-color-gray-5);
+	--sl-color-hairline-shade: var(--sl-color-gray-5);
+	--srv-panel-gap: 0.75rem;
+}
+
+body {
+	background-color: var(--srv-page-bg);
+}
+
+/* Top bar and sidebar sit on the page colour without dividers */
+.page > header.header {
+	border-bottom: 0;
+}
+
+/* Content panel */
+.main-frame > .lg\:sl-flex {
+	background: var(--srv-panel-bg);
+}
+@media (min-width: 50rem) {
+	.sidebar-pane {
+		border-inline-end: 0 !important;
+	}
+	.main-frame {
+		padding-inline-end: var(--srv-panel-gap);
+		padding-bottom: var(--srv-panel-gap);
+	}
+	.main-frame > .lg\:sl-flex {
+		min-height: calc(100vh - var(--sl-nav-height) - var(--srv-panel-gap));
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 16px;
+		overflow: clip;
+	}
+	:root:not([data-has-sidebar]) .main-frame {
+		padding-inline-start: var(--srv-panel-gap);
+	}
+}
+
+/* Sidebar */
+.sidebar-content {
+	padding-top: 0.75rem;
+	font-size: var(--sl-text-sm);
+}
+.sidebar-content .top-level > li > details > summary .group-label > span {
+	font-weight: 600;
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-white);
+}
+.sidebar-content .group-label .large,
+.sidebar-content ul ul .large {
+	font-size: var(--sl-text-sm);
+	font-weight: 500;
+	color: var(--sl-color-gray-2);
+}
+.sidebar-content ul ul {
+	border-inline-start: 0 !important;
+}
+.sidebar-content a {
+	border-radius: 8px;
+	color: var(--sl-color-gray-2);
+}
+.sidebar-content a:hover {
+	color: var(--sl-color-white);
+}
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+	background-color: var(--srv-pill);
+	color: var(--sl-color-white);
+	font-weight: 600;
+}
+
+/* Search button: plain bordered field */
+site-search > button[data-open-modal] {
+	border-radius: 8px;
+	border-color: var(--sl-color-gray-5);
+	background-color: var(--srv-panel-bg);
+	color: var(--sl-color-gray-3);
+}
+
+/* Body text and links */
+.sl-markdown-content a:not(.sl-link-card a, .srv-card) {
+	color: var(--sl-color-white);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.2em;
+}
+.sl-markdown-content a:not(.sl-link-card a, .srv-card):hover {
+	text-decoration-thickness: 2px;
+}
+
+/* Code: light grey block with a border */
+.expressive-code {
+	--ec-frm-edBg: var(--srv-code-bg);
+	--ec-frm-trmBg: var(--srv-code-bg);
+	--ec-brdCol: var(--sl-color-gray-5);
+}
+.sl-markdown-content :not(pre) > code {
+	background: var(--srv-code-bg);
+	border: 1px solid var(--sl-color-gray-5);
+}
+
+/* Right rail: "On this page" with a thin rule, active heading bold */
+starlight-toc h2,
+.right-sidebar h2 {
+	font-size: var(--sl-text-sm);
+	font-weight: 600;
+	color: var(--sl-color-white);
+}
+.right-sidebar {
+	border-inline-start: 0 !important;
+}
+starlight-toc nav > ul {
+	border-inline-start: 1px solid var(--sl-color-gray-5);
+}
+starlight-toc a {
+	color: var(--sl-color-gray-3);
+	margin-inline-start: -1px;
+	border-inline-start: 1px solid transparent;
+	border-radius: 0 !important;
+}
+starlight-toc a:hover {
+	color: var(--sl-color-white);
+}
+starlight-toc a[aria-current='true'] {
+	color: var(--sl-color-white);
+	font-weight: 600;
+	border-inline-start-color: var(--sl-color-white);
+}
+
+/* Buttons: black primary, bordered secondary */
+.sl-link-button.primary {
+	background: var(--srv-button-bg);
+	border-color: var(--srv-button-bg);
+	color: var(--srv-button-fg);
+	border-radius: 8px;
+}
+.sl-link-button.minimal,
+.sl-link-button.secondary {
+	color: var(--sl-color-white);
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 8px;
+	padding: 0.75rem 1.25rem;
+}
+
+/* Cards: white, 1px border, 12px radius */
+.card,
+.sl-link-card,
+.srv-card {
+	background: var(--srv-panel-bg);
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 12px;
+	box-shadow: none;
+}
+.sl-link-card:hover,
+.srv-card:hover {
+	border-color: var(--sl-color-gray-4);
+	background: var(--srv-panel-bg);
+}
+.sl-link-card .title {
+	font-weight: 600;
+}
+.sl-link-card .description {
+	color: var(--sl-color-gray-3);
+}
+
+/* Terminal frames: plain bordered block, no title bar when untitled */
+.expressive-code .frame.is-terminal .header:has(.title:empty) {
+	display: none;
+}
+.expressive-code .frame.is-terminal:has(.header .title:empty) pre {
+	border-top: var(--ec-brdWd) solid var(--ec-brdCol);
+	border-radius: var(--ec-brdRad);
+}
+
+/* Badges: grey outline instead of colour */
+.sl-badge {
+	background: transparent !important;
+	border: 1px solid var(--sl-color-gray-5) !important;
+	color: var(--sl-color-gray-3) !important;
+	font-weight: 500;
+}
+
+/* API reference Parameters / Returns / Raises lists render like a
+   definition list. The Markdown pattern is
+     - **name** : *type*
+       Description.
+   pre-line turns the soft line break into a real one, so the name and
+   type share the first line and the description sits below. */
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul {
+	list-style: none;
+	padding-inline-start: 0;
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li {
+	margin-top: 1rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li:last-child {
+	border-bottom: 0;
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li > p:first-child {
+	white-space: pre-line;
+	margin: 0;
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li > p:first-child > strong:first-child {
+	font-family: var(--sl-font-mono);
+	font-size: 0.9375em;
+	font-weight: 600;
+	color: var(--sl-color-white);
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li > p:first-child > strong:first-child + em {
+	color: var(--sl-color-gray-3);
+}
+
+/* Landing page: left-aligned hero inside the panel */
+[data-has-hero] .main-pane {
+	padding-top: 1rem;
+}

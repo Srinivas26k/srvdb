@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import industries from './src/industries-sidebar.mjs';
+import { expressiveCode } from './src/code-theme.mjs';
 
 // Deployed to GitHub Pages at https://srinivas26k.github.io/srvdb/
 export default defineConfig({
@@ -36,23 +37,23 @@ export default defineConfig({
 				'@fontsource/inter/600.css',
 				'@fontsource/jetbrains-mono/400.css',
 				'./src/styles/tokens.css',
+				'./src/styles/layout.css',
 			],
+			components: {
+				Header: './src/components/overrides/Header.astro',
+				Sidebar: './src/components/overrides/Sidebar.astro',
+				PageTitle: './src/components/overrides/PageTitle.astro',
+			},
+			expressiveCode,
 			lastUpdated: true,
 			sidebar: [
 				{
-					label: 'Start here',
+					label: 'Get started',
 					items: [
 						{ label: 'Introduction', slug: 'start/introduction' },
 						{ label: 'Installation', slug: 'start/installation' },
 						{ label: 'Quickstart', slug: 'start/quickstart' },
 						{ label: 'Use cases', slug: 'start/use-cases' },
-					],
-				},
-				{ label: 'Industries', items: industries },
-				{
-					label: 'Examples',
-					items: [
-						{ label: 'Live examples & cheat sheets', slug: 'examples/overview', badge: { text: 'Soon', variant: 'caution' } },
 					],
 				},
 				{
@@ -68,6 +69,7 @@ export default defineConfig({
 						{ label: 'Handling errors', slug: 'guides/errors' },
 						{ label: 'Using SrvDB from Rust', slug: 'guides/rust' },
 						{ label: 'Upgrading to 0.3', slug: 'guides/upgrading' },
+						{ label: 'Live examples & cheat sheets', slug: 'examples/overview', badge: { text: 'Soon', variant: 'caution' } },
 					],
 				},
 				{
@@ -121,6 +123,9 @@ export default defineConfig({
 						{ label: 'Brand', slug: 'project/brand' },
 					],
 				},
+				// Industry pages last and collapsed, so the default sidebar reads
+				// Get started, Guides, Reference, Project.
+				{ label: 'Industries', collapsed: true, items: industries },
 			],
 		}),
 	],

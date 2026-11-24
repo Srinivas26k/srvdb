@@ -1,0 +1,45 @@
+---
+// Left sidebar: search box on top, Starlight's navigation tree, theme
+// switcher pinned to the bottom on desktop (mobile keeps Starlight's menu
+// footer, which already contains it).
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+import Search from 'virtual:starlight/components/Search';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+---
+
+<div class="srv-sidebar-search print:hidden"><Search /></div>
+<Default />
+<div class="srv-sidebar-footer sl-hidden md:sl-flex print:hidden">
+	<ThemeSelect />
+</div>
+
+<style>
+	:global(:root) {
+		--srv-sidebar-footer-h: 3.25rem;
+	}
+	.srv-sidebar-search {
+		display: flex;
+	}
+	.srv-sidebar-search :global(site-search) {
+		width: 100%;
+	}
+	/* The footer sits outside the scrolling pane: the pane stops above it,
+	   so the theme switcher never covers a navigation item. The pane itself
+	   stays Starlight's scroller, which keeps sidebar scroll restoration. */
+	.srv-sidebar-footer {
+		position: fixed;
+		inset-inline-start: 0;
+		bottom: 0;
+		width: var(--sl-sidebar-width);
+		height: var(--srv-sidebar-footer-h);
+		align-items: center;
+		padding-inline: var(--sl-sidebar-pad-x);
+		border-top: 1px solid var(--sl-color-gray-5);
+		background: var(--sl-color-bg-sidebar);
+	}
+	@media (min-width: 50rem) {
+		:global(.sidebar-pane) {
+			inset-block-end: var(--srv-sidebar-footer-h) !important;
+		}
+	}
+</style>

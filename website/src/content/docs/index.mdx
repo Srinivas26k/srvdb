@@ -16,8 +16,16 @@ hero:
 ---
 
 import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+import QuickstartCard from '../../components/QuickstartCard.astro';
 
 ## Quickstart
+
+<CardGrid>
+	<QuickstartCard icon="python" title="Python" description="pip install srvdb and run your first search." href="/srvdb/start/quickstart/" />
+	<QuickstartCard icon="rust" title="Rust" description="Use the core crate directly from Rust." href="/srvdb/guides/rust/" />
+	<QuickstartCard icon="langchain" title="LangChain" description="SrvDB as a LangChain vector store." href="/srvdb/guides/frameworks/#langchain" />
+	<QuickstartCard icon="llamaindex" title="LlamaIndex" description="SrvDB as a LlamaIndex vector store." href="/srvdb/guides/frameworks/#llamaindex" />
+</CardGrid>
 
 ```bash
 pip install srvdb
