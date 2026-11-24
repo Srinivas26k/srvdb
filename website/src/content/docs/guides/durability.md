@@ -44,6 +44,14 @@ per batch or at natural checkpoints, not after every vector.
   `.crc` files along with the rest of the directory when you back up.
   Design: [ADR 0007](https://github.com/Srinivas26k/srvdb/blob/master/docs/adr/0007-checksums.md).
 
+- The index mode and its parameters are stored in `index_settings.bin`
+  (checksummed, replaced atomically). It is written when a database is
+  created and rewritten by `persist()` when the mode or a parameter changed;
+  a crash leaves the old or the new settings, never a mix, and never affects
+  committed vectors. Opening with settings that conflict with the stored ones
+  is refused with an error and changes nothing.
+  Design: [ADR 0011](https://github.com/Srinivas26k/srvdb/blob/master/docs/adr/0011-persisted-index-config.md).
+
 Every change to the write path ships with a crash test that kills a process
 mid-write, reopens, and checks the guarantee. Full design:
 [ADR 0003](https://github.com/Srinivas26k/srvdb/blob/master/docs/adr/0003-durability.md).
@@ -59,6 +67,10 @@ Opening a 0.3 database adds checksums: each vector file gets a `.crc` file and
 its header moves to format version 5, after which 0.3 cannot open it. Data
 already on disk is checksummed as found; it is verified on every later open.
 **Back up the directory first.**
+
+A 0.3 database has no `index_settings.bin`. It opens as before (flat unless a
+mode is passed); the settings are recorded the first time it is opened with an
+explicit mode.
 
 ## When a checksum check fails
 

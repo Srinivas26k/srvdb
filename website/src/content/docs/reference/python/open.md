@@ -41,7 +41,7 @@ srvdb.open(path: str, dimension: int = 1536, mode: str = "flat") -> srvdb.Databa
 ## Notes
 
 - Same as `srvdb.Database(path, dimension=dimension, mode=mode)`. It shadows the builtin `open` only inside the `srvdb` namespace; call it as `srvdb.open`.
-- The mode is not stored on disk: pass it every time you open the database.
+- The mode is recorded on disk. Reopening with the default `"flat"` uses the recorded mode and its parameters; passing another mode raises `ValueError` and changes nothing.
 - One `Database` object holds a lock on the directory until it is garbage-collected; opening the same directory again before then raises `BlockingIOError`.
 - In `"pq"` mode the codebooks are trained on the first batch added, which must hold at least 256 vectors; otherwise `add` raises `ValueError`. Use [`Database.new_product_quantized`](/srvdb/reference/python/database-new-product-quantized/) to train on a sample you choose.
 - Thread safety: a `Database` is safe to share between threads. This method releases the GIL; writes (`add`, `upsert`, `delete`, `persist`, `compact`, mode and IVF changes) take an exclusive lock and wait for each other and for running searches instead of failing. See [Threads and processes](/srvdb/guides/concurrency/).

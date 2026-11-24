@@ -31,7 +31,8 @@ def open(path: str, dimension: int = 1536, mode: Mode = "flat") -> Database:  # 
         dimension: Vector dimension, 128 to 4096; must match an existing
             database.
         mode: Index mode: "flat", "hnsw", "sq8"/"scalar", "pq"/"product",
-            "ivf" or "auto". The mode is not stored; pass it on every open.
+            "ivf" or "auto". The mode is recorded on disk; the default "flat"
+            reopens in the recorded mode, another mode raises ValueError.
 
     Returns:
         The open ``Database``.

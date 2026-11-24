@@ -15,6 +15,7 @@ back it up.
 | `hnsw.graph` | HNSW graph | Yes: rebuilt if missing |
 | `ivf.index` | Trained IVF index | Yes: retrain with `train_ivf()` |
 | `rabitq_codes.bin`, `rabitq_params.bin` | RaBitQ codes and their settings | Yes: rebuilt on open if missing, damaged or stale |
+| `index_settings.bin` | Index mode, dimension and parameters, checksummed ([ADR 0011](https://github.com/Srinivas26k/srvdb/blob/master/docs/adr/0011-persisted-index-config.md)) | No: written on create, updated by `persist()` |
 | `srvdb.lock` | Lock held while the database is open | — |
 
 Index files are derived data: they can always be rebuilt from the vectors.

@@ -25,7 +25,7 @@ Database.set_mode(mode: str) -> None
 
 ## Notes
 
-- The mode is not stored; pass it to `srvdb.open` next time.
+- The mode is recorded by the next `persist()`; later opens use it.
 - After `set_mode("ivf")`, call [`train_ivf`](/srvdb/reference/python/database-train-ivf/).
 - Thread safety: a `Database` is safe to share between threads. This method releases the GIL; writes (`add`, `upsert`, `delete`, `persist`, `compact`, mode and IVF changes) take an exclusive lock and wait for each other and for running searches instead of failing. See [Threads and processes](/srvdb/guides/concurrency/).
 

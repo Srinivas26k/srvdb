@@ -48,7 +48,7 @@ srvdb.Database.new_rabitq(path: str, dimension: int = 1536, bits: int = 4, reran
 
 - No training: vectors can be added one at a time from the start.
 - Full vectors stay on disk; the codes are derived data, rebuilt on open when missing, damaged or made with other settings. See [RaBitQ low-bit search](/srvdb/guides/rabitq/).
-- `rerank` is not stored; pass it on every open or call [`set_rabitq_rerank`](/srvdb/reference/python/database-set-rabitq-rerank/).
+- `rerank` is recorded by `persist()`; a value passed on open replaces it, or call [`set_rabitq_rerank`](/srvdb/reference/python/database-set-rabitq-rerank/).
 - Thread safety: a `Database` is safe to share between threads. This method releases the GIL; writes take an exclusive lock and wait for running searches instead of failing. See [Threads and processes](/srvdb/guides/concurrency/).
 
 ## Examples
