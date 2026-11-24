@@ -11,14 +11,11 @@ use std::collections::HashSet;
 /// Exact scan of the matches beats the filtered graph walk when
 /// `matches^2 < EXACT_COST_RATIO * ef * M * live`.
 ///
-/// Measured (docs/benchmarks.md, "Filtered search"): the filtered walk
-/// visits about `ef * M / s` nodes at selectivity `s` (12.5k of 20k at 10%,
-/// 4.5k at 50%, ef = 100, M = 16) at about 2 us per visit, while scoring
-/// one matching id exactly costs about 0.13 us. Equal cost is
-/// `s * n * 0.13 = 2 * ef * M / s`, i.e. `s^2 * n = 15 * ef * M`. With the
-/// defaults (ef 50, M 16) that is below 35% matching at 100k vectors, 11%
-/// at 1M and 3.5% at 10M: always above the ~1% where the walk degrades.
-pub(crate) const EXACT_COST_RATIO: f64 = 15.0;
+/// Equal cost is `s * n * c_exact = c_walk(s)` at selectivity `s`, which
+/// gives `s^2 * n = ratio * ef * M`. The ratio is measured by the ignored
+/// test `filtered_walk_cost` (index/hnsw/cost_tests.rs); the numbers, the
+/// machine and the command are in docs/benchmarks.md, "Filtered search".
+pub(crate) const EXACT_COST_RATIO: f64 = 4.0;
 
 /// True when scoring `matches` ids exactly is cheaper than the graph walk
 pub(crate) fn prefer_exact(matches: usize, live: u64, ef: usize, m: usize) -> bool {
@@ -33,8 +30,8 @@ impl SrvDB {
     /// returns `min(k, number of live allowed ids)` results, best first,
     /// with metadata attached. With an HNSW index the filter is evaluated
     /// during traversal; when few enough vectors match that scoring them
-    /// is cheaper (see `EXACT_COST_RATIO`: under about 11% of 1M vectors,
-    /// 35% of 100k), or the graph walk finds fewer than `k`, the allowed
+    /// is cheaper (`matches^2 < 4 * ef * M * live`, measured in
+    /// docs/benchmarks.md), or the graph walk finds fewer than `k`, the allowed
     /// ids are scored exactly. Other modes always score the allowed ids exactly.
     ///
     /// Build `allowed` with [`SrvDB::ids_where`] and reuse it across
@@ -69,6 +66,8 @@ impl SrvDB {
         });
         if let Some(hnsw) = graph {
             let accept = |id: u64| allowed.contains(&id) && !self.deleted.contains(&id);
+            // Unscorable ids (past the end of storage) cannot be returned,
+            // so treating them as infinitely far only stops them guiding
             let distance = |_: u64, id: u64| score(id).map_or(f32::MAX, |s| 1.0 - s);
             raw = hnsw
                 .search_accepted(0, k, &distance, &accept)?
