@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Memory budget (#86, ADR 0018). `srvdb.create(path, dim, index="auto",
+  memory_mb=50)` (Rust: `CreateOptions::set("memory_mb", 50)` with
+  `IndexChoice::Auto`) starts flat and, when an add would exceed 80 % of
+  the budget, re-encodes to RaBitQ 4, 2 then 1 bits before appending;
+  past 1 bit the add fails with the new `Error::MemoryBudget` (Python
+  `ValueError`) and writes nothing. `SrvDB::memory_report()` /
+  `db.memory_report()` estimate resident memory per part for every mode
+  and report the budget and remaining capacity. The budget is recorded in
+  `index_settings.bin` payload format 2; databases without a budget are
+  still written as format 1. The in-memory RaBitQ scan copy now grows by
+  25 % at a time instead of doubling, so it never holds more than 25 %
+  unused capacity.
 - Typed, directed links between records and k-hop search expansion (#80,
   ADR 0016). Rust: `SrvDB::link`, `unlink`, `neighbors`, `link_count`,
   `move_links` and `search_expand` with `Expansion` (1 to 3 hops, at most
@@ -58,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ChecksumMismatch` (`RuntimeError` in Python) and nothing is rewritten.
 
 ### Changed
+- The in-memory RaBitQ scan copy now grows by 25 % at a time instead of
+  doubling, so it holds at most 25 % more memory than it uses (ADR 0018).
 - The Python API is a few verbs (#57, ADR 0013):
   `srvdb.create(path, dimension, index="hnsw", *, exist_ok=False, **options)`
   makes a new database (`FileExistsError` if one exists; `exist_ok=True`
