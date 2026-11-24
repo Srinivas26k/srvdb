@@ -30,6 +30,9 @@ pytest tests/python
   that fails without the fix.
 - Commit messages follow Conventional Commits: `fix(search): ...`.
 - Storage changes need a reopen test; durability changes a crash test.
+- Changes to the Python API update its page under
+  [Python API reference](/srvdb/reference/python/). Every example there must
+  pass `python website/scripts/check_examples.py` after `maturin develop`.
 
 Read [CONTRIBUTING.md](https://github.com/Srinivas26k/srvdb/blob/master/CONTRIBUTING.md)
 and the engineering rules in
