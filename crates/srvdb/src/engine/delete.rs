@@ -25,11 +25,13 @@ impl SrvDB {
         // unpersisted delete is undone on reopen exactly like an add
         self.deleted.insert(id);
         self.pending_deletes.push(id);
+        self.graph.remove_record(id); // a deleted record has no links (ADR 0016)
         Ok(true)
     }
 
     /// Replace the vector and metadata of `id`: the old record is deleted
-    /// and the new one appended. Returns the new id.
+    /// and the new one appended, and its links move to the new id
+    /// (ADR 0016). Returns the new id.
     ///
     /// # Errors
     /// `InvalidInput` if `id` does not exist or is already deleted, or if
@@ -44,6 +46,7 @@ impl SrvDB {
         validate::vector(&vector.data, self.dimension)?;
         validate::metadata(meta)?;
         let new_id = self.insert_one(vector, meta)?;
+        self.graph.move_record(id, new_id)?; // links follow the record (ADR 0016)
         self.delete(id)?;
         Ok(new_id)
     }

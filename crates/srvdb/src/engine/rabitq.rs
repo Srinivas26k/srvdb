@@ -68,6 +68,7 @@ impl SrvDB {
             current_mode: IndexMode::Flat,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            graph: Default::default(),
             _lock: lock,
             dimension,
         };

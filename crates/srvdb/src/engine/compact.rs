@@ -36,7 +36,7 @@ impl SrvDB {
         }
 
         // 2. The commit point: renumbered metadata, flagged as pending
-        self.metadata_store.compact(&keep)?;
+        self.compact_with_links(&keep)?;
 
         // 3. Swap files (old ones must be closed first on Windows), then
         //    reopen and rebuild the derived indexes
