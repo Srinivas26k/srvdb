@@ -11,6 +11,7 @@ mod lifecycle;
 mod operations;
 mod rabitq;
 mod report;
+mod search;
 mod where_arg;
 mod writes;
 

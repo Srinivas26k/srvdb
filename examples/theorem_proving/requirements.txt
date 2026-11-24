@@ -1,0 +1,4 @@
+# Dependencies of examples/theorem_proving only; the srvdb package does not need them.
+srvdb
+numpy>=1.24.4
+scikit-learn>=1.3.2

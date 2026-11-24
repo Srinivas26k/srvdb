@@ -20,6 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   still written as format 1. The in-memory RaBitQ scan copy now grows by
   25 % at a time instead of doubling, so it never holds more than 25 %
   unused capacity.
+- Theorem-proving premise-retrieval example (#44) in
+  `examples/theorem_proving/`. It ranks a bundled sample of 207 Lean
+  mathlib lemma statements (Apache-2.0, attributed in `NOTICE`) for a given
+  proof state, using vector, keyword (BM25) and hybrid search, `uses`
+  dependency links with `expand=`, and a `where=` filter. It prints recall@k
+  on 45 labelled proof steps together with the hardware and versions, and
+  runs offline with TF-IDF + TruncatedSVD embeddings. The README shows how
+  to swap in a local embedding model and how to evaluate on LeanDojo
+  Benchmark 4 after downloading it yourself (`leandojo_to_tsv.py`).
+  Example dependencies are in `examples/theorem_proving/requirements.txt`,
+  not in the package. New guide: "Premise retrieval for theorem proving".
 - Typed, directed links between records and k-hop search expansion (#80,
   ADR 0016). Rust: `SrvDB::link`, `unlink`, `neighbors`, `link_count`,
   `move_links` and `search_expand` with `Expansion` (1 to 3 hops, at most

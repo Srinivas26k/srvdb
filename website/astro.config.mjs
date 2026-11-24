@@ -78,6 +78,7 @@ export default defineConfig({
 						{ label: 'Filtered search', slug: 'guides/filtered-search' },
 						{ label: 'Links between records', slug: 'guides/links' },
 						{ label: 'Keyword and hybrid search', slug: 'guides/keyword-search' },
+						{ label: 'Premise retrieval for theorem proving', slug: 'guides/theorem-proving' },
 						{ label: 'LangChain and LlamaIndex', slug: 'guides/frameworks' },
 						{ label: 'Choosing an index mode', slug: 'guides/index-modes' },
 						{ label: 'RaBitQ low-bit search', slug: 'guides/rabitq' },
