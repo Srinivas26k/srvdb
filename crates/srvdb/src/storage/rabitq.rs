@@ -17,7 +17,8 @@ use super::checksum::sidecar;
 use super::format;
 use super::record_file::RecordFile;
 use crate::error::Error;
-use crate::quant::rabitq::{RabitqConfig, RabitqQuantizer, RabitqQuery};
+use crate::quant::rabitq::fastscan::{FastScanCodes, Kernel, QueryLut, BLOCK};
+use crate::quant::rabitq::{RabitqConfig, RabitqQuantizer};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -40,6 +41,8 @@ struct Params {
 pub(crate) struct RabitqStorage {
     file: RecordFile,
     quantizer: RabitqQuantizer,
+    /// Block-interleaved in-memory copy of the codes the scan reads
+    fast: FastScanCodes,
 }
 
 fn mode(bits: u8) -> u8 {
@@ -85,7 +88,24 @@ impl RabitqStorage {
             quantizer.record_size(),
             mode(config.bits),
         )?;
-        Ok(Self { file, quantizer })
+        Self::with_file(file, quantizer)
+    }
+
+    /// Wrap an open code file and build its fast-scan copy
+    fn with_file(file: RecordFile, quantizer: RabitqQuantizer) -> Result<Self> {
+        let mut fast = FastScanCodes::new(quantizer.code_bytes());
+        let count = file.count() as usize;
+        if count > 0 {
+            let records = file.range(0, count).ok_or_else(|| {
+                Error::Internal(format!("{FILE_NAME}: {count} records are not mapped"))
+            })?;
+            fast.extend(records, quantizer.record_size());
+        }
+        Ok(Self {
+            file,
+            quantizer,
+            fast,
+        })
     }
 
     /// Delete any existing codes and start empty ones with these settings.
@@ -103,7 +123,7 @@ impl RabitqStorage {
             quantizer.record_size(),
             mode(config.bits),
         )?;
-        Ok(Self { file, quantizer })
+        Self::with_file(file, quantizer)
     }
 
     /// Delete the code files (codes first, so a crash leaves no codes
@@ -136,40 +156,49 @@ impl RabitqStorage {
             });
         if !bytes.is_empty() {
             self.file.append(&bytes)?;
+            self.fast.extend(&bytes, size);
         }
         Ok(())
     }
 
     /// The `n` best ids by estimated cosine similarity, skipping
-    /// `deleted`. Blocks of records are scored in parallel (rayon).
+    /// `deleted`. Runs of blocks are scanned in parallel (rayon) with the
+    /// fastest kernel this CPU supports.
     pub(crate) fn search(
         &self,
         query: &[f32],
         n: usize,
         deleted: &HashSet<u64>,
     ) -> Result<Vec<(u64, f32)>> {
-        use crate::distance::BATCH_SIZE;
         use rayon::prelude::*;
-        let size = self.file.record_size();
-        let count = self.file.count();
-        if count == 0 {
+        /// Blocks per parallel task (1024 vectors)
+        const TASK_BLOCKS: usize = 32;
+        if self.fast.len() == 0 || n == 0 {
             return Ok(Vec::new());
         }
-        let records = self.file.range(0, count as usize).ok_or_else(|| {
-            Error::Internal(format!("{FILE_NAME}: {count} records are not mapped"))
-        })?;
-        let prepared: RabitqQuery = self.quantizer.prepare(query);
-        let scored: Vec<(u64, f32)> = records
-            .par_chunks(BATCH_SIZE * size)
-            .enumerate()
-            .flat_map_iter(|(batch, block)| {
-                let first = (batch * BATCH_SIZE) as u64;
-                let prepared = &prepared;
-                block
-                    .chunks_exact(size)
-                    .zip(first..)
-                    .filter(|(_, id)| !deleted.contains(id))
-                    .map(move |(r, id)| (id, prepared.score(r)))
+        let lut = QueryLut::new(self.quantizer.prepare(query).tables());
+        let kernel = Kernel::detect();
+        let blocks = self.fast.len().div_ceil(BLOCK);
+        let tasks = blocks.div_ceil(TASK_BLOCKS);
+        let scored: Vec<(u64, f32)> = (0..tasks)
+            .into_par_iter()
+            .flat_map_iter(|task| {
+                let mut out = Vec::with_capacity(TASK_BLOCKS * BLOCK);
+                let mut scores = [0.0f32; BLOCK];
+                let end = ((task + 1) * TASK_BLOCKS).min(blocks);
+                for b in task * TASK_BLOCKS..end {
+                    let real = self.fast.block_scores(b, &lut, kernel, &mut scores);
+                    let first = (b * BLOCK) as u64;
+                    out.extend(
+                        scores[..real]
+                            .iter()
+                            .zip(first..)
+                            .filter(|(_, id)| deleted.is_empty() || !deleted.contains(id))
+                            .map(|(s, id)| (id, *s)),
+                    );
+                }
+                // Each task keeps only its own best n
+                crate::distance::select_top_k(out, n)
             })
             .collect();
         Ok(crate::distance::select_top_k(scored, n))
@@ -186,7 +215,9 @@ impl RabitqStorage {
 
     /// Drop codes from `count` on
     pub(crate) fn truncate_to(&mut self, count: u64) -> Result<()> {
-        self.file.truncate_to(count)
+        self.file.truncate_to(count)?;
+        self.fast.truncate(count as usize);
+        Ok(())
     }
 }
 

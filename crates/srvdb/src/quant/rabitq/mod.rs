@@ -14,10 +14,12 @@
 //!
 //! Record layout (little-endian): `f` as f32, then the codes packed
 //! `8 / b` dimensions per byte, lowest bits first, dimensions in order.
-//! The scan scores a record with one lookup table per code byte, so every
-//! bit width shares one kernel: `sum_j LUT_j[byte_j]`.
+//! The scan scores a record with one 16-entry table per nibble (a nibble
+//! is `4 / b` dimensions), so every bit width shares the fast-scan kernel
+//! in [`fastscan`] (ADR 0011).
 
 mod config;
+pub(crate) mod fastscan;
 mod rotation;
 
 pub use config::{default_rerank, RabitqConfig, DEFAULT_SEED, MAX_DIMENSION, SUPPORTED_BITS};
@@ -37,9 +39,9 @@ pub(crate) struct RabitqQuantizer {
     rotation: Rotation,
 }
 
-/// A query prepared for scanning: one 256-entry table per code byte
+/// A query prepared for scanning: one 16-entry f32 table per nibble
 pub(crate) struct RabitqQuery {
-    lut: Vec<[f32; 256]>,
+    tables: Vec<[f32; 16]>,
 }
 
 impl RabitqQuantizer {
@@ -132,38 +134,49 @@ impl RabitqQuantizer {
         }
     }
 
-    /// Build the lookup tables for `query`
+    /// Build the nibble tables for `query`: for code byte `j`, the
+    /// partial dot product of every low-nibble value, then of every
+    /// high-nibble value (a nibble covers `4 / bits` dimensions)
     pub(crate) fn prepare(&self, query: &[f32]) -> RabitqQuery {
         let q = self.rotate_unit(query);
-        let per = self.per_byte();
         let bits = self.bits as usize;
+        let per_nibble = 4 / bits;
         let mask = (1usize << bits) - 1;
         let offset = self.offset();
-        let mut lut = vec![[0.0f32; 256]; self.code_bytes()];
-        for (j, table) in lut.iter_mut().enumerate() {
-            let dims = &q[j * per..((j + 1) * per).min(self.dim)];
-            for (byte, slot) in table.iter_mut().enumerate() {
+        let mut tables = vec![[0.0f32; 16]; 2 * self.code_bytes()];
+        for (m, table) in tables.iter_mut().enumerate() {
+            let first = (m * per_nibble).min(self.dim);
+            let dims = &q[first..((m + 1) * per_nibble).min(self.dim)];
+            for (nibble, slot) in table.iter_mut().enumerate() {
                 *slot = dims
                     .iter()
                     .enumerate()
-                    .map(|(k, qv)| (((byte >> (k * bits)) & mask) as f32 + offset) * qv)
+                    .map(|(k, qv)| (((nibble >> (k * bits)) & mask) as f32 + offset) * qv)
                     .sum();
             }
         }
-        RabitqQuery { lut }
+        RabitqQuery { tables }
     }
 }
 
 impl RabitqQuery {
-    /// Estimated cosine similarity of the query and one record
-    #[inline]
+    /// The f32 nibble tables, two per code byte
+    pub(crate) fn tables(&self) -> &[[f32; 16]] {
+        &self.tables
+    }
+
+    /// Estimated cosine similarity of the query and one record in f32
+    /// (the reference the u8 fast-scan is tested against)
+    #[cfg(test)]
     pub(crate) fn score(&self, record: &[u8]) -> f32 {
         let (factor, codes) = record.split_at(FACTOR_BYTES);
         let factor = f32::from_le_bytes([factor[0], factor[1], factor[2], factor[3]]);
         let dot: f32 = codes
             .iter()
-            .zip(&self.lut)
-            .map(|(&b, table)| table[b as usize])
+            .enumerate()
+            .map(|(j, &b)| {
+                self.tables[2 * j][(b & 15) as usize] + self.tables[2 * j + 1][(b >> 4) as usize]
+            })
             .sum();
         factor * dot
     }
