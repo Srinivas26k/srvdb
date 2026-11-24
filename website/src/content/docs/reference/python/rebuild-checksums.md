@@ -48,10 +48,12 @@ import srvdb
 with srvdb.create("./vectors", dimension=128, index="flat") as db:
     db.add(["a"], [[1.0] + [0.0] * 127], ["{}"])
 os.remove("./vectors/vectors.bin.crc")
-print(srvdb.rebuild_checksums("./vectors"))
-# ['vectors.bin.crc']
+rebuilt = srvdb.rebuild_checksums("./vectors")
 with srvdb.open("./vectors") as db:
-    print(db.count())
+    count = db.count()
+print(rebuilt)
+print(count)
+# ['vectors.bin.crc']
 # 1
 ```
 
