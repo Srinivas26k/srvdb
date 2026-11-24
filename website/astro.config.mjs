@@ -54,6 +54,7 @@ export default defineConfig({
 					label: 'Guides',
 					items: [
 						{ label: 'Build a local RAG app', slug: 'guides/local-rag' },
+						{ label: 'LangChain and LlamaIndex', slug: 'guides/frameworks' },
 						{ label: 'Choosing an index mode', slug: 'guides/index-modes' },
 						{ label: 'Durability and persist()', slug: 'guides/durability' },
 						{ label: 'Delete, upsert and compact', slug: 'guides/delete-upsert-compact' },
