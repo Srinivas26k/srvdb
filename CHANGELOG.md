@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- RaBitQ search uses a fast-scan kernel (ADR 0011). Query tables are
+  quantized to u8 and looked up in registers (AVX2 `vpshufb`, NEON `tbl`,
+  chosen at runtime, with a scalar fallback) over a block-interleaved
+  in-memory copy of the codes. The query rotation is also vectorized.
+  Candidate scores before rerank carry a small, bounded extra error from
+  the u8 tables; reranked scores are unchanged. The on-disk format is
+  unchanged. Resident memory grows by one copy of the codes (#24).
+
 ### Added
 - RaBitQ mode (`SrvDB::new_rabitq`, `RabitqConfig`; Python
   `Database.new_rabitq()` and modes `"rabitq1"`, `"rabitq2"`, `"rabitq4"`):
