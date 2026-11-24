@@ -43,8 +43,17 @@ def parse() -> argparse.Namespace:
     p.add_argument("--threads", default="1,all", help="comma list; 'all' = os.cpu_count()")
     p.add_argument("--libs", default=",".join(REGISTRY), help="comma list of " + ",".join(REGISTRY))
     p.add_argument("--work-dir", default=None, help="datasets and temporary indexes")
+    p.add_argument("--preliminary", action="store_true", help="mark results as not fit to publish")
     p.add_argument("--out", default=os.path.join(REPO, "website/src/data/benchmarks/comparison.json"))
     return p.parse_args()
+
+
+def loadavg() -> list[float]:
+    try:
+        with open("/proc/loadavg", encoding="utf-8") as f:
+            return [float(x) for x in f.read().split()[:3]]
+    except OSError:
+        return list(os.getloadavg())
 
 
 def run_child(name: str, data_dir: str, threads: int, k: int, work: str) -> dict:
@@ -70,6 +79,7 @@ def main() -> None:
 
     command = "python benchmarks/compare/run.py " + shlex.join(sys.argv[1:])
     doc = {
+        "preliminary": a.preliminary,
         "environment": environment(REPO, command.strip()),
         "parameters": {
             "k": a.k, "threads": threads, "hnsw_m": 16, "hnsw_ef_construction": 200,
@@ -88,7 +98,13 @@ def main() -> None:
             for name in libs:
                 for t in threads:
                     print(f"dim={dim} n={n} {name} threads={t} ...", file=sys.stderr, flush=True)
-                    results.append(run_child(name, data_dir, t, a.k, work))
+                    before = loadavg()
+                    if before[0] > 1.0:
+                        print(f"WARNING: 1-minute load {before[0]:.2f} > 1; QPS and latency are not publishable",
+                              file=sys.stderr, flush=True)
+                    r = run_child(name, data_dir, t, a.k, work)
+                    r["loadavg_before"], r["loadavg_after"] = before, loadavg()
+                    results.append(r)
             doc["runs"].append({"dataset": ds, "results": results})
             os.makedirs(os.path.dirname(a.out), exist_ok=True)
             with open(a.out, "w", encoding="utf-8") as f:
