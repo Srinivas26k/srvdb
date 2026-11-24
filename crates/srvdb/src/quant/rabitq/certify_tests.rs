@@ -103,3 +103,56 @@ fn intervals_cover_true_cosines() {
         }
     }
 }
+
+#[test]
+fn non_finite_estimates_are_never_certified_or_pruned() {
+    for (est, half) in [(f32::NAN, 0.1), (0.5, f32::INFINITY), (f32::INFINITY, 0.0)] {
+        let x = Candidate::new(9, est, half);
+        assert_eq!((x.lo, x.hi), (f32::NEG_INFINITY, f32::INFINITY));
+    }
+    let mut all: Vec<Candidate> = (0..5)
+        .map(|i| c(i, 0.9 - 0.1 * i as f32, 0.95 - 0.1 * i as f32))
+        .collect();
+    all.push(Candidate::new(9, f32::NAN, 0.0));
+    let s = split(all, 2);
+    assert!(!s.certified.contains(&9));
+    assert!(s.uncertain.contains(&9));
+}
+
+#[test]
+fn a_nan_factor_in_the_codes_is_rescored_not_trusted() {
+    use crate::quant::rabitq::scan::Scan;
+    let q = RabitqQuantizer::new(16, 4, 1);
+    let mut seed = 1u64;
+    let mut records = Vec::new();
+    for _ in 0..40 {
+        let v: Vec<f32> = (0..16).map(|_| rng(&mut seed)).collect();
+        q.encode_into(&v, &mut records);
+    }
+    records[..4].copy_from_slice(&f32::NAN.to_le_bytes());
+    let mut codes = FastScanCodes::with_widths(16, 4);
+    codes.extend(&records, q.record_size()).unwrap();
+    let query: Vec<f32> = (0..16).map(|_| rng(&mut seed)).collect();
+    let lut = QueryLut::new(q.prepare(&query).tables());
+    let deleted = std::collections::HashSet::new();
+    let scan = Scan {
+        codes: &codes,
+        lut: &lut,
+        deleted: &deleted,
+        deadline: None,
+    };
+    let split = scan.certified(3).unwrap().items.remove(0);
+    assert!(split.uncertain.contains(&0) && !split.certified.contains(&0));
+}
+
+#[test]
+fn uncertain_come_best_upper_bound_first() {
+    let all = vec![
+        c(0, 0.5, 0.6),
+        c(1, 0.5, 0.9),
+        c(2, 0.5, 0.7),
+        c(3, 0.5, 0.8),
+    ];
+    let s = split(all, 1);
+    assert_eq!(s.uncertain, vec![1, 3, 2, 0]);
+}

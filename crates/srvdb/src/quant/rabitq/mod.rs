@@ -27,7 +27,7 @@ pub(crate) mod scan;
 
 pub use certify::CERTIFIED_CONFIDENCE;
 pub use config::{default_rerank, RabitqConfig, DEFAULT_SEED, MAX_DIMENSION, SUPPORTED_BITS};
-pub use outcome::{RabitqSearch, SearchOutcome, SearchStats};
+pub use outcome::{RabitqSearch, SearchOutcome, SearchStats, DEFAULT_MAX_RERANK};
 pub(crate) use rotation::Rotation;
 
 /// Bytes before the packed codes in a record (the f32 factor)

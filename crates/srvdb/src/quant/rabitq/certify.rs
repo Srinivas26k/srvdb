@@ -9,11 +9,15 @@
 //! 2 exp(-eps^2 / 2)`. The u8 query tables add at most
 //! `|f| * QueryLut::max_error()` on top (ADR 0012).
 
-/// Lower bound on the probability, over the rotation seed, that a
-/// certified search returns exactly the top k of the vectors it scanned
+/// Nominal lower bound on the probability, over a hypothetical uniformly
+/// random rotation, that a certified search returns exactly the top k of
+/// the vectors it scanned. Approximate (pseudo-random f32 rotation,
+/// heuristic f32 slack); not a per-query guarantee, not a long-run rate
+/// for a fixed seed, not joint across queries (ADR 0017).
 pub const CERTIFIED_CONFIDENCE: f64 = 0.99;
 
-/// Absolute slack for f32 rounding in the rotation, tables and factor
+/// Absolute slack for f32 rounding in the rotation, tables, factor and
+/// `|g|`. A heuristic, not a derived bound (ADR 0017).
 const SLOP: f32 = 1e-3;
 
 /// `sqrt(1 / <o_bar, o>^2 - 1) / sqrt(D - 1)` for one record: the error
@@ -71,6 +75,27 @@ pub(crate) struct Candidate {
     pub(crate) hi: f32,
 }
 
+impl Candidate {
+    /// Interval `est -/+ half`; a non-finite estimate or width (a damaged
+    /// or degenerate factor) gives `[-inf, +inf]`, so the vector is never
+    /// certified and never pruned: it is rescored exactly
+    pub(crate) fn new(id: u64, est: f32, half: f32) -> Self {
+        if est.is_finite() && half.is_finite() {
+            Self {
+                id,
+                lo: est - half,
+                hi: est + half,
+            }
+        } else {
+            Self {
+                id,
+                lo: f32::NEG_INFINITY,
+                hi: f32::INFINITY,
+            }
+        }
+    }
+}
+
 fn kth_largest_lo(c: &[Candidate], k: usize) -> f32 {
     let mut lo: Vec<f32> = c.iter().map(|x| x.lo).collect();
     let (_, kth, _) = lo.select_nth_unstable_by(k - 1, |a, b| b.total_cmp(a));
@@ -91,7 +116,9 @@ pub(crate) fn prune(mut c: Vec<Candidate>, k: usize) -> Vec<Candidate> {
 }
 
 /// Candidates split into certified members of the top `k` and the
-/// uncertain ones that must be rescored exactly
+/// uncertain ones that must be rescored exactly; uncertain ones are
+/// sorted by upper bound, best first, so a capped rerank keeps the most
+/// promising
 #[derive(Debug, Default)]
 pub(crate) struct Split {
     pub(crate) certified: Vec<u64>,
@@ -121,15 +148,16 @@ pub(crate) fn split(c: Vec<Candidate>, k: usize) -> Split {
         if x.lo >= tau && others < k {
             certified.push(*x);
         } else {
-            uncertain.push(x.id);
+            uncertain.push(*x);
         }
     }
     certified.sort_by(|a, b| b.lo.total_cmp(&a.lo));
-    uncertain.extend(certified.iter().skip(k).map(|x| x.id));
+    uncertain.extend(certified.iter().skip(k).copied());
     certified.truncate(k);
+    uncertain.sort_by(|a, b| b.hi.total_cmp(&a.hi));
     Split {
         certified: certified.into_iter().map(|x| x.id).collect(),
-        uncertain,
+        uncertain: uncertain.into_iter().map(|x| x.id).collect(),
     }
 }
 

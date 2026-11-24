@@ -151,3 +151,23 @@ fn separated_neighbours_are_certified() {
         assert_eq!(out.stats.reranked, 0);
     }
 }
+
+/// 1-bit on large tightly clustered data leaves many candidates
+/// uncertain: the rerank is capped and the result is not certified
+#[test]
+fn rerank_is_capped_and_then_not_certified() {
+    let (base, queries) = clustered(20_000, 3, 5);
+    let dir = TempDir::new().unwrap();
+    let db = build(&dir, 1, 2, &base);
+    let query = Vector::new(queries[0].clone());
+    let default = RabitqSearch::new().with_certify(true);
+    let out = db.search_rabitq_with(&query, K, &default).unwrap();
+    // default cap: max(k * rerank, 1000) = max(10 * 40, 1000)
+    assert!(out.stats.reranked <= srvdb::DEFAULT_MAX_RERANK);
+    let tight = default.with_max_rerank(50);
+    let out = db.search_rabitq_with(&query, K, &tight).unwrap();
+    assert_eq!(out.stats.reranked, 50);
+    assert_eq!(out.stats.confidence, None);
+    assert_eq!(out.stats.certified, 0);
+    assert_eq!(out.results.len(), K);
+}

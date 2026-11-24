@@ -101,11 +101,7 @@ impl Scan<'_> {
                     let i = id as usize;
                     let width = self.codes.width(i).unwrap_or(f32::INFINITY);
                     let half = bounds.half_width(est, self.codes.factor(i), width);
-                    Candidate {
-                        id,
-                        lo: est - half,
-                        hi: est + half,
-                    }
+                    Candidate::new(id, est, half)
                 })
                 .collect();
             certify::prune(candidates, k)

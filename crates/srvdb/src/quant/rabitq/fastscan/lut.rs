@@ -56,7 +56,8 @@ impl QueryLut {
         self.step * sum as f32 + self.bias
     }
 
-    /// Bound on `|estimate - f32 dot product|` (plus f32 rounding)
+    /// Bound on `|estimate - f32 dot product|` from u8 rounding; the
+    /// `1.001` margin for f32 rounding is a heuristic (ADR 0017)
     pub(crate) fn max_error(&self) -> f32 {
         (self.bytes.len() / 16) as f32 * self.step / 2.0 * 1.001
     }

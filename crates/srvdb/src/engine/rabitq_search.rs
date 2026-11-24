@@ -1,7 +1,9 @@
 //! Certified and deadline search over RaBitQ codes (ADR 0017)
 
 use super::*;
-use crate::quant::rabitq::{RabitqSearch, SearchOutcome, SearchStats, CERTIFIED_CONFIDENCE};
+use crate::quant::rabitq::{
+    RabitqSearch, SearchOutcome, SearchStats, CERTIFIED_CONFIDENCE, DEFAULT_MAX_RERANK,
+};
 use crate::storage::rabitq::RabitqStorage;
 use std::time::Instant;
 
@@ -11,14 +13,18 @@ impl SrvDB {
     /// - `certify`: every scanned vector gets an error interval around its
     ///   estimate (ADR 0017). Candidates whose interval clears the k-th
     ///   lower bound are certified members of the top k; only uncertain
-    ///   ones are rescored on the full vectors. `stats.confidence` is a
-    ///   lower bound on the probability, over the rotation seed, that the
-    ///   result is exactly the top k of the scanned vectors.
+    ///   ones are rescored on the full vectors, at most
+    ///   `options.max_rerank` of them (by default
+    ///   `max(k * rerank, DEFAULT_MAX_RERANK)`). `stats.confidence` is a
+    ///   nominal, approximate lower bound on the probability, over a
+    ///   hypothetical random rotation, that the result is exactly the top
+    ///   k of the scanned vectors; see [`SearchStats::confidence`] for
+    ///   what it does not mean. It is `None` if the cap or the deadline
+    ///   cut the rerank short.
     /// - `deadline`: the code scan checks the clock between blocks and
     ///   stops when it has passed; results are the best among scanned
     ///   vectors and `stats.completeness` the fraction scanned. The
-    ///   rescoring after the scan is not interrupted, so a call can
-    ///   overrun the deadline by that work.
+    ///   rescoring also checks the clock between batches of 256.
     ///
     /// With neither option this returns what `search` returns. Results
     /// carry metadata like `search`. Takes `&self`; safe to call from
@@ -44,7 +50,7 @@ impl SrvDB {
         validate::vector(&query.data, self.dimension)?;
         let deadline = options.deadline.and_then(|d| Instant::now().checked_add(d));
         let (raw, stats) = if options.certify {
-            self.rabitq_certified(&query.data, k, deadline)?
+            self.rabitq_certified(&query.data, k, deadline, options.max_rerank)?
         } else {
             self.rabitq_top(&query.data, k, deadline)?
         };
@@ -77,6 +83,29 @@ impl SrvDB {
         Ok(search::cosine_similarity(query, v))
     }
 
+    /// Rescore `ids` exactly in batches, checking `deadline` between
+    /// batches: (scores, whether every id was rescored)
+    fn rescore(
+        &self,
+        vectors: &storage::flat::VectorStorage,
+        query: &[f32],
+        ids: &[u64],
+        deadline: Option<Instant>,
+    ) -> Result<(Vec<(u64, f32)>, bool)> {
+        /// Vectors rescored between deadline checks
+        const BATCH: usize = 256;
+        let mut out = Vec::with_capacity(ids.len());
+        for (b, batch) in ids.chunks(BATCH).enumerate() {
+            if b > 0 && deadline.is_some_and(|d| Instant::now() >= d) {
+                return Ok((out, false));
+            }
+            for &id in batch {
+                out.push((id, self.exact(vectors, query, id)?));
+            }
+        }
+        Ok((out, true))
+    }
+
     /// Scan for `k * rerank` candidates and rescore them
     pub(super) fn rabitq_top(
         &self,
@@ -98,11 +127,8 @@ impl SrvDB {
             return Ok((top.items, stats(top.scanned, 0)));
         }
         let top = codes.top(query, k.saturating_mul(rerank), &self.deleted, deadline);
-        let rescored = top
-            .items
-            .iter()
-            .map(|(id, _)| Ok((*id, self.exact(vectors, query, *id)?)))
-            .collect::<Result<Vec<_>>>()?;
+        let ids: Vec<u64> = top.items.iter().map(|(id, _)| *id).collect();
+        let (rescored, _) = self.rescore(vectors, query, &ids, deadline)?;
         let reranked = rescored.len();
         Ok((
             search::select_top_k(rescored, k),
@@ -115,16 +141,21 @@ impl SrvDB {
         query: &[f32],
         k: usize,
         deadline: Option<Instant>,
+        max_rerank: Option<usize>,
     ) -> Result<(Vec<(u64, f32)>, SearchStats)> {
-        let (codes, vectors, _) = self.parts()?;
+        let (codes, vectors, rerank) = self.parts()?;
+        let cap = max_rerank
+            .unwrap_or_else(|| k.saturating_mul(rerank).max(DEFAULT_MAX_RERANK))
+            .max(1);
         let (scanned, live) = codes.certified(query, k, &self.deleted, deadline)?;
         let split = scanned.items.into_iter().next().unwrap_or_default();
         let score = |id: &u64| Ok((*id, self.exact(vectors, query, *id)?));
-        let uncertain = split
-            .uncertain
-            .iter()
-            .map(score)
-            .collect::<Result<Vec<_>>>()?;
+        // Uncertain ids come best upper bound first, so a cap keeps the
+        // most promising ones
+        let capped = split.uncertain.len() > cap;
+        let wanted = &split.uncertain[..split.uncertain.len().min(cap)];
+        let (uncertain, complete) = self.rescore(vectors, query, wanted, deadline)?;
+        let certified = !capped && complete;
         let reranked = uncertain.len();
         let rest = search::select_top_k(uncertain, k - split.certified.len());
         // Certified members are scored exactly too (at most k reads) so
@@ -137,8 +168,9 @@ impl SrvDB {
         all.extend(rest);
         let stats = SearchStats {
             completeness: fraction(scanned.scanned, live),
-            confidence: Some(CERTIFIED_CONFIDENCE),
-            certified: split.certified.len(),
+            confidence: certified.then_some(CERTIFIED_CONFIDENCE),
+            // A cut-short rerank certifies nothing: report 0, not a partial count
+            certified: if certified { split.certified.len() } else { 0 },
             reranked,
             scanned: scanned.scanned,
         };
@@ -153,3 +185,7 @@ fn fraction(scanned: usize, live: usize) -> f64 {
         (scanned as f64 / live as f64).min(1.0)
     }
 }
+
+#[cfg(test)]
+#[path = "rabitq_search_tests.rs"]
+mod tests;
