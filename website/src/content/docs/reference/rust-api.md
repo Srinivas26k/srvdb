@@ -21,7 +21,7 @@ code, run `cargo doc --open -p srvdb` in a clone.
 | `Filter` | A metadata filter parsed by `Filter::from_json` (`$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$and`, `$or`, `$not`) for `search_where`; see [Filtered search](/srvdb/guides/filtered-search/). |
 
 `SrvDB` methods beyond the trait: `delete`, `replace`, `is_deleted`,
-`live_count`, `compact`, `search_filtered`, `ids_where`, `search_where`, `search_batch_where`, `set_mode`, `set_ef_search`, `configure_ivf`,
+`live_count`, `compact`, `search_filtered`, `ids_where`, `search_where`, `search_batch_where`, `enable_keyword_index`, `keyword_field`, `keyword_search`, `search_hybrid` ([Keyword and hybrid search](/srvdb/guides/keyword-search/)), `set_mode`, `set_ef_search`, `configure_ivf`,
 `train_ivf`, `all_metadata`, `get_stats`, `index_name`, `dimension`.
 
 Example: [Using SrvDB from Rust](/srvdb/guides/rust/).

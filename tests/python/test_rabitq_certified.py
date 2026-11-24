@@ -85,3 +85,20 @@ def test_outcome_supports_slices(tmp_path):
     assert out[-1] == out.results[-1]
     with pytest.raises(IndexError):
         out[99]
+
+
+@pytest.mark.parametrize("extra", [{"certify": True}, {"deadline_ms": 100}])
+def test_certify_and_deadline_refuse_text_where_and_no_query(tmp_path, extra):
+    vectors = clustered(50, 2)
+    db = rabitq_db(tmp_path, vectors)
+    db.enable_keyword_search(field="i")
+    q = vectors[0]
+    with pytest.raises(ValueError, match="cannot be combined with text"):
+        db.search(q, K, text="hello", **extra)
+    with pytest.raises(ValueError, match="cannot be combined with text"):
+        db.search(None, K, text="hello", **extra)
+    with pytest.raises(ValueError, match="cannot be combined with where"):
+        db.search(q, K, where={"i": 1}, **extra)
+    with pytest.raises(ValueError, match="need a query vector"):
+        db.search(None, K, **extra)
+    assert len(db.search(q, K, **extra)) == K

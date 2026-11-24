@@ -16,6 +16,7 @@ mod engine;
 mod error;
 mod filter;
 pub mod index;
+mod keyword;
 pub mod quant;
 pub mod storage;
 pub mod tuning;

@@ -33,6 +33,7 @@ pub(crate) const PQ_CODEBOOKS: [u8; 4] = *b"PQCB";
 pub(crate) const CHECKSUMS: [u8; 4] = *b"CRCS";
 pub(crate) const RABITQ_PARAMS: [u8; 4] = *b"RBQP";
 pub(crate) const INDEX_SETTINGS: [u8; 4] = *b"IDXS";
+pub(crate) const KEYWORD_INDEX: [u8; 4] = *b"KWIX";
 
 /// Current envelope version for every kind: 2 = CRC32C checksum
 pub(crate) const VERSION: u16 = 2;

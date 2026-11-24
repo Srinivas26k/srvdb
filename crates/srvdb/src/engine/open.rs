@@ -100,6 +100,7 @@ impl SrvDB {
             dimension,
             deleted: Default::default(),
             pending_deletes: Default::default(),
+            keyword: Default::default(),
             _lock: lock,
         };
         db.recover()?;

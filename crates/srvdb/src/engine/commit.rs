@@ -46,6 +46,12 @@ impl SrvDB {
             self.record_settings()?;
         }
 
+        // 5. Keyword index (ADR 0015), after the settings so a failure to
+        // write this derived file never leaves the settings unrecorded.
+        // HNSW/IVF stay before the settings (ADR 0011 order): the settings
+        // describe those files, and each is rebuilt if missing or stale.
+        self.persist_keyword_index()?;
+
         Ok(())
     }
 

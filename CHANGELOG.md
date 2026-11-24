@@ -25,6 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   RaBitQ modes. Rust: `SrvDB::search_rabitq_with` with `RabitqSearch` (incl. `with_max_rerank`),
   `SearchOutcome` and `SearchStats`. RaBitQ memory grows by 4 bytes per
   vector (derived error widths; the file format is unchanged).
+- Keyword and hybrid search (#79, ADR 0015). `SrvDB::enable_keyword_index(field)`
+  indexes one string field of the metadata JSON (Unicode-aware tokenizer, no
+  model or network); `SrvDB::keyword_search(text, k, filter)` ranks records by
+  BM25 and `SrvDB::search_hybrid(query, text, k, filter)` fuses vector and
+  keyword rankings with Reciprocal Rank Fusion. In Python,
+  `db.enable_keyword_search(field="text")` and
+  `db.search(query, k, *, text=None, where=None)`, where `query=None` runs a
+  keyword-only search. The index is derived data in a new checksummed file,
+  `keyword.index`, written atomically by `save()`/`persist()`, caught up from
+  metadata after a crash and rebuilt by compaction. `scripts/bench_keyword.py`
+  compares it with SQLite FTS5 on a BEIR dataset.
 - `SrvDB::rebuild_checksums(path)` / `srvdb.rebuild_checksums(path)`
   recomputes missing or damaged `.crc` checksum files of a closed database
   so it opens again (#33, ADR 0007). It never runs implicitly; an intact
