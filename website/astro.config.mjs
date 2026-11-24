@@ -31,7 +31,7 @@ export default defineConfig({
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/Srinivas26k/srvdb' },
 			],
-			editLink: { baseUrl: 'https://github.com/Srinivas26k/srvdb/edit/master/website/' },
+			editLink: { baseUrl: 'https://github.com/Srinivas26k/srvdb/edit/release/0.4/website/' },
 			customCss: [
 				'@fontsource/inter/400.css',
 				'@fontsource/inter/600.css',
@@ -44,6 +44,7 @@ export default defineConfig({
 				Header: './src/components/overrides/Header.astro',
 				Sidebar: './src/components/overrides/Sidebar.astro',
 				PageTitle: './src/components/overrides/PageTitle.astro',
+				Footer: './src/components/overrides/Footer.astro',
 			},
 			expressiveCode,
 			lastUpdated: true,
@@ -131,6 +132,8 @@ export default defineConfig({
 						{ label: 'Benchmarks', slug: 'benchmarks' },
 						{ label: 'Integrations', slug: 'project/integrations', badge: { text: 'Soon', variant: 'caution' } },
 						{ label: 'Contributing', slug: 'project/contributing' },
+						{ label: 'Community', slug: 'project/community' },
+						{ label: 'Sponsor', slug: 'project/sponsor' },
 						{ label: 'FAQ', slug: 'project/faq' },
 						{ label: 'Brand', slug: 'project/brand' },
 					],

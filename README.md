@@ -26,8 +26,20 @@
   <a href="https://srinivas26k.github.io/srvdb/start/quickstart/">Quickstart</a> ·
   <a href="https://srinivas26k.github.io/srvdb/guides/local-rag/">Local RAG guide</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
-  <a href="https://github.com/Srinivas26k/srvdb/discussions">Discussions</a>
+  <a href="https://github.com/Srinivas26k/srvdb/discussions">Discussions</a> ·
+  <a href="https://srinivas26k.github.io/srvdb/project/sponsor/">Sponsor</a> ·
+  <a href="https://srinivas26k.github.io/srvdb/project/contributing/">Contribute</a>
 </p>
+
+---
+
+**Sponsor.** SrvDB has no outside funding yet. Donations and company
+sponsorships pay for CI on more platforms, benchmark hardware and roadmap
+work; see [Sponsor SrvDB](https://srinivas26k.github.io/srvdb/project/sponsor/).
+
+**Contribute.** Pick an issue labelled
+[`good first issue`](https://github.com/Srinivas26k/srvdb/labels/good%20first%20issue)
+and follow [CONTRIBUTING.md](CONTRIBUTING.md); setup takes a few commands.
 
 ---
 
