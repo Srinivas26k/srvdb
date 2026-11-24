@@ -11,7 +11,7 @@ use pyo3::prelude::*;
 use srvdb::{SearchResult, VectorEngine};
 
 /// Translate internal ids to string ids, dropping entries without one
-fn named(state: &State, results: Vec<SearchResult>) -> Vec<(String, f32)> {
+pub(crate) fn named(state: &State, results: Vec<SearchResult>) -> Vec<(String, f32)> {
     results
         .into_iter()
         .filter_map(|r| {
@@ -36,27 +36,49 @@ impl PyDatabase {
     ///         field. Only matching vectors are returned, and k of them
     ///         whenever at least k match.
     ///
+    ///     certify: RaBitQ modes only. Use the RaBitQ error bounds to
+    ///         certify results and rescore only uncertain candidates
+    ///         (ADR 0017).
+    ///     deadline_ms: RaBitQ modes only. Stop scanning codes after this
+    ///         many milliseconds and return the best results found.
+    ///
     /// Returns:
     ///     Up to k (id, score) tuples, best first. Scores are cosine
-    ///     similarities (approximate in "pq" mode).
+    ///     similarities (approximate in "pq" mode). With certify or
+    ///     deadline_ms, a SearchOutcome: the same tuples (iterable,
+    ///     indexable, len()) plus completeness, confidence, certified,
+    ///     reranked and scanned.
     ///
     /// Raises:
     ///     ValueError: k is 0 or negative, the query has the wrong
     ///         dimension or a NaN or infinite value, or `where` is not a
-    ///         valid filter (unknown operator, wrong operand type, empty).
+    ///         valid filter (unknown operator, wrong operand type, empty);
+    ///         certify or deadline_ms on a non-RaBitQ database, combined
+    ///         with where, or a negative or non-finite deadline_ms.
     ///     RuntimeError: an internal fault occurred.
     ///
     /// A filter reads every metadata record once per call (O(n)); use
     /// search_batch() to share that cost across queries. Releases the GIL;
     /// searches from several threads run in parallel.
-    #[pyo3(signature = (query, k, *, r#where=None))]
+    #[pyo3(signature = (query, k, *, r#where=None, certify=false, deadline_ms=None))]
     fn search(
         &self,
         py: Python<'_>,
         query: Vec<f32>,
         k: i64,
         r#where: Option<Bound<'_, PyAny>>,
-    ) -> PyResult<Vec<(String, f32)>> {
+        certify: bool,
+        deadline_ms: Option<f64>,
+    ) -> PyResult<Py<PyAny>> {
+        if certify || deadline_ms.is_some() {
+            if r#where.is_some() {
+                return Err(PyValueError::new_err(
+                    "certify and deadline_ms cannot be combined with where",
+                ));
+            }
+            let outcome = self.search_rabitq(py, query, k, certify, deadline_ms)?;
+            return Ok(Py::new(py, outcome)?.into_any());
+        }
         let k = non_negative("k", k)?;
         let filter = r#where.map(|w| to_filter(py, &w)).transpose()?;
         let query = srvdb::Vector::new(query);
@@ -68,6 +90,7 @@ impl PyDatabase {
             .map_err(to_py)?;
             Ok(named(s, results))
         })
+        .and_then(|r| Ok(r.into_pyobject(py)?.into_any().unbind()))
     }
 
     /// Search for several queries at once.
