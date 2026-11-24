@@ -3,13 +3,13 @@
 Install with ``pip install "srvdb[langchain]"``.
 
 >>> from srvdb.integrations.langchain import SrvDBVectorStore
->>> store = SrvDBVectorStore(srvdb.open("./vectors", dimension=384), embeddings)
+>>> store = SrvDBVectorStore(srvdb.create("./vectors", dimension=384), embeddings)
 >>> store.add_texts(texts, metadatas)
 >>> store.similarity_search_with_score("query", k=4)
 
 Scores are cosine similarities (higher is closer). Every write call
 persists before it returns, so added and deleted documents survive a
-crash. The store is as thread-safe as the underlying ``srvdb.Database``.
+crash. The store is as thread-safe as the underlying database.
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ except ImportError as exc:  # pragma: no cover - depends on the environment
         'Install it with: pip install "srvdb[langchain]"'
     ) from exc
 
+import srvdb
 from srvdb import Database
 from srvdb.integrations import _common
 
@@ -60,11 +61,11 @@ def _doc(id_: str, record: dict[str, Any]) -> Document:
 
 
 class SrvDBVectorStore(VectorStore):
-    """LangChain vector store over a ``srvdb.Database``.
+    """LangChain vector store over a SrvDB database.
 
     Args:
-        database: an open ``srvdb.Database`` whose dimension matches the
-            embedding model.
+        database: an open database from ``srvdb.create`` or ``srvdb.open``
+            whose dimension matches the embedding model.
         embedding: the LangChain ``Embeddings`` used for texts and queries.
 
     Filters: ``filter`` is either a dict (every key must equal the stored
@@ -83,7 +84,7 @@ class SrvDBVectorStore(VectorStore):
 
     @property
     def database(self) -> Database:
-        """The underlying ``srvdb.Database``."""
+        """The underlying database from ``srvdb.create`` or ``srvdb.open``."""
         return self._db
 
     def add_texts(
@@ -191,15 +192,17 @@ class SrvDBVectorStore(VectorStore):
         *,
         ids: list[str] | None = None,
         path: str | None = None,
-        mode: str = "flat",
+        index: str = "hnsw",
         **kwargs: Any,
     ) -> SrvDBVectorStore:
         """Create (or open) a database at ``path`` and add ``texts``.
 
         The dimension is taken from the embedding of the first text.
-        ``mode`` is passed to ``srvdb.Database``.
-        Raises ValueError if ``path`` is missing or ``texts`` is empty, and
-        whatever ``srvdb.Database`` raises (e.g. a dimension below 128).
+        ``index`` and ``kwargs`` are passed to ``srvdb.create`` with
+        ``exist_ok=True``, so an existing database with the same settings
+        is opened. Raises ValueError if ``path`` is missing or ``texts`` is
+        empty, and whatever ``srvdb.create`` raises (e.g. an option that
+        does not apply to ``index``).
         """
         if path is None:
             raise ValueError("from_texts needs path= for the database directory")
@@ -208,6 +211,7 @@ class SrvDBVectorStore(VectorStore):
                 "from_texts needs at least one text to learn the dimension"
             )
         dimension = len(embedding.embed_query(texts[0]))
-        store = cls(Database(path, dimension=dimension, mode=mode), embedding)
+        db = srvdb.create(path, dimension, index, exist_ok=True, **kwargs)
+        store = cls(db, embedding)
         store.add_texts(texts, metadatas, ids=ids)
         return store

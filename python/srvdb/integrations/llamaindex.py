@@ -3,7 +3,7 @@
 Install with ``pip install "srvdb[llamaindex]"``.
 
 >>> from srvdb.integrations.llamaindex import SrvDBVectorStore
->>> store = SrvDBVectorStore(srvdb.open("./vectors", dimension=384))
+>>> store = SrvDBVectorStore(srvdb.create("./vectors", dimension=384))
 >>> ctx = StorageContext.from_defaults(vector_store=store)
 
 Nodes must carry embeddings (LlamaIndex computes them before ``add``).
@@ -80,7 +80,7 @@ def _match(meta: dict[str, Any], filters: MetadataFilters) -> bool:
 
 
 class SrvDBVectorStore(BasePydanticVectorStore):
-    """LlamaIndex vector store over a ``srvdb.Database``.
+    """LlamaIndex vector store over a SrvDB database.
 
     Supports ``add``, ``delete`` (by ``ref_doc_id``), ``delete_nodes`` and
     default (dense) queries with ``MetadataFilters`` (EQ, NE, GT, GTE, LT,
@@ -104,7 +104,7 @@ class SrvDBVectorStore(BasePydanticVectorStore):
 
     @property
     def client(self) -> Database:
-        """The underlying ``srvdb.Database``."""
+        """The underlying database from ``srvdb.create`` or ``srvdb.open``."""
         return self._db
 
     def add(self, nodes: list[BaseNode], **kwargs: Any) -> list[str]:

@@ -37,7 +37,7 @@ def node(node_id, doc_id, text, meta):
 
 @pytest.fixture
 def store(tmp_path):
-    s = SrvDBVectorStore(srvdb.open(str(tmp_path), dimension=DIM))
+    s = SrvDBVectorStore(srvdb.create(str(tmp_path), DIM))
     assert s.add([node(*r) for r in ROWS]) == ["n1", "n2", "n3"]
     return s
 
@@ -115,7 +115,7 @@ def test_vector_store_index_end_to_end(tmp_path):
         async def _aget_query_embedding(self, query):
             return embed(query)
 
-    store = SrvDBVectorStore(srvdb.open(str(tmp_path), dimension=DIM))
+    store = SrvDBVectorStore(srvdb.create(str(tmp_path), DIM))
     index = VectorStoreIndex.from_documents(
         [Document(text=t) for _, _, t, _ in ROWS],
         storage_context=StorageContext.from_defaults(vector_store=store),
