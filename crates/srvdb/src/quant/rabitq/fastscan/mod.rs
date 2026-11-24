@@ -19,6 +19,8 @@ mod scalar;
 
 pub(crate) use lut::QueryLut;
 
+use crate::error::{Error, Result};
+
 /// Vectors per interleaved block
 pub(crate) const BLOCK: usize = 32;
 
@@ -26,9 +28,15 @@ pub(crate) const BLOCK: usize = 32;
 /// 2 * 255, so 64 bytes stay below 65536
 pub(crate) const CHUNK: usize = 64;
 
-/// A scan kernel; [`Kernel::detect`] picks the best one the CPU supports
+/// A scan kernel; [`Kernel::detect`] picks the best one the CPU supports.
+///
+/// The variant is private, so safe code can only get a SIMD kernel from
+/// `detect()`, after the CPU feature check that makes it sound to run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Kernel {
+pub(crate) struct Kernel(Inner);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Inner {
     Scalar,
     #[cfg(target_arch = "x86_64")]
     Avx2,
@@ -37,24 +45,27 @@ pub(crate) enum Kernel {
 }
 
 impl Kernel {
+    /// The portable kernel, always available
+    pub(crate) const SCALAR: Kernel = Kernel(Inner::Scalar);
+
     /// Best kernel for this CPU (feature detection is cached by std)
     pub(crate) fn detect() -> Self {
         #[cfg(target_arch = "x86_64")]
         if std::is_x86_feature_detected!("avx2") {
-            return Kernel::Avx2;
+            return Kernel(Inner::Avx2);
         }
         #[cfg(target_arch = "aarch64")]
         if std::arch::is_aarch64_feature_detected!("neon") {
-            return Kernel::Neon;
+            return Kernel(Inner::Neon);
         }
-        Kernel::Scalar
+        Self::SCALAR
     }
 
     /// Every kernel this CPU can run (for tests)
     #[cfg(test)]
     pub(crate) fn available() -> Vec<Self> {
-        let mut all = vec![Kernel::Scalar];
-        if Self::detect() != Kernel::Scalar {
+        let mut all = vec![Self::SCALAR];
+        if Self::detect() != Self::SCALAR {
             all.push(Self::detect());
         }
         all
@@ -64,17 +75,17 @@ impl Kernel {
     /// (low-nibble table, then high-nibble table)
     pub(crate) fn block_sums(self, block: &[u8], luts: &[u8], code_bytes: usize) -> [u32; BLOCK] {
         assert!(block.len() >= code_bytes * BLOCK && luts.len() >= code_bytes * 32);
-        match self {
-            Kernel::Scalar => scalar::block_sums(block, luts, code_bytes),
-            // SAFETY: Avx2 is only constructed by detect() after
-            // is_x86_feature_detected!("avx2"), and the slice lengths
-            // the kernel reads were asserted above
+        match self.0 {
+            Inner::Scalar => scalar::block_sums(block, luts, code_bytes),
+            // SAFETY: Inner::Avx2 is private to this module and only built
+            // by detect() after is_x86_feature_detected!("avx2"); the
+            // slice lengths the kernel reads were asserted above
             #[cfg(target_arch = "x86_64")]
-            Kernel::Avx2 => unsafe { avx2::block_sums(block, luts, code_bytes) },
-            // SAFETY: Neon is only constructed after NEON detection, and
-            // the slice lengths were asserted above
+            Inner::Avx2 => unsafe { avx2::block_sums(block, luts, code_bytes) },
+            // SAFETY: Inner::Neon is private and only built by detect()
+            // after NEON detection; slice lengths were asserted above
             #[cfg(target_arch = "aarch64")]
-            Kernel::Neon => unsafe { neon::block_sums(block, luts, code_bytes) },
+            Inner::Neon => unsafe { neon::block_sums(block, luts, code_bytes) },
         }
     }
 }
@@ -105,9 +116,16 @@ impl FastScanCodes {
         self.code_bytes * BLOCK
     }
 
-    /// Append records (`FACTOR_BYTES` + codes each, `record_size` long)
-    pub(crate) fn extend(&mut self, records: &[u8], record_size: usize) {
+    /// Append records (`FACTOR_BYTES` + codes each, `record_size` long).
+    ///
+    /// # Errors
+    /// `Io` with kind `OutOfMemory` if memory for the copy cannot be
+    /// reserved (the codes are held in memory a second time, next to the
+    /// mapped file). Not `InvalidState`: that would make the engine
+    /// delete and rebuild the codes, which cannot help.
+    pub(crate) fn extend(&mut self, records: &[u8], record_size: usize) -> Result<()> {
         let block_bytes = self.block_bytes();
+        self.reserve(records.len() / record_size.max(1))?;
         for record in records.chunks_exact(record_size) {
             let (factor, codes) = record.split_at(super::FACTOR_BYTES);
             let slot = self.len() % BLOCK;
@@ -123,6 +141,32 @@ impl FastScanCodes {
                 factor[0], factor[1], factor[2], factor[3],
             ]));
         }
+        Ok(())
+    }
+
+    /// Reserve room for `new` more vectors without aborting on failure
+    fn reserve(&mut self, new: usize) -> Result<()> {
+        let total = self
+            .len()
+            .checked_add(new)
+            .and_then(|n| n.div_ceil(BLOCK).checked_mul(self.block_bytes()));
+        let reserved = total.is_some_and(|bytes| {
+            self.blocks
+                .try_reserve(bytes.saturating_sub(self.blocks.len()))
+                .and_then(|()| self.factors.try_reserve(new))
+                .is_ok()
+        });
+        if !reserved {
+            return Err(Error::Io(std::io::Error::new(
+                std::io::ErrorKind::OutOfMemory,
+                format!(
+                    "not enough memory for the in-memory RaBitQ scan copy of {new} \
+                     codes of {} bytes; free memory or use another index mode",
+                    self.code_bytes
+                ),
+            )));
+        }
+        Ok(())
     }
 
     /// Keep the first `n` vectors

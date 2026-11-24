@@ -99,7 +99,7 @@ impl RabitqStorage {
             let records = file.range(0, count).ok_or_else(|| {
                 Error::Internal(format!("{FILE_NAME}: {count} records are not mapped"))
             })?;
-            fast.extend(records, quantizer.record_size());
+            fast.extend(records, quantizer.record_size())?;
         }
         Ok(Self {
             file,
@@ -155,8 +155,14 @@ impl RabitqStorage {
                 out.copy_from_slice(&record);
             });
         if !bytes.is_empty() {
-            self.file.append(&bytes)?;
-            self.fast.extend(&bytes, size);
+            // Copy first, so a failed reservation leaves both unchanged;
+            // a failed file append rolls the copy back
+            let before = self.fast.len();
+            self.fast.extend(&bytes, size)?;
+            if let Err(e) = self.file.append(&bytes) {
+                self.fast.truncate(before);
+                return Err(e);
+            }
         }
         Ok(())
     }

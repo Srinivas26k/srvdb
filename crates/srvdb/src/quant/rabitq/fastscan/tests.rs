@@ -23,7 +23,7 @@ fn encoded(q: &RabitqQuantizer, data: &[Vec<f32>]) -> (Vec<u8>, FastScanCodes) {
         q.encode_into(v, &mut records);
     }
     let mut codes = FastScanCodes::new(q.code_bytes());
-    codes.extend(&records, q.record_size());
+    codes.extend(&records, q.record_size()).unwrap();
     (records, codes)
 }
 
@@ -83,19 +83,19 @@ fn appends_fill_partial_blocks_and_truncate_drops() {
     let mut parts = FastScanCodes::new(q.code_bytes());
     let size = q.record_size();
     for chunk in records.chunks(size * 7) {
-        parts.extend(chunk, size);
+        parts.extend(chunk, size).unwrap();
     }
     let lut = QueryLut::new(q.prepare(&data[3]).tables());
     assert_eq!(parts.len(), 75);
     assert_eq!(
-        parts.scores(&lut, Kernel::Scalar),
-        whole.scores(&lut, Kernel::Scalar)
+        parts.scores(&lut, Kernel::SCALAR),
+        whole.scores(&lut, Kernel::SCALAR)
     );
     parts.truncate(40);
     assert_eq!(parts.len(), 40);
     assert_eq!(
-        parts.scores(&lut, Kernel::Scalar)[..],
-        whole.scores(&lut, Kernel::Scalar)[..40]
+        parts.scores(&lut, Kernel::SCALAR)[..],
+        whole.scores(&lut, Kernel::SCALAR)[..40]
     );
 }
 
@@ -108,4 +108,14 @@ fn zero_query_scores_zero() {
         .scores(&lut, Kernel::detect())
         .iter()
         .all(|s| *s == 0.0));
+}
+
+#[test]
+fn impossible_reservation_is_an_error_not_an_abort() {
+    let mut codes = FastScanCodes::new(1 << 20);
+    match codes.reserve(1 << 50) {
+        Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::OutOfMemory),
+        other => panic!("expected OutOfMemory, got {other:?}"),
+    }
+    assert_eq!(codes.len(), 0);
 }
