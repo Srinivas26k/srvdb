@@ -44,8 +44,12 @@ pub(crate) fn is_owned(name: &str) -> bool {
     OWNED.contains(&base)
 }
 
-/// Whether `file` starts with `magic`
+/// Whether `file` is a regular file (not a symlink, FIFO or device, which
+/// could hang or redirect the read) that starts with `magic`
 fn starts_with(file: &Path, magic: &[u8]) -> bool {
+    if !std::fs::symlink_metadata(file).is_ok_and(|m| m.is_file()) {
+        return false;
+    }
     let mut head = vec![0u8; magic.len()];
     std::fs::File::open(file)
         .and_then(|mut f| f.read_exact(&mut head))
