@@ -99,6 +99,7 @@ class SrvDBVectorStore(BasePydanticVectorStore):
 
     @classmethod
     def class_name(cls) -> str:
+        """Name LlamaIndex uses when serialising the store."""
         return "SrvDBVectorStore"
 
     @property
@@ -153,7 +154,10 @@ class SrvDBVectorStore(BasePydanticVectorStore):
         _common.remove(self._db, doomed)
 
     def query(self, query: VectorStoreQuery, **kwargs: Any) -> VectorStoreQueryResult:
-        """Dense top-k search; ValueError if the query has no embedding."""
+        """Dense top-k search; ValueError if the query has no embedding.
+
+        Raises NotImplementedError for an unsupported filter operator.
+        """
         if query.query_embedding is None:
             raise ValueError("SrvDBVectorStore needs query.query_embedding")
         filters = query.filters

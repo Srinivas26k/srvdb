@@ -3,8 +3,9 @@ title: Rust API
 description: The main types of the srvdb crate.
 ---
 
-Full generated API docs (docs.rs) will be published when SrvDB is released on
-crates.io. Until then, run `cargo doc --open -p srvdb` in a clone.
+Generated API docs for every public item are on
+[docs.rs/srvdb](https://docs.rs/srvdb) for released versions. For unreleased
+code, run `cargo doc --open -p srvdb` in a clone.
 
 | Item | Description |
 |------|-------------|
