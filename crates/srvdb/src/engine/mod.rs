@@ -4,6 +4,7 @@ mod commit;
 mod compact;
 mod constructors;
 mod delete;
+mod filter;
 mod modes;
 mod open;
 mod read;

@@ -18,6 +18,8 @@ usage: cargo run --release -p srvdb --example bench -- [options]
   --nprobe N         IVF partitions probed (default 8)
   --base-fvecs PATH  load base vectors from an .fvecs file instead
   --query-fvecs PATH load query vectors from an .fvecs file (with --base-fvecs)
+  --filter-pct P     search only a seeded random P% of vectors (filtered
+                     search vs post-filtering; default off)
   --out PATH         write JSON results here (default bench-results.json)
   --work-dir PATH    directory for temporary databases (default system temp)
   --export-fvecs DIR write base.fvecs and query.fvecs to DIR and exit
@@ -37,6 +39,7 @@ pub struct Args {
     pub nprobe: usize,
     pub base_fvecs: Option<PathBuf>,
     pub query_fvecs: Option<PathBuf>,
+    pub filter_pct: Option<f64>,
     pub out: PathBuf,
     pub work_dir: Option<PathBuf>,
     /// Write the dataset as .fvecs files to this directory and exit.
@@ -64,6 +67,7 @@ pub fn parse(raw: &[String]) -> Result<Args, String> {
         nprobe: 8,
         base_fvecs: None,
         query_fvecs: None,
+        filter_pct: None,
         out: PathBuf::from("bench-results.json"),
         work_dir: None,
         export_fvecs: None,
@@ -86,6 +90,7 @@ pub fn parse(raw: &[String]) -> Result<Args, String> {
             }
             "--base-fvecs" => a.base_fvecs = it.next().map(PathBuf::from),
             "--query-fvecs" => a.query_fvecs = it.next().map(PathBuf::from),
+            "--filter-pct" => a.filter_pct = Some(num(&flag, it.next())?),
             "--out" => a.out = it.next().map(PathBuf::from).ok_or("--out needs a value")?,
             "--work-dir" => a.work_dir = it.next().map(PathBuf::from),
             "--export-fvecs" => a.export_fvecs = it.next().map(PathBuf::from),
@@ -99,6 +104,9 @@ pub fn parse(raw: &[String]) -> Result<Args, String> {
     }
     if a.k == 0 || a.n == 0 || a.queries == 0 {
         return Err("--k, --n and --queries must be at least 1".into());
+    }
+    if a.filter_pct.is_some_and(|p| !(p > 0.0 && p <= 100.0)) {
+        return Err("--filter-pct must be in (0, 100]".into());
     }
     if a.base_fvecs.is_some() != a.query_fvecs.is_some() {
         return Err("--base-fvecs and --query-fvecs must be given together".into());
