@@ -7,7 +7,8 @@ command, which the harness records for you.
 
 ## What it measures
 
-For each mode (`flat`, `sq8`, `pq`, `hnsw`, `ivf`):
+For each mode (`flat`, `sq8`, `pq`, `hnsw`, `ivf`, `rabitq1`, `rabitq2`,
+`rabitq4`):
 
 | Metric | How |
 |--------|-----|
@@ -46,7 +47,8 @@ memory, so the harness works offline and in CI.
 
 Useful options: `--k` (default 10), `--ef-search` (HNSW and IVF partition
 search list, default 100), `--nlist` (IVF partitions, default `sqrt(n)`),
-`--nprobe` (default 8), `--work-dir` (where temporary databases go),
+`--nprobe` (default 8), `--rerank` (RaBitQ rerank factor, default 40/20/10
+for 1/2/4 bits), `--work-dir` (where temporary databases go),
 `--out` (JSON path, default `bench-results.json`, git-ignored).
 
 ## Real datasets (SIFT1M, GloVe)

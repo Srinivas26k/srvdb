@@ -1,8 +1,9 @@
 //! Reproducible benchmark harness for SrvDB (issue #21).
 //!
 //! Measures recall@k against exact brute-force search, QPS, p50/p99
-//! latency, build time and peak RSS for each mode (flat, sq8, pq, hnsw,
-//! ivf). Each mode runs in its own child process so peak RSS is per mode.
+//! latency, build time and peak RSS for each mode (flat, sq8, pq, hnsw, ivf,
+//! rabitq1/2/4). Each mode runs in its own child process so peak RSS is
+//! per mode.
 //! See docs/benchmarks.md for how to reproduce published numbers.
 
 mod args;
@@ -92,6 +93,7 @@ fn main() {
         "name": ds.name, "dim": ds.dim, "base": ds.base.len(),
         "queries": ds.queries.len(), "k": a.k, "seed": a.seed,
         "ef_search": a.ef_search, "nprobe": a.nprobe, "nlist": a.nlist,
+        "rerank": a.rerank,
     });
     drop(ds);
 
