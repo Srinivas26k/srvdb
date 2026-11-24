@@ -173,6 +173,23 @@ starlight-toc a[aria-current='true'] {
 	color: var(--sl-color-gray-3);
 }
 
+/* Terminal frames: plain bordered block, no title bar when untitled */
+.expressive-code .frame.is-terminal .header:has(.title:empty) {
+	display: none;
+}
+.expressive-code .frame.is-terminal:has(.header .title:empty) pre {
+	border-top: var(--ec-brdWd) solid var(--ec-brdCol);
+	border-radius: var(--ec-brdRad);
+}
+
+/* Badges: grey outline instead of colour */
+.sl-badge {
+	background: transparent !important;
+	border: 1px solid var(--sl-color-gray-5) !important;
+	color: var(--sl-color-gray-3) !important;
+	font-weight: 500;
+}
+
 /* Landing page: left-aligned hero inside the panel */
 [data-has-hero] .main-pane {
 	padding-top: 1rem;

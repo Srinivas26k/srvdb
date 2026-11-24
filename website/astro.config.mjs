@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import industries from './src/industries-sidebar.mjs';
+import { expressiveCode } from './src/code-theme.mjs';
 
 // Deployed to GitHub Pages at https://srinivas26k.github.io/srvdb/
 export default defineConfig({
@@ -43,6 +44,7 @@ export default defineConfig({
 				Sidebar: './src/components/overrides/Sidebar.astro',
 				PageTitle: './src/components/overrides/PageTitle.astro',
 			},
+			expressiveCode,
 			lastUpdated: true,
 			sidebar: [
 				{

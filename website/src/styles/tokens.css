@@ -1,13 +1,13 @@
 /* SrvDB documentation design tokens.
    One sans-serif text face (Inter), one monospace (JetBrains Mono).
    Colours are set through Starlight's custom properties so every built-in
-   component picks them up. Neutral greys, one blue accent.
-   Contrast (WCAG 2.1, checked against the page background):
-     dark:  body #e4e6eb on #15171c ~ 14:1, accent #8ab4ff ~ 8.6:1,
-            muted gray-3 #9aa1ad ~ 6.9:1
-     light: body #1f2329 on #ffffff ~ 15.6:1, accent #1d4ed8 ~ 6.7:1,
-            muted gray-3 #5b6370 ~ 6.0:1
-   All text pairs meet AA (4.5:1). */
+   component picks them up. Monochrome: greys only, no colour accent;
+   links are underlined in the text colour.
+   `npm run check:contrast` (scripts/contrast.mjs) checks a hand-listed
+   set of text/background pairs from this file (body, muted, sidebar,
+   pill, button and code text) and the syntax colours in
+   src/code-theme.mjs against WCAG AA (4.5:1). Pairs not in that list,
+   such as hover states and borders, are not checked. */
 
 /* Typography, spacing and radii (theme independent) */
 :root {

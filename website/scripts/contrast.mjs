@@ -1,5 +1,10 @@
-// WCAG 2.1 contrast check for the key colour pairs in src/styles/tokens.css.
-// Run from website/: node scripts/contrast.mjs (exits 1 if a pair is below 4.5:1)
+// WCAG 2.1 contrast check for the key UI colour pairs in src/styles/tokens.css
+// and every syntax token colour in src/code-theme.mjs against its code block
+// background. Run from website/: npm run check:contrast
+// (exits 1 if any pair is below 4.5:1). The UI pairs are listed by hand and
+// must be updated when tokens.css changes.
+import { codeColors } from '../src/code-theme.mjs';
+
 const lum = (hex) => {
 	const c = hex.match(/\w\w/g).map((h) => parseInt(h, 16) / 255);
 	const l = c.map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
@@ -31,6 +36,12 @@ const pairs = {
 		['code text on code block', '#ededed', '#171717'],
 	],
 };
+for (const theme of ['light', 'dark']) {
+	const { bg, ...tokens } = codeColors[theme];
+	for (const [token, fg] of Object.entries(tokens)) {
+		pairs[theme].push([`syntax ${token} on code`, fg, bg]);
+	}
+}
 let fail = false;
 for (const [theme, list] of Object.entries(pairs)) {
 	for (const [name, fg, bg] of list) {
