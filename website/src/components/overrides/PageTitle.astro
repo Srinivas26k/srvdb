@@ -11,7 +11,17 @@ const contains = (e: Entry): boolean =>
 	e.type === 'link' ? Boolean(e.isCurrent) : (e.entries ?? []).some(contains);
 const group = (sidebar as Entry[]).find((e) => e.type === 'group' && contains(e));
 const eyebrow = group?.label;
-const description = entry.data.description;
+// Skip the subtitle when the page body already opens with the same
+// sentence (the API reference pages do), so it is not shown twice.
+const norm = (t: string) => t.replace(/\s+/g, ' ').trim();
+const firstParagraph = (entry.body ?? '')
+	.split(/\n\s*\n/)
+	.map(norm)
+	.find((p) => p !== '' && !p.startsWith('import '));
+const description =
+	entry.data.description && firstParagraph !== norm(entry.data.description)
+		? entry.data.description
+		: undefined;
 ---
 
 {eyebrow && <p class="srv-eyebrow">{eyebrow}</p>}

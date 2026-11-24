@@ -190,6 +190,38 @@ starlight-toc a[aria-current='true'] {
 	font-weight: 500;
 }
 
+/* API reference Parameters / Returns / Raises lists render like a
+   definition list. The Markdown pattern is
+     - **name** : *type*
+       Description.
+   pre-line turns the soft line break into a real one, so the name and
+   type share the first line and the description sits below. */
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul {
+	list-style: none;
+	padding-inline-start: 0;
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li {
+	margin-top: 1rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li:last-child {
+	border-bottom: 0;
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li > p:first-child {
+	white-space: pre-line;
+	margin: 0;
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li > p:first-child > strong:first-child {
+	font-family: var(--sl-font-mono);
+	font-size: 0.9375em;
+	font-weight: 600;
+	color: var(--sl-color-white);
+}
+.sl-heading-wrapper:has(:is(h2[id^='parameters'], h2[id^='raises'], h2[id^='returns'], h2[id^='yields'])) + ul > li > p:first-child > strong:first-child + em {
+	color: var(--sl-color-gray-3);
+}
+
 /* Landing page: left-aligned hero inside the panel */
 [data-has-hero] .main-pane {
 	padding-top: 1rem;
