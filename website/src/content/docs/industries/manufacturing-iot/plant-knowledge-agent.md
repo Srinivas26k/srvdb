@@ -69,7 +69,7 @@ A complete, runnable **Plant Knowledge Agent** reference implementation is in pr
 import json
 import srvdb
 
-db = srvdb.Database("./plant-knowledge-agent-db", dimension=384)
+db = srvdb.open("./plant-knowledge-agent-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

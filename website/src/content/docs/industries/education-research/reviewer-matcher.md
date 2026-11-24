@@ -69,7 +69,7 @@ A complete, runnable **Reviewer Matcher** reference implementation is in progres
 import json
 import srvdb
 
-db = srvdb.Database("./reviewer-matcher-db", dimension=768)
+db = srvdb.open("./reviewer-matcher-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

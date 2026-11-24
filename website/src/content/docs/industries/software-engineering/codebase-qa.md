@@ -69,7 +69,7 @@ A complete, runnable **Codebase Q&A** reference implementation is in progress. T
 import json
 import srvdb
 
-db = srvdb.Database("./codebase-qa-db", dimension=768)
+db = srvdb.open("./codebase-qa-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

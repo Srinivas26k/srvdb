@@ -69,7 +69,7 @@ A complete, runnable **Air-gapped Investigation Suite** reference implementation
 import json
 import srvdb
 
-db = srvdb.Database("./air-gapped-investigation-suite-db", dimension=768)
+db = srvdb.open("./air-gapped-investigation-suite-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

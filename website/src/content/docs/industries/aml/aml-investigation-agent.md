@@ -69,7 +69,7 @@ A complete, runnable **AML Investigation Agent** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./aml-investigation-agent-db", dimension=768)
+db = srvdb.open("./aml-investigation-agent-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

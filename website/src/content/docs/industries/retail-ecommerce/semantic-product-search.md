@@ -69,7 +69,7 @@ A complete, runnable **Semantic Product Search** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./semantic-product-search-db", dimension=384, mode="hnsw")
+db = srvdb.open("./semantic-product-search-db", dimension=384, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

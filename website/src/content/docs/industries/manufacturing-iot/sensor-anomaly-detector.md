@@ -69,7 +69,7 @@ A complete, runnable **Sensor Anomaly Detector** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./sensor-anomaly-detector-db", dimension=128, mode="sq8")
+db = srvdb.open("./sensor-anomaly-detector-db", dimension=128, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

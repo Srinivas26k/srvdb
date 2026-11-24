@@ -69,7 +69,7 @@ A complete, runnable **Edge Recommender** reference implementation is in progres
 import json
 import srvdb
 
-db = srvdb.Database("./edge-recommender-db", dimension=256, mode="sq8")
+db = srvdb.open("./edge-recommender-db", dimension=256, mode="sq8")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

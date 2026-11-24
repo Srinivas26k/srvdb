@@ -69,7 +69,7 @@ A complete, runnable **Working-paper Search** reference implementation is in pro
 import json
 import srvdb
 
-db = srvdb.Database("./working-paper-search-db", dimension=768)
+db = srvdb.open("./working-paper-search-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

@@ -69,7 +69,7 @@ A complete, runnable **Hardware Lab Agent** reference implementation is in progr
 import json
 import srvdb
 
-db = srvdb.Database("./hardware-lab-agent-db", dimension=512)
+db = srvdb.open("./hardware-lab-agent-db", dimension=512)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

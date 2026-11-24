@@ -69,7 +69,7 @@ A complete, runnable **Complaint Analyzer** reference implementation is in progr
 import json
 import srvdb
 
-db = srvdb.Database("./complaint-analyzer-db", dimension=384)
+db = srvdb.open("./complaint-analyzer-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

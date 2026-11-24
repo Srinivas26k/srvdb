@@ -69,7 +69,7 @@ A complete, runnable **Outage Analyzer** reference implementation is in progress
 import json
 import srvdb
 
-db = srvdb.Database("./outage-analyzer-db", dimension=384)
+db = srvdb.open("./outage-analyzer-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

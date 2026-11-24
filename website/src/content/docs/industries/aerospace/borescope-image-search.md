@@ -69,7 +69,7 @@ A complete, runnable **Borescope Image Search** reference implementation is in p
 import json
 import srvdb
 
-db = srvdb.Database("./borescope-image-search-db", dimension=512, mode="hnsw")
+db = srvdb.open("./borescope-image-search-db", dimension=512, mode="hnsw")
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

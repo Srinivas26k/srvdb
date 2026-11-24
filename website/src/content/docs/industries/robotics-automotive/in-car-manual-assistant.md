@@ -69,7 +69,7 @@ A complete, runnable **In-car Manual Assistant** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./in-car-manual-assistant-db", dimension=384)
+db = srvdb.open("./in-car-manual-assistant-db", dimension=384)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

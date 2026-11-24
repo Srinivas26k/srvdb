@@ -69,7 +69,7 @@ A complete, runnable **Similar Case Finder** reference implementation is in prog
 import json
 import srvdb
 
-db = srvdb.Database("./similar-case-finder-db", dimension=768)
+db = srvdb.open("./similar-case-finder-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""

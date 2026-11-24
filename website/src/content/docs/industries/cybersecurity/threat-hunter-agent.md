@@ -71,7 +71,7 @@ A complete, runnable **Threat Hunter Agent** reference implementation is in prog
 import json
 import srvdb
 
-db = srvdb.Database("./threat-hunter-agent-db", dimension=768)
+db = srvdb.open("./threat-hunter-agent-db", dimension=768)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
