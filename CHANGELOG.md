@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- LangChain and LlamaIndex vector-store adapters,
+  `srvdb.integrations.langchain.SrvDBVectorStore` and
+  `srvdb.integrations.llamaindex.SrvDBVectorStore`, over `srvdb.Database`:
+  add texts or nodes with embeddings and metadata, similarity search with
+  cosine scores, delete, and metadata filters (applied to search results).
+  Install with `pip install "srvdb[langchain]"` or `"srvdb[llamaindex]"`;
+  `import srvdb` never imports either framework, and the adapters make no
+  network calls. See the "LangChain and LlamaIndex" guide (#26).
 - Benchmark harness (`cargo run --release -p srvdb --example bench`) that
   measures recall@10 against exact search, QPS, p50/p99 latency, build time
   and peak memory for the flat, SQ8, PQ, HNSW and IVF modes. It uses a seeded
