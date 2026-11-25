@@ -155,6 +155,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `subprocess` or `std::process::Command`) briefly shared the lock, so a
   reopen right after drop, including the one inside `create`, could fail
   with `Locked` (#82, ADR 0005).
+- `delete` works on Windows. It failed with "Access is denied (os error
+  5)" because it renamed the database directory while its own lock file
+  was open inside, which Windows refuses. On Windows the lock is now
+  released for the rename and re-taken in the tombstone; a database
+  opened in that gap is reported as `Locked` and left in place (#98).
 
 ### Added
 - Filtered search from Python (#46, ADR 0014): `db.search(query, k,
