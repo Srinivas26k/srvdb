@@ -161,6 +161,26 @@ Bug reports, docs, tests, benchmark results from your hardware and code are
 all welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the engineering
 rules every change follows are in [AGENTS.md](AGENTS.md).
 
+## Contributors
+
+Thank you to everyone who has helped build SrvDB. New contributors are very
+welcome: pick an issue labelled
+[`good first issue`](https://github.com/Srinivas26k/srvdb/labels/good%20first%20issue)
+and follow [CONTRIBUTING.md](CONTRIBUTING.md).
+
+<a href="https://github.com/Srinivas26k/srvdb/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Srinivas26k/srvdb" alt="SrvDB contributors">
+</a>
+
+Community pull requests under review:
+
+- [@Safronix](https://github.com/Safronix): Python demo cleanup
+  ([#74](https://github.com/Srinivas26k/srvdb/pull/74), for issue
+  [#68](https://github.com/Srinivas26k/srvdb/issues/68))
+- [@onlykushalll](https://github.com/onlykushalll): filtered search example
+  ([#96](https://github.com/Srinivas26k/srvdb/pull/96), for issue
+  [#66](https://github.com/Srinivas26k/srvdb/issues/66))
+
 ## Sponsor
 
 SrvDB has no outside funding. Donations pay for CI on more platforms,

@@ -146,6 +146,7 @@ export default defineConfig({
 						{ label: 'Integrations', slug: 'project/integrations', badge: { text: 'Soon', variant: 'caution' } },
 						{ label: 'Contributing', slug: 'project/contributing' },
 						{ label: 'Community', slug: 'project/community' },
+						{ label: 'Contributors', slug: 'project/contributors' },
 						{ label: 'Sponsor', slug: 'project/sponsor' },
 						{ label: 'FAQ', slug: 'project/faq' },
 						{ label: 'Brand', slug: 'project/brand' },
