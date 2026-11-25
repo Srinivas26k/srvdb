@@ -30,6 +30,13 @@ print([i for i, _ in db.search(vectors[1], k=2, text="install")])
 db.save()                             # also saves the keyword index
 ```
 
+:::caution[Known issue #94]
+Hybrid ranking can bury an exact keyword match below vector-similar
+records ([#94](https://github.com/Srinivas26k/srvdb/issues/94), targeted at
+0.4.1). For exact codes, names and error messages, search keyword-only with
+`db.search(None, k, text=...)`, or narrow the search with a `where` filter.
+:::
+
 ## Three kinds of search
 
 | Call | Ranking | Score |

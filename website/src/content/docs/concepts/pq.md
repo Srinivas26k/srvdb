@@ -14,6 +14,13 @@ learned 256-entry codebook, one byte each. In SrvDB that stores a
 768-dimensional vector in 96 bytes, 32 times less than flat, and searches
 it with per-query lookup tables.
 
+:::caution[Known issue #95]
+PQ recall is low in this release
+([#95](https://github.com/Srinivas26k/srvdb/issues/95), targeted at 0.4.1).
+For compressed storage, use [RaBitQ](/srvdb/concepts/rabitq/)
+(`index="rabitq"`) instead.
+:::
+
 ## How it works
 
 <figure class="concept-diagram">
