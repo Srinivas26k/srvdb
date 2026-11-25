@@ -5,6 +5,9 @@
 //! process can open or lock the database at its old path, and the files are
 //! removed from a directory nobody else knows about. On Unix the lock file
 //! is unlinked before the lock is released, so it can never be re-taken.
+//! On Windows the lock is released for the rename itself and re-taken in
+//! the tombstone, because Windows cannot rename a directory holding an
+//! open file (issue #98).
 
 use super::*;
 use crate::storage::identity;
@@ -47,6 +50,45 @@ fn tombstone(dir: &Path) -> Result<PathBuf> {
         name.to_string_lossy(),
         std::process::id()
     )))
+}
+
+/// Take the lock and move the database to `tomb`, returning the lock held
+/// on the tombstone
+#[cfg(not(windows))]
+fn lock_and_move(dir: &Path, tomb: &Path) -> Result<storage::lock::DbLock> {
+    let lock = storage::lock::acquire(dir)?;
+    std::fs::rename(dir, tomb)?;
+    Ok(lock)
+}
+
+/// Windows refuses to rename a directory while any file inside it is open
+/// (`ERROR_ACCESS_DENIED`, issue #98), and our own lock handle is such a
+/// file. So the lock is taken to prove the database is closed, released,
+/// and taken again inside the tombstone after the rename. If another
+/// process opens the database in that gap, its open handles make the
+/// rename fail, which is reported as `Locked`; once the rename succeeds
+/// the old path no longer exists, so nobody can open the database there.
+#[cfg(windows)]
+fn lock_and_move(dir: &Path, tomb: &Path) -> Result<storage::lock::DbLock> {
+    drop(storage::lock::acquire(dir)?);
+    match std::fs::rename(dir, tomb) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+            return Err(Error::Locked(format!(
+                "{} was opened by another SrvDB instance or process while it \
+                 was being deleted; close it first (nothing was deleted)",
+                dir.display()
+            )))
+        }
+        Err(e) => return Err(e.into()),
+    }
+    match storage::lock::acquire(tomb) {
+        Ok(lock) => Ok(lock),
+        Err(e) => {
+            std::fs::rename(tomb, dir)?;
+            Err(e.into())
+        }
+    }
 }
 
 impl SrvDB {
@@ -102,8 +144,7 @@ impl SrvDB {
             )));
         }
         let tomb = tombstone(dir)?;
-        let lock = storage::lock::acquire(dir)?;
-        std::fs::rename(dir, &tomb)?;
+        let lock = lock_and_move(dir, &tomb)?;
         // Checked again inside the tombstone: the listing above ran before
         // the lock was held
         let entries = match owned_entries(&tomb) {
