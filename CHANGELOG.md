@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-25
+
 ### Added
 - Examples gallery (#60) in `examples/gallery/`: twelve offline scripts,
   each with a README, covering getting started, index modes (recall, QPS
