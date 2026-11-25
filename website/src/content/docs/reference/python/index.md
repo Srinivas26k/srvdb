@@ -60,7 +60,7 @@ Errors follow one rule: bad input raises `ValueError`, operating-system I/O fail
 
 | Object | Summary |
 |--------|---------|
-| `srvdb.__version__` | The installed version string, for example `"0.3.0"`. |
+| `srvdb.__version__` | The installed version string, for example `"0.4.0"`. |
 
 ## Errors and recovery
 
