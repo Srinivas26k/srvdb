@@ -33,13 +33,14 @@ for path in Path("notes").glob("**/*.md"):
 
 ## 2. Embed and store
 
+<!-- check_examples: skip (needs sentence-transformers and a model download) -->
 ```python
 import json
 import srvdb
 from sentence_transformers import SentenceTransformer
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
-db = srvdb.Database("./rag-db", dimension=384)
+db = srvdb.create("./rag-db", dimension=384, exist_ok=True)
 
 vectors = model.encode([p["text"] for p in passages], normalize_embeddings=True)
 db.upsert(
@@ -47,7 +48,7 @@ db.upsert(
     embeddings=vectors.tolist(),
     metadatas=[json.dumps({"source": p["source"], "text": p["text"]}) for p in passages],
 )
-db.persist()
+db.save()
 ```
 
 `upsert` makes the script safe to re-run: changed chunks replace the old ones.
@@ -67,6 +68,7 @@ for hit in retrieve("How do I rotate the API keys?"):
 
 Any local model works. With [Ollama](https://ollama.com) (`pip install ollama`):
 
+<!-- check_examples: skip (needs a local Ollama server) -->
 ```python
 import ollama
 

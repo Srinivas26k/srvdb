@@ -21,18 +21,37 @@ impl SrvDB {
             scalar.flush()?;
         }
 
-        // 2. The commit point (ADR 0003): metadata and the count are durable
+        // 2. The commit point (ADR 0003): metadata, the count and links
+        //    (ADR 0016) are durable
         let count = self.count();
-        self.metadata_store.commit(count, &self.pending_deletes)?;
+        self.commit_with_links(count)?;
         self.pending_deletes.clear();
 
         // 3. Derived indexes, each replaced atomically
+        if let Some(ref mut codes) = self.rabitq {
+            codes.flush()?;
+        }
         if let Some(ref ivf) = self.ivf_index {
             storage::ivf::IVFStorage::save(ivf, &self.path)?;
         }
         if let Some(ref hnsw) = self.hnsw_index {
             storage::atomic::write_atomic(&self.path.join("hnsw.graph"), &hnsw.to_bytes()?)?;
         }
+
+        // 4. Index settings (ADR 0011), replaced atomically if they changed
+        // (set_mode, configure_ivf, set_ef_search, ...). Only updated, never
+        // created here: a database without them gets them from an explicit
+        // open, so a legacy database opened flat by default is not pinned
+        // to flat.
+        if self.stored_settings.is_some() {
+            self.record_settings()?;
+        }
+
+        // 5. Keyword index (ADR 0015), after the settings so a failure to
+        // write this derived file never leaves the settings unrecorded.
+        // HNSW/IVF stay before the settings (ADR 0011 order): the settings
+        // describe those files, and each is rebuilt if missing or stale.
+        self.persist_keyword_index()?;
 
         Ok(())
     }

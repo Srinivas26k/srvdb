@@ -49,7 +49,7 @@ A complete, runnable **Investigation Workbench** reference implementation is in 
 
 - **[Several databases](/srvdb/start/use-cases/)**: each database is a directory, so different data types or tenants stay separate.
 - **[`delete` and `compact()`](/srvdb/guides/delete-upsert-compact/)**: remove items immediately from search, then reclaim disk space.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 - **[Fully offline](/srvdb/start/introduction/)**: SrvDB runs in-process and never opens a network connection.
 
 ## Use cases
@@ -69,7 +69,7 @@ A complete, runnable **Investigation Workbench** reference implementation is in 
 import json
 import srvdb
 
-db = srvdb.Database("./investigation-workbench-db", dimension=512)
+db = srvdb.create("./investigation-workbench-db", dimension=512, index="flat", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def investigation_search(query, k=5):
     hits = db.search(embed(query), k)
@@ -93,7 +93,7 @@ def investigation_search(query, k=5):
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

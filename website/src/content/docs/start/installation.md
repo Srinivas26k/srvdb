@@ -9,11 +9,12 @@ description: Install SrvDB from PyPI or build it from source.
 pip install srvdb
 ```
 
-Prebuilt wheels are published for **Python 3.9 to 3.14** on:
+Prebuilt wheels are published for **Python 3.9 and newer** (one stable-ABI
+wheel per platform) on:
 
 | OS | Architectures |
 |----|---------------|
-| Linux (manylinux) | x86_64, aarch64 |
+| Linux (manylinux) | x86_64, aarch64 (including Raspberry Pi 64-bit) |
 | macOS | x86_64, arm64 (Apple Silicon) |
 | Windows | x64 |
 
@@ -37,6 +38,14 @@ git clone https://github.com/Srinivas26k/srvdb
 cd srvdb
 pip install maturin
 maturin develop --release     # builds and installs into the active venv
+```
+
+For a smaller extension on constrained devices, build with the size
+profile (smaller binary; speed not benchmarked):
+
+```bash
+maturin build --profile release-small --out dist
+pip install dist/srvdb-*.whl
 ```
 
 :::caution

@@ -5,19 +5,29 @@ description: Sharing a database between threads, and why a second open is refuse
 
 ## Threads
 
-A `Database` object is safe to share between threads, with no lock of your
+A database object is safe to share between threads, with no lock of your
 own:
 
 - every method **releases the GIL**, so other Python threads keep running;
 - **searches run in parallel**;
-- writes (`add`, `upsert`, `delete`, `persist`, `compact`) wait for each
+- writes (`add`, `upsert`, `delete`, `save`, `compact`) wait for each
   other and for running searches instead of failing.
 
 ```python
+import random
 from concurrent.futures import ThreadPoolExecutor
+
+import srvdb
+
+vectors = [[random.random() for _ in range(128)] for _ in range(1000)]
+queries = vectors[:32]
+db = srvdb.create("./db", dimension=128)
+db.add([f"v{i}" for i in range(1000)], vectors, ["{}"] * 1000)
 
 with ThreadPoolExecutor(8) as pool:
     results = list(pool.map(lambda q: db.search(q, 10), queries))
+print(len(results))
+# 32
 ```
 
 For many queries at once, `search_batch(queries, k)` parallelises inside Rust.
@@ -28,11 +38,12 @@ A database directory can be open in **one place at a time**. A second open,
 from this process or another, raises `BlockingIOError`:
 
 ```python
-a = srvdb.Database("./db", dimension=384)
-b = srvdb.Database("./db", dimension=384)   # BlockingIOError: already open
+a = srvdb.open("./db")
+b = srvdb.open("./db")   # BlockingIOError: already open
+a.close()                # releases the lock; srvdb.open("./db") works again
 ```
 
-Share one `Database` object instead of opening the same path twice. The lock is
+Share one database object instead of opening the same path twice. The lock is
 released when the object is garbage-collected or the process exits, even after
 a crash. For multiple processes, put one process in charge of the database and
 send it requests.

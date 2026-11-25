@@ -131,3 +131,23 @@ fn database_written_by_v02_opens_and_searches() {
     let db = SrvDB::new_with_config(path, types::DatabaseConfig::new(128).unwrap()).unwrap();
     assert_eq!(db.count(), 3);
 }
+
+#[test]
+fn ivf_population_reports_add_failures() {
+    // An untrained index refuses every add; train_ivf used to discard
+    // those errors and report success with empty partitions (issue #49)
+    let ivf = IVFIndex::new(ivf::IVFConfig::default());
+    let data = [vec![1.0f32, 0.0], vec![0.0, 1.0]];
+    let err = modes::populate_partitions(&ivf, 2, |id| data.get(id as usize).map(|v| &v[..]))
+        .unwrap_err();
+    assert!(matches!(err, Error::InvalidState(_)), "{err:?}");
+}
+
+#[test]
+fn train_ivf_outside_ivf_mode_names_the_mode() {
+    let dir = TempDir::new().unwrap();
+    let mut db = SrvDB::new(dir.path().to_str().unwrap()).unwrap();
+    let msg = db.train_ivf().unwrap_err().to_string();
+    assert!(!msg.contains("IndexMode::"), "{msg}");
+    assert!(msg.contains("IVF mode"), "{msg}");
+}

@@ -7,6 +7,7 @@
 //! otherwise (the commit never happened, so the new file is not wanted).
 
 use super::atomic::sync_dir;
+use super::checksum::sidecar;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
@@ -28,14 +29,22 @@ pub(crate) fn staged(dir: &Path, file: &str) -> PathBuf {
 /// Safe to run more than once.
 pub(crate) fn finish(dir: &Path) -> Result<()> {
     for file in VECTOR_FILES {
-        let staged = staged(dir, file);
-        if staged.exists() {
-            std::fs::rename(&staged, dir.join(file))
-                .with_context(|| format!("failed to finish compaction of {file}"))?;
+        // Both the records and their checksums (ADR 0007); finish runs to
+        // the end before any vector file is opened, so their order is free
+        let target = dir.join(file);
+        for (from, to) in [
+            (sidecar(&staged(dir, file)), sidecar(&target)),
+            (staged(dir, file), target),
+        ] {
+            if from.exists() {
+                std::fs::rename(&from, &to)
+                    .with_context(|| format!("failed to finish compaction of {file}"))?;
+            }
         }
     }
     sync_dir(dir)?;
-    for file in INDEX_FILES {
+    let rabitq = super::rabitq::ALL_FILES;
+    for file in INDEX_FILES.iter().chain(rabitq.iter()) {
         let path = dir.join(file);
         if path.exists() {
             std::fs::remove_file(&path)
@@ -49,9 +58,11 @@ pub(crate) fn finish(dir: &Path) -> Result<()> {
 pub(crate) fn discard_abandoned(dir: &Path) -> Result<()> {
     for file in VECTOR_FILES {
         let staged = staged(dir, file);
-        if staged.exists() {
-            log::warn!("discarding unfinished compaction of {file}");
-            std::fs::remove_file(&staged)?;
+        for path in [sidecar(&staged), staged] {
+            if path.exists() {
+                log::warn!("discarding unfinished compaction of {file}");
+                std::fs::remove_file(&path)?;
+            }
         }
     }
     Ok(())

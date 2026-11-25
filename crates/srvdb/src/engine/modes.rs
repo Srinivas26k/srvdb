@@ -44,8 +44,14 @@ impl SrvDB {
         }
     }
 
-    /// Configure IVF parameters
+    /// Configure IVF parameters. In IVF mode this replaces the index with
+    /// an untrained one; call `train_ivf()` afterwards.
+    ///
+    /// # Errors
+    /// `InvalidInput` if a parameter is out of range (see
+    /// [`ivf::IVFConfig::validate`]); nothing is changed then.
     pub fn configure_ivf(&mut self, config: ivf::IVFConfig) -> Result<()> {
+        config.validate()?;
         if self.current_mode == IndexMode::Ivf {
             // If already initialized, we might need to rebuild or just update config?
             // For now, simpler: just update config and re-init empty index if needed.
@@ -68,7 +74,7 @@ impl SrvDB {
     pub fn train_ivf(&mut self) -> Result<()> {
         if self.ivf_index.is_none() {
             return Err(Error::invalid_state(
-                "IVF mode not enabled. Call set_mode(IndexMode::Ivf) first.",
+                "IVF mode is not enabled: switch the database to IVF mode before training",
             ));
         }
 
@@ -98,24 +104,8 @@ impl SrvDB {
 
         // 3. Re-index / Populate Partitions
         log::debug!("IVF: populating partitions");
-        if let Some(ref ivf) = self.ivf_index {
-            if let Some(ref vstorage) = self.vector_storage {
-                let distance_fn = |a_id: u64, b_id: u64| -> f32 {
-                    if let (Some(a), Some(b)) = (vstorage.get(a_id), vstorage.get(b_id)) {
-                        1.0 - search::cosine_similarity(a, b)
-                    } else {
-                        f32::MAX
-                    }
-                };
-
-                use rayon::prelude::*;
-                (0..count).into_par_iter().for_each(|id| {
-                    if let Some(vec_data) = vstorage.get(id) {
-                        let vec = Vector::new(vec_data.to_vec());
-                        let _ = ivf.add(id, &vec, &distance_fn);
-                    }
-                });
-            }
+        if let (Some(ivf), Some(vstorage)) = (&self.ivf_index, &self.vector_storage) {
+            populate_partitions(ivf, count, |id| vstorage.get(id))?;
         }
 
         log::info!("IVF: training complete");
@@ -129,11 +119,13 @@ impl SrvDB {
     /// is saved with the index by `persist()`.
     ///
     /// # Errors
-    /// `InvalidInput` if `ef_search` is 0.
+    /// `InvalidInput` if `ef_search` is 0 or above
+    /// [`crate::index::limits::MAX_HNSW_EF`].
     pub fn set_ef_search(&mut self, ef_search: usize) -> Result<()> {
         if ef_search == 0 {
             return Err(Error::invalid_input("ef_search must be at least 1"));
         }
+        crate::index::limits::check("ef_search", ef_search, 1, crate::index::limits::MAX_HNSW_EF)?;
         if let Some(ref mut hnsw) = self.hnsw_index {
             hnsw.set_ef_search(ef_search);
         }
@@ -150,4 +142,28 @@ impl SrvDB {
         }
         Ok(())
     }
+}
+
+/// Insert vectors `0..count` into their IVF partitions.
+///
+/// Stops at the first failure and returns it: a partially populated index
+/// would silently miss vectors in search. `get` returns `None` for ids
+/// without a stored vector, which are skipped.
+pub(super) fn populate_partitions<'a, G>(ivf: &IVFIndex, count: u64, get: G) -> Result<()>
+where
+    G: Fn(u64) -> Option<&'a [f32]> + Sync,
+{
+    use rayon::prelude::*;
+    let distance_fn = |a_id: u64, b_id: u64| -> f32 {
+        match (get(a_id), get(b_id)) {
+            (Some(a), Some(b)) => 1.0 - search::cosine_similarity(a, b),
+            _ => f32::MAX,
+        }
+    };
+    (0..count).into_par_iter().try_for_each(|id| match get(id) {
+        Some(values) => ivf
+            .add(id, &Vector::new(values.to_vec()), &distance_fn)
+            .map_err(Error::from),
+        None => Ok(()),
+    })
 }

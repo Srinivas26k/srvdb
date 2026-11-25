@@ -94,7 +94,7 @@ vectors). All modes rank by cosine similarity.
 - [Build a local RAG app](https://srinivas26k.github.io/srvdb/guides/local-rag/): sentence-transformers + SrvDB + a local LLM
 - [Choosing an index mode](https://srinivas26k.github.io/srvdb/guides/index-modes/): flat, hnsw, ivf, sq8, pq, auto
 - [Durability and persist()](https://srinivas26k.github.io/srvdb/guides/durability/): the crash-safety guarantee
-- [Python API](https://srinivas26k.github.io/srvdb/reference/python-api/)
+- [Python API](https://srinivas26k.github.io/srvdb/reference/python/)
 - [Rust guide](https://srinivas26k.github.io/srvdb/guides/rust/)
 - [FAQ](https://srinivas26k.github.io/srvdb/project/faq/)
 

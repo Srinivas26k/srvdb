@@ -1,16 +1,21 @@
 //! On-disk storage: vector files, metadata and index persistence
 
 pub(crate) mod atomic;
+pub(crate) mod checksum;
 pub(crate) mod compaction;
 pub mod flat;
 pub(crate) mod format;
 pub mod header;
+pub(crate) mod identity;
 pub mod ivf;
 pub(crate) mod legacy;
 pub(crate) mod lock;
 pub mod metadata;
 pub mod pq;
+pub(crate) mod rabitq;
 mod record_file;
+pub(crate) mod repair;
+pub(crate) mod settings;
 pub mod sq;
 
 pub use flat::VectorStorage;

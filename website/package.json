@@ -1,18 +1,20 @@
 {
   "name": "srvdb-website",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "check:contrast": "node scripts/contrast.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.42.7",
-    "@fontsource/cinzel": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "astro": "^7.2.10",
     "sharp": "^0.35.3"
   }

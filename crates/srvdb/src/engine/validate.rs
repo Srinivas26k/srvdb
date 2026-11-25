@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 
 /// Reject a vector whose length differs from the database dimension or
 /// that contains NaN or infinity (which would break similarity ordering).
-pub(super) fn vector(values: &[f32], dimension: usize) -> Result<()> {
+pub(crate) fn vector(values: &[f32], dimension: usize) -> Result<()> {
     if values.len() != dimension {
         return Err(Error::DimensionMismatch {
             expected: dimension,
@@ -23,7 +23,7 @@ pub(super) fn vector(values: &[f32], dimension: usize) -> Result<()> {
 }
 
 /// `k` must ask for at least one result.
-pub(super) fn k(k: usize) -> Result<()> {
+pub(crate) fn k(k: usize) -> Result<()> {
     if k == 0 {
         return Err(Error::invalid_input("k must be at least 1"));
     }
@@ -64,6 +64,12 @@ pub(super) fn training<'a>(vectors: impl IntoIterator<Item = &'a [f32]>) -> Resu
         vector(values, first.len()).map_err(|e| at_index(e, i + 1))?;
     }
     Ok(first.len())
+}
+
+/// The dimension of a new database, within the `DatabaseConfig::new` bounds
+pub(super) fn new_dimension(dimension: usize) -> Result<()> {
+    use crate::index::limits::{check, MAX_DIMENSION, MIN_DIMENSION};
+    check("dimension", dimension, MIN_DIMENSION, MAX_DIMENSION)
 }
 
 /// Prefix an error with the batch position it came from.

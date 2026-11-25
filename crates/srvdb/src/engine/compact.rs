@@ -35,14 +35,19 @@ impl SrvDB {
             s.write_compacted(&compaction::staged(&dir, storage::pq::FILE_NAME), &keep)?;
         }
 
+        // Keyword ids are about to change: leave an empty index (ADR 0015)
+        self.reset_keyword_index_for_compaction()?;
+
         // 2. The commit point: renumbered metadata, flagged as pending
-        self.metadata_store.compact(&keep)?;
+        self.compact_with_links(&keep)?;
 
         // 3. Swap files (old ones must be closed first on Windows), then
         //    reopen and rebuild the derived indexes
         let had_vectors = self.vector_storage.take().is_some();
         let had_sq8 = self.scalar_storage.take().is_some();
         let had_pq = self.quantized_storage.take().is_some();
+        // RaBitQ codes are removed by finish() and rebuilt below
+        self.rabitq = None;
         compaction::finish(&dir)?;
         self.metadata_store.finish_compaction()?;
 
@@ -67,6 +72,9 @@ impl SrvDB {
 
     /// Rebuild HNSW and IVF from the vectors after ids changed
     fn rebuild_indexes(&mut self) -> Result<()> {
+        if let Some(config) = self.rabitq_config {
+            self.attach_rabitq(config)?;
+        }
         if self.hnsw_index.take().is_some() {
             let config = self.hnsw_config.clone().unwrap_or_default();
             self.attach_hnsw(config)?;

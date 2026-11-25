@@ -1,0 +1,83 @@
+---
+title: Sponsor SrvDB
+description: Fund SrvDB, an embedded, offline, crash-safe vector database for local AI.
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import eagle from '../../../assets/eagle.svg';
+
+<img src={eagle.src} alt="SrvDB eagle" width="96" height="96" style="display:block;margin:0 auto 1.5rem" />
+
+SrvDB is built and maintained by one person, with no outside funding yet. A
+sponsorship of any size buys time and hardware that go straight into the
+project.
+
+<LinkButton href="https://razorpay.me/@nampallisrinivas" variant="secondary">Donate</LinkButton>
+<LinkButton href="mailto:srinivasvarma764@gmail.com?subject=SrvDB%20sponsorship" variant="secondary">Sponsor as a company</LinkButton>
+
+## Why SrvDB matters
+
+- **Embedded.** SrvDB is a library that runs inside your process. There is
+  no server to deploy, no network port and no background service.
+- **Offline.** The library never touches the network, so embeddings and
+  documents stay on the machine that owns them.
+- **Crash-safe.** Once `persist()` returns, committed data survives a process
+  crash or power loss. Writes made after the last `persist()` can be lost.
+  Every write path has a crash test.
+- **Open.** Apache-2.0, with a Rust core and a Python API, installable with
+  `pip install srvdb` or `cargo add srvdb`.
+
+Local AI apps, such as private assistants, on-device RAG and agents that keep
+their memory on disk, need a vector store that behaves like a file rather
+than a service. SrvDB aims to be that store.
+
+## What funding pays for
+
+- **CI on more platforms.** ARM and Windows runners, so SIMD kernels and
+  crash tests run on the architectures users have.
+- **Benchmark hardware.** Dedicated, idle machines, so published numbers are
+  reproducible and list hardware, OS, dataset, commit and command.
+- **The roadmap.** The items in the
+  [0.4 roadmap](https://github.com/Srinivas26k/srvdb/blob/release/0.4/docs/plans/0.4-roadmap.md):
+  training-free quantization, SIMD fast-scan with runtime CPU dispatch,
+  filtered search, checksums on vector pages and index files, fuzzing of the
+  on-disk parsers, and LangChain and LlamaIndex adapters.
+- **Docs and examples.** Guides, concept pages and runnable examples that are
+  checked against the current code.
+
+## Ways to support
+
+### Individuals
+
+Donate any amount through the
+[Razorpay payment link](https://razorpay.me/@nampallisrinivas).
+
+### Companies
+
+Email [srinivasvarma764@gmail.com](mailto:srinivasvarma764@gmail.com) to
+talk about sponsorship, priority support, consulting, or custom features
+for your use case.
+
+### Tiers
+
+| Tier | What it means |
+| --- | --- |
+| **Supporter** | An individual who donates. Listed below as a sponsor if you want to be. |
+| **Company sponsor** | A company that funds ongoing work. Name and link in the sponsors list. |
+| **Support contract** | An agreement for priority help with issues, integration support and agreed custom work. |
+
+Terms for company sponsorship and support contracts are agreed by email.
+
+## Sponsors
+
+No sponsors yet. **Be the first**: your name or company goes here.
+
+## Help without money
+
+- **Star** the [GitHub repository](https://github.com/Srinivas26k/srvdb). It
+  helps other people find the project.
+- **Share** SrvDB with someone building local or offline AI.
+- **Write about it**: a blog post, a talk or a tutorial. Open an issue with
+  the link and it can be listed here.
+- **Contribute** code, tests or docs. See
+  [Contributing](/srvdb/project/contributing/).

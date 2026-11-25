@@ -4,6 +4,7 @@
 //!
 //! - Exact (flat) search, HNSW and IVF-HNSW approximate search
 //! - Optional SQ8 (4x) and product quantization (PQ) compression
+//! - Training-free RaBitQ codes (1, 2 or 4 bits per dimension) with rerank
 //! - Vectors in memory-mapped files, metadata in `redb`
 //!
 //! This crate is pure Rust. Python bindings live in the separate
@@ -13,18 +14,26 @@ mod config;
 pub mod distance;
 mod engine;
 mod error;
+mod filter;
+mod graph;
 pub mod index;
+mod keyword;
 pub mod quant;
 pub mod storage;
 pub mod tuning;
 mod vector;
 
 pub use config::{DatabaseConfig, IndexType, QuantizationConfig, QuantizationMode};
-pub use engine::{SrvDB, VectorEngine};
+pub use engine::{CreateOptions, IndexChoice, MemoryReport, SrvDB, VectorEngine};
 pub use error::{Error, Result};
+pub use filter::Filter;
+pub use graph::{ExpandedResult, Expansion};
 pub use index::hnsw::{HNSWConfig, HNSWIndex};
 pub use index::ivf::{IVFConfig, IVFIndex};
 pub use quant::product::{ProductQuantizer, QuantizedVector};
+pub use quant::rabitq::{
+    RabitqConfig, RabitqSearch, SearchOutcome, SearchStats, DEFAULT_MAX_RERANK,
+};
 pub use storage::metadata::MetadataStore;
 pub use storage::{QuantizedVectorStorage, ScalarQuantizedStorage, VectorStorage};
 pub use tuning::strategy::IndexMode;

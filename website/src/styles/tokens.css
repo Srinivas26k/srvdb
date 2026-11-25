@@ -1,0 +1,115 @@
+/* SrvDB documentation design tokens.
+   One sans-serif text face (Inter), one monospace (JetBrains Mono).
+   Colours are set through Starlight's custom properties so every built-in
+   component picks them up. Monochrome: greys only, no colour accent;
+   links are underlined in the text colour.
+   `npm run check:contrast` (scripts/contrast.mjs) checks a hand-listed
+   set of text/background pairs from this file (body, muted, sidebar,
+   pill, button and code text) and the syntax colours in
+   src/code-theme.mjs against WCAG AA (4.5:1). Pairs not in that list,
+   such as hover states and borders, are not checked. */
+
+/* Typography, spacing and radii (theme independent) */
+:root {
+	--sl-font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--sl-font-heading: var(--sl-font);
+
+	/* Type scale (Starlight variables, modest 1.2 ratio) */
+	--sl-text-xs: 0.8125rem;
+	--sl-text-sm: 0.875rem;
+	--sl-text-base: 1rem;
+	--sl-text-lg: 1.125rem;
+	--sl-text-xl: 1.25rem;
+	--sl-text-2xl: 1.5rem;
+	--sl-text-3xl: 1.75rem;
+	--sl-text-4xl: 2rem;
+	--sl-text-5xl: 2.5rem;
+	--sl-text-h1: 2.25rem;
+	--sl-text-h2: var(--sl-text-2xl);
+	--sl-text-h3: var(--sl-text-xl);
+	--sl-text-h4: var(--sl-text-lg);
+	--sl-line-height: 1.75;
+	--sl-line-height-headings: 1.25;
+
+	/* Spacing and radii used by the overrides below */
+	--srv-space-1: 0.25rem;
+	--srv-space-2: 0.5rem;
+	--srv-space-3: 0.75rem;
+	--srv-space-4: 1rem;
+	--srv-space-6: 1.5rem;
+	--srv-radius-sm: 4px;
+	--srv-radius-md: 8px;
+}
+
+/* Dark theme (Starlight's default): near-black page, #111 panel, light text */
+:root {
+	--sl-color-accent-low: #262626;
+	--sl-color-accent: #fafafa;
+	--sl-color-accent-high: #fafafa;
+	--sl-color-white: #fafafa;
+	--sl-color-gray-1: #ededed;
+	--sl-color-gray-2: #d4d4d4;
+	--sl-color-gray-3: #a3a3a3;
+	--sl-color-gray-4: #737373;
+	--sl-color-gray-5: #2a2a2a;
+	--sl-color-gray-6: #1c1c1c;
+	--sl-color-black: #111111;
+	--srv-page-bg: #0a0a0a;
+	--srv-panel-bg: #111111;
+	--srv-pill: #262626;
+	--srv-code-bg: #171717;
+	--srv-button-bg: #fafafa;
+	--srv-button-fg: #111111;
+}
+
+/* Light theme: light-grey page, white panel, near-black text */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #ececec;
+	--sl-color-accent: #111111;
+	--sl-color-accent-high: #111111;
+	--sl-color-white: #111111;
+	--sl-color-gray-1: #1a1a1a;
+	--sl-color-gray-2: #333333;
+	--sl-color-gray-3: #6b6b6b;
+	--sl-color-gray-4: #8f8f8f;
+	--sl-color-gray-5: #e5e5e5;
+	--sl-color-gray-6: #ececec;
+	--sl-color-gray-7: #f5f5f5;
+	--sl-color-black: #ffffff;
+	--srv-page-bg: #f5f5f5;
+	--srv-panel-bg: #ffffff;
+	--srv-pill: #ececec;
+	--srv-code-bg: #fafafa;
+	--srv-button-bg: #111111;
+	--srv-button-fg: #ffffff;
+}
+
+/* Headings: same face as body, tighter tracking, semibold */
+.sl-markdown-content :is(h1, h2, h3, h4),
+h1#_top,
+.hero h1 {
+	font-family: var(--sl-font-heading);
+	font-weight: 600;
+	letter-spacing: -0.015em;
+}
+
+/* Inline code and blocks share one radius */
+.sl-markdown-content :not(pre) > code {
+	border-radius: var(--srv-radius-sm);
+	padding: 0.1em 0.35em;
+}
+.expressive-code .frame {
+	--ec-brdRad: var(--srv-radius-md);
+}
+
+/* Cards: flat, one border, one radius */
+.card {
+	border-radius: var(--srv-radius-md);
+	padding: var(--srv-space-6);
+}
+
+/* Splash hero: plain, left-aligned text, no decoration */
+.hero {
+	padding-block: var(--srv-space-6);
+}

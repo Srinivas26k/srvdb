@@ -50,7 +50,7 @@ A complete, runnable **RF Fingerprint Lab** reference implementation is in progr
 - **[SQ8 compression (`sq8`)](/srvdb/guides/index-modes/)**: stores each value in one byte, 4× smaller than full precision.
 - **[Fully offline](/srvdb/start/introduction/)**: SrvDB runs in-process and never opens a network connection.
 - **[Rust API](/srvdb/guides/rust/)**: embed SrvDB directly in Rust services and devices.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 
 ## Use cases
 
@@ -69,7 +69,7 @@ A complete, runnable **RF Fingerprint Lab** reference implementation is in progr
 import json
 import srvdb
 
-db = srvdb.Database("./rf-fingerprint-lab-db", dimension=128, mode="sq8")
+db = srvdb.create("./rf-fingerprint-lab-db", dimension=128, index="sq8", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def known_emitters_like(fingerprint, k=5):
     hits = db.search(embed(fingerprint), k)
@@ -93,7 +93,7 @@ def known_emitters_like(fingerprint, k=5):
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

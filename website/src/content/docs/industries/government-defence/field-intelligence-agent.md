@@ -26,7 +26,7 @@ A complete, runnable **Field Intelligence Agent** reference implementation is in
 
 1. Multimodal embeddings put text and images in SrvDB.
 2. The agent answers and recalls field notes offline.
-3. Crash-safe `persist()` survives power loss.
+3. Crash-safe `save()` survives power loss.
 4. One database per classification level.
 
 ## What changes
@@ -48,7 +48,7 @@ A complete, runnable **Field Intelligence Agent** reference implementation is in
 ## SrvDB features it uses
 
 - **[Fully offline](/srvdb/start/introduction/)**: SrvDB runs in-process and never opens a network connection.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 - **[Several databases](/srvdb/start/use-cases/)**: each database is a directory, so different data types or tenants stay separate.
 - **[SQ8 compression (`sq8`)](/srvdb/guides/index-modes/)**: stores each value in one byte, 4× smaller than full precision.
 
@@ -69,7 +69,7 @@ A complete, runnable **Field Intelligence Agent** reference implementation is in
 import json
 import srvdb
 
-db = srvdb.Database("./field-intelligence-agent-db", dimension=512, mode="sq8")
+db = srvdb.create("./field-intelligence-agent-db", dimension=512, index="sq8", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def field_recall(note, k=5):
     hits = db.search(embed(note), k)
@@ -93,7 +93,7 @@ def field_recall(note, k=5):
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

@@ -15,7 +15,7 @@ sending documents anywhere. Chunks are embedded, stored with their text as
 metadata, and the closest chunks become the LLM's context.
 
 - **Why SrvDB:** no server to run, data stays on the machine, `upsert` makes
-  re-indexing changed files simple, `persist()` makes the index crash-safe.
+  re-indexing changed files simple, `save()` makes the index crash-safe.
 - **Start with:** `flat`; `hnsw` for very large corpora.
 - **Guide:** [Build a local RAG app](/srvdb/guides/local-rag/).
 
@@ -26,11 +26,11 @@ tool results as embeddings, recall the relevant ones each turn, forget with
 `delete`.
 
 ```python
-memory = srvdb.Database("./agent-memory", dimension=384)
+memory = srvdb.create("./agent-memory", dimension=384, exist_ok=True)
 
 def remember(key, text):
     memory.upsert([key], [embed(text)], [json.dumps({"text": text})])
-    memory.persist()
+    memory.save()
 
 def recall(query, k=5):
     return [json.loads(memory.get(i))["text"] for i, _ in memory.search(embed(query), k)]
@@ -97,8 +97,9 @@ for doc_id, vector in items:
         print(doc_id, "looks like", hits[1][0])
 ```
 
-- **Why SrvDB:** scores are true cosine similarities, so a threshold means
-  the same thing in every mode.
+- **Why SrvDB:** in flat, HNSW and IVF the scores are true cosine
+  similarities, so a threshold means the same thing in each of them. SQ8 and
+  PQ scores are approximations; re-check thresholds if you switch to them.
 - **Start with:** `flat` for exact scores.
 
 ## 9. Recommendations ("more like this")
@@ -126,7 +127,7 @@ Desktop apps and services that keep each user's data apart.
 - **Why SrvDB:** each database is a separate directory; deleting a user
   means deleting their directory.
 - **Note:** each directory can be open in one place at a time, so keep one
-  `Database` object per user in a single process.
+  database object per user in a single process.
 
 ## When to choose something else
 
@@ -137,8 +138,9 @@ SrvDB is deliberately small. Look elsewhere if you need:
 - **Several processes writing to the same database:** only one can open it
   at a time.
 - **Filtering by metadata inside the search** (for example
-  `where year > 2020`): planned for 0.4; today, filter the results after
-  searching or keep one database per category.
+  `where year > 2020`): available from Rust (`search_filtered`); from
+  Python, filter the results after searching or keep one database per
+  category.
 - **Billions of vectors** on one machine: SrvDB has no published
   benchmarks at that scale yet.
 

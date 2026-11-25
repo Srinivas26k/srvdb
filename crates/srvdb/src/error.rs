@@ -40,6 +40,40 @@ pub enum Error {
     #[error("corrupt or incompatible database file: {0}")]
     Corrupt(String),
 
+    /// Stored data does not match its CRC32C checksum: a vector file block
+    /// or an index/quantizer file was damaged after it was written (bit rot,
+    /// a torn write, a bad copy). The message names the file and byte range.
+    /// Restore the database from a backup; a damaged `hnsw.graph` or
+    /// `ivf.index` can instead be deleted and is rebuilt on open.
+    #[error("checksum mismatch: {0}")]
+    ChecksumMismatch(String),
+
+    /// The caller asked to open a database with index settings that
+    /// conflict with the ones recorded in `index_settings.bin` (another
+    /// mode, or other structural parameters such as HNSW `m`). Nothing was
+    /// changed on disk. Open it with [`crate::SrvDB::open_existing`] or with
+    /// the recorded mode.
+    #[error("index settings mismatch: {0}")]
+    SettingsMismatch(String),
+
+    /// No SrvDB database exists at the given path (`SrvDB::open_existing`,
+    /// `SrvDB::delete_database`). Create it first with `SrvDB::create`.
+    #[error("database not found: {0}")]
+    NotFound(String),
+
+    /// `SrvDB::create` was given a path that already holds a database or
+    /// other files. Nothing was changed; open the database instead, or
+    /// choose a new or empty directory.
+    #[error("already exists: {0}")]
+    AlreadyExists(String),
+
+    /// A write to a database created with a memory budget would need more
+    /// resident memory than the budget allows, even at 1 bit per dimension
+    /// (ADR 0018). Nothing was written. Create the database with a larger
+    /// `memory_mb`, `compact()` after deletes, or use a fixed index mode.
+    #[error("memory budget exceeded: {0}")]
+    MemoryBudget(String),
+
     /// The operating system reported an I/O failure.
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),

@@ -1,0 +1,480 @@
+---
+title: Examples gallery
+description: Twelve runnable, offline SrvDB examples, from a first search to index trade-offs, filtered and hybrid search, links, clustering, classification, deduplication, RAG, memory budgets, frameworks and edge devices.
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Twelve complete programs in
+[`examples/gallery/`](https://github.com/Srinivas26k/srvdb/tree/master/examples/gallery),
+in the spirit of scikit-learn's gallery. Each folder holds one script and a
+README. They run offline on scikit-learn's bundled datasets or on data the
+script generates, and **every number they print or chart is measured by
+that run**: each script first prints the CPU, OS, Python and library
+versions and the git commit. This page shows the core of each example and
+describes its chart; no charts or numbers are reproduced here, because
+yours will depend on your machine. Run them to see the results.
+
+```bash
+pip install srvdb
+pip install -r examples/gallery/requirements.txt   # scikit-learn, numpy, pandas, matplotlib
+python examples/gallery/run_all.py --fast          # every example, small sizes
+python examples/gallery/run_all.py                 # every example, full sizes
+```
+
+Each script takes `--fast` (a few seconds) and `--out DIR` (charts go to
+`examples/gallery/output/` by default). The snippets below are shortened,
+self-contained versions of each example's core, using random vectors.
+
+<CardGrid>
+	<LinkCard title="01 Getting started" description="Create, add, search, filter, reopen, delete." href="#01-getting-started" />
+	<LinkCard title="02 Index modes" description="Recall, QPS and memory across six indexes." href="#02-index-modes" />
+	<LinkCard title="03 Filtered search" description="Recall as filters get more selective." href="#03-filtered-search" />
+	<LinkCard title="04 Hybrid search" description="Vector, BM25 keyword and both fused." href="#04-hybrid-search" />
+	<LinkCard title="05 Graph links" description="Follow links from hits to the answer." href="#05-graph-links" />
+	<LinkCard title="06 Clustering" description="KMeans and PCA over stored vectors." href="#06-clustering-and-visualization" />
+	<LinkCard title="07 Classification" description="k-NN against scikit-learn." href="#07-classification" />
+	<LinkCard title="08 Deduplication" description="Precision and recall of a threshold." href="#08-deduplication" />
+	<LinkCard title="09 Local RAG" description="Offline retrieval over the SrvDB docs." href="#09-local-rag" />
+	<LinkCard title="10 Memory budget" description="Flat to RaBitQ within a RAM budget." href="#10-memory-budget" />
+	<LinkCard title="11 LangChain / LlamaIndex" description="The optional framework adapters." href="#11-langchain-and-llamaindex" />
+	<LinkCard title="12 Edge / small memory" description="Bits, deadlines and checksum repair." href="#12-edge-and-small-memory" />
+</CardGrid>
+
+## 01 Getting started
+
+<Card title="getting_started.py" icon="rocket">
+
+Stores the scikit-learn digits images (64 numbers each) with their label,
+searches for the images most like a held-out one, filters by label, and
+reopens the database to show that saved data survives. **Chart:** none.
+
+```python
+import json
+import random
+import tempfile
+
+import srvdb
+
+rng = random.Random(0)
+path = tempfile.mkdtemp() + "/db"
+with srvdb.create(path, dimension=64, index="flat") as db:
+    vectors = [[rng.gauss(0, 1) for _ in range(64)] for _ in range(100)]
+    db.add([f"v{i}" for i in range(100)], vectors,
+           [json.dumps({"label": i % 10}) for i in range(100)])
+with srvdb.open(path) as db:
+    best_id, score = db.search(vectors[7], k=1)[0]
+    threes = db.search(vectors[7], k=5, where={"label": 3})
+print(best_id)
+# v7
+print(len(threes))
+# 5
+srvdb.delete(path)
+```
+
+```bash
+python examples/gallery/01_getting_started/getting_started.py
+```
+
+</Card>
+
+## 02 Index modes
+
+<Card title="index_modes.py" icon="setting">
+
+Builds one `make_blobs` dataset in flat, HNSW, IVF, SQ8, PQ and RaBitQ
+databases and measures recall@10 against exact search, single-query
+throughput, `memory_report()` memory and build time, printed as a table
+and saved as CSV. SQ8 and PQ train on 10,000 vectors; PQ always uses
+`dimension / 8` sub-spaces and no rerank, so on this tightly clustered
+data its recall@10 is low, which the example's README explains.
+**Chart:** three bar panels (recall, queries per second, estimated memory
+in MiB), one labelled bar per index mode, every axis from zero.
+
+```python
+import random
+import tempfile
+
+import srvdb
+
+rng = random.Random(0)
+data = [[rng.gauss(0, 1) for _ in range(64)] for _ in range(500)]
+ids = [str(i) for i in range(500)]
+for index, options in [("flat", {}), ("hnsw", {}), ("ivf", {"nlist": 8}),
+                       ("sq8", {}), ("rabitq", {"bits": 4})]:
+    with srvdb.create(tempfile.mkdtemp() + "/db", 64, index, **options) as db:
+        db.add(ids, data, ["{}"] * 500)
+        if index == "ivf":
+            db.train_ivf()
+        hits = db.search(data[0], k=10)
+        print(index, hits[0][0], db.memory_report()["total_bytes"] > 0)
+```
+
+```bash
+python examples/gallery/02_index_modes/index_modes.py
+```
+
+</Card>
+
+## 03 Filtered search
+
+<Card title="filtered_search.py" icon="magnifier">
+
+Gives each record a `bucket` from 0 to 99 and searches an HNSW database
+with `where={"bucket": {"$lt": s}}` for filters matching 1 % to 100 % of
+the records, comparing with exact search over only the matching records.
+**Chart:** recall@10 (solid) and mean latency (dashed, right axis) against
+the share of matching records, on a log scale.
+
+```python
+import json
+import random
+import tempfile
+
+import srvdb
+
+rng = random.Random(0)
+db = srvdb.create(tempfile.mkdtemp() + "/db", dimension=64)
+db.add([str(i) for i in range(1000)],
+       [[rng.gauss(0, 1) for _ in range(64)] for _ in range(1000)],
+       [json.dumps({"bucket": i % 100}) for i in range(1000)])
+query = [rng.gauss(0, 1) for _ in range(64)]
+hits = db.search(query, k=10, where={"bucket": {"$lt": 2}})
+print(len(hits))
+# 10
+print(all(int(i) % 100 < 2 for i, _ in hits))
+# True
+```
+
+```bash
+python examples/gallery/03_filtered_search/filtered_search.py
+```
+
+</Card>
+
+## 04 Hybrid search
+
+<Card title="hybrid_search.py" icon="list-format">
+
+A synthetic support knowledge base with eight topics and a unique ticket
+code per article. Compares vector, keyword (BM25) and hybrid search on
+topic queries (precision@5) and ticket-code queries (hit@5). **Chart:**
+grouped bars, one group per query kind and one bar per method.
+
+```python
+import json
+import random
+import tempfile
+
+import srvdb
+
+rng = random.Random(0)
+texts = ["refund for invoice KB-1001", "printer paper jam KB-1002",
+         "reset a locked password KB-1003"]
+db = srvdb.create(tempfile.mkdtemp() + "/db", dimension=64, index="flat")
+db.add(["a", "b", "c"], [[rng.gauss(0, 1) for _ in range(64)] for _ in texts],
+       [json.dumps({"text": t}) for t in texts])
+db.enable_keyword_search("text")
+print(db.search(None, k=1, text="KB-1002")[0][0])
+# b
+query = [rng.gauss(0, 1) for _ in range(64)]
+print(len(db.search(query, k=2, text="password")))
+# 2
+```
+
+```bash
+python examples/gallery/04_hybrid_search/hybrid_search.py
+```
+
+</Card>
+
+## 05 Graph links
+
+<Card title="graph_links.py" icon="right-arrow">
+
+Stores manuals as heading and body chunks, links each heading to its body
+with `db.link(heading, "next", body)`, and counts how often a question
+about the heading returns the body, with and without
+`expand=("next", 1)`. **Chart:** one bar per search call, the share of
+questions whose answer chunk is returned.
+
+```python
+import random
+import tempfile
+
+import srvdb
+
+rng = random.Random(0)
+db = srvdb.create(tempfile.mkdtemp() + "/db", dimension=64, index="flat")
+head, body = ([rng.gauss(0, 1) for _ in range(64)] for _ in range(2))
+db.add(["head", "body"], [head, body], ["{}", "{}"])
+db.link("head", "next", "body")
+print([id_ for id_, _ in db.search(head, k=1)])
+# ['head']
+print([(id_, hop) for id_, _, hop in db.search(head, k=1, expand=("next", 1))])
+# [('head', 0), ('body', 1)]
+print(db.neighbors("head"))
+# [('next', 'body')]
+```
+
+```bash
+python examples/gallery/05_graph_links/graph_links.py
+```
+
+</Card>
+
+## 06 Clustering and visualization
+
+<Card title="clustering.py" icon="puzzle">
+
+Clusters the digits vectors with scikit-learn `KMeans`, finds each
+cluster's representative record with `db.search(centroid, k=1)`, and
+reports the adjusted Rand index against the true labels. **Chart:** the
+vectors on their first two PCA components, one grey shade and marker per
+cluster, representatives circled.
+
+```python
+import tempfile
+
+from sklearn.cluster import KMeans
+from sklearn.datasets import load_digits
+
+import srvdb
+
+x = load_digits().data[:300]
+km = KMeans(n_clusters=10, n_init=3, random_state=0).fit(x)
+with srvdb.create(tempfile.mkdtemp() + "/db", dimension=64, index="flat") as db:
+    db.add([str(i) for i in range(len(x))], x.tolist(), ["{}"] * len(x))
+    reps = [db.search(c.tolist(), k=1)[0][0] for c in km.cluster_centers_]
+print(len(reps))
+# 10
+```
+
+```bash
+python examples/gallery/06_clustering/clustering.py
+```
+
+</Card>
+
+## 07 Classification
+
+<Card title="classification.py" icon="approve-check">
+
+Labels each test digit by a vote of its five nearest training images
+stored in SrvDB (flat and HNSW) and compares accuracy and agreement with
+`KNeighborsClassifier(metric="cosine")`. Latency per image is timed both
+one image per call and as one batch call over the whole test set
+(`db.search_batch` / `predict` on all rows); the batch figure is the fair
+comparison of the search itself, since per-call timing includes each
+library's Python overhead. **Chart:** accuracy bars from zero with values
+labelled, and per-call and batch latency bars for each classifier.
+
+```python
+import json
+import tempfile
+from collections import Counter
+
+from sklearn.datasets import load_digits
+
+import srvdb
+
+digits = load_digits()
+train, test = digits.data[:1500], digits.data[1500:]
+db = srvdb.create(tempfile.mkdtemp() + "/db", dimension=64, index="flat")
+db.add([str(i) for i in range(1500)], train.tolist(),
+       [json.dumps({"label": int(y)}) for y in digits.target[:1500]])
+def predict(row):
+    votes = Counter(json.loads(db.get(i))["label"] for i, _ in db.search(row, k=5))
+    return votes.most_common(1)[0][0]
+correct = sum(predict(r.tolist()) == y for r, y in zip(test, digits.target[1500:]))
+print(correct > 0.9 * len(test))
+# True
+```
+
+```bash
+python examples/gallery/07_classification/classification.py
+```
+
+</Card>
+
+## 08 Deduplication
+
+<Card title="deduplication.py" icon="document">
+
+Plants noisy copies of 10 % of the digits images, flags pairs whose
+nearest-neighbour cosine similarity reaches a threshold, and measures
+precision and recall against the planted pairs for thresholds from 0.90 to
+1.00. **Chart:** precision (solid) and recall (dashed) against the
+threshold, with the best-F1 threshold marked.
+
+```python
+import random
+import tempfile
+
+import srvdb
+
+rng = random.Random(0)
+base = [[rng.gauss(0, 1) for _ in range(64)] for _ in range(200)]
+copy = [x + rng.gauss(0, 0.01) for x in base[5]]
+db = srvdb.create(tempfile.mkdtemp() + "/db", dimension=64, index="flat")
+db.add([str(i) for i in range(200)] + ["copy"], base + [copy], ["{}"] * 201)
+other, score = db.search(copy, k=2)[1]
+print(other, score > 0.99)
+# 5 True
+```
+
+```bash
+python examples/gallery/08_deduplication/deduplication.py
+```
+
+</Card>
+
+## 09 Local RAG
+
+<Card title="local_rag.py" icon="open-book">
+
+Chunks the SrvDB documentation pages at `##` headings, embeds them with
+TF-IDF + TruncatedSVD (or a sentence-transformers model you already
+downloaded, with `--model DIR`), and measures hit@k on labelled questions
+for vector, keyword and hybrid retrieval. **Chart:** hit@k against k from
+1 to 5, one line per method.
+
+```python
+import json
+import tempfile
+
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+import srvdb
+
+chunks = ["save() makes earlier writes durable", "compact() removes deleted vectors",
+          "where= filters by metadata", "links connect records"] * 3
+tfidf = TfidfVectorizer().fit(chunks)
+svd = TruncatedSVD(4, random_state=0).fit(tfidf.transform(chunks))
+embed = lambda texts: svd.transform(tfidf.transform(texts)).tolist()
+db = srvdb.create(tempfile.mkdtemp() + "/db", dimension=4, index="flat")
+db.add([str(i) for i in range(len(chunks))], embed(chunks),
+       [json.dumps({"text": c}) for c in chunks])
+db.enable_keyword_search("text")
+question = "what does compact do"
+best = db.search(embed([question])[0], k=1, text=question)[0][0]
+print(json.loads(db.get(best))["text"])
+# compact() removes deleted vectors
+```
+
+```bash
+python examples/gallery/09_local_rag/local_rag.py
+```
+
+</Card>
+
+## 10 Memory budget
+
+<Card title="memory_budget.py" icon="information">
+
+Adds batches to `index="auto"` with a `memory_mb` budget until `add`
+raises `ValueError`, recording `db.memory_report()` and recall@10 after
+each batch. **Chart:** estimated memory with the 80 % limit (top) and
+recall@10 (bottom) against records stored, with the flat to RaBitQ 4, 2
+and 1 bit changes marked.
+
+```python
+import random
+import tempfile
+
+import srvdb
+
+rng = random.Random(0)
+db = srvdb.create(tempfile.mkdtemp() + "/db", dimension=64, index="auto", memory_mb=1)
+capacity = db.memory_report()["capacity"]
+batch = [[rng.gauss(0, 1) for _ in range(64)] for _ in range(capacity + 1)]
+db.add([str(i) for i in range(len(batch))], batch, ["{}"] * len(batch))
+report = db.memory_report()
+print(report["mode"], report["bits"])
+# rabitq 4
+```
+
+```bash
+python examples/gallery/10_memory_budget/memory_budget.py
+```
+
+</Card>
+
+## 11 LangChain and LlamaIndex
+
+<Card title="frameworks.py" icon="seti:python">
+
+Stores one corpus directly and through both adapters, checks the adapters
+return the same top-5 ids as `db.search`, runs a filtered query through
+each, and times them. Needs `pip install "srvdb[langchain]"
+"srvdb[llamaindex]"`; a missing framework is skipped. **Chart:** mean
+latency per query for the direct call and each adapter.
+
+{/* check_examples: skip (needs the optional srvdb[langchain] extra; the full version runs in examples/gallery and in CI's adapter job) */}
+```python
+import tempfile
+
+from langchain_core.embeddings import FakeEmbeddings
+
+import srvdb
+from srvdb.integrations.langchain import SrvDBVectorStore
+
+store = SrvDBVectorStore(srvdb.create(tempfile.mkdtemp() + "/db", dimension=128),
+                         FakeEmbeddings(size=128))
+store.add_texts(["guitar chords", "rose compost"], [{"t": "music"}, {"t": "garden"}])
+print(store.similarity_search("guitar", k=1, filter={"t": "garden"})[0].page_content)
+# rose compost
+```
+
+```bash
+python examples/gallery/11_frameworks/frameworks.py
+```
+
+</Card>
+
+## 12 Edge and small memory
+
+<Card title="edge.py" icon="laptop">
+
+Compares flat, SQ8 and RaBitQ at 4, 2 and 1 bits by memory, disk size,
+recall@10 and latency; runs `certify=True` and `deadline_ms=` on the 1-bit
+database; then repairs a copy without its checksum files with
+`srvdb.rebuild_checksums`. **Chart:** recall@10 against estimated memory
+(log scale), one labelled point per encoding.
+
+```python
+import random
+import shutil
+import tempfile
+
+import srvdb
+
+rng = random.Random(0)
+tmp = tempfile.mkdtemp()
+with srvdb.create(tmp + "/db", dimension=64, index="rabitq", bits=1) as db:
+    data = [[rng.gauss(0, 1) for _ in range(64)] for _ in range(500)]
+    db.add([str(i) for i in range(500)], data, ["{}"] * 500)
+    outcome = db.search(data[3], k=5, deadline_ms=50)
+print(outcome.results[0][0], 0.0 <= outcome.completeness <= 1.0)
+# 3 True
+shutil.copytree(tmp + "/db", tmp + "/copy", ignore=shutil.ignore_patterns("*.crc"))
+print(sorted(srvdb.rebuild_checksums(tmp + "/copy")))
+# ['rabitq_codes.bin.crc', 'vectors.bin.crc']
+```
+
+```bash
+python examples/gallery/12_edge/edge.py
+```
+
+</Card>
+
+## More examples
+
+<CardGrid>
+	<LinkCard title="Premise retrieval for theorem proving" description="Lean lemma retrieval with vector, keyword, hybrid search and dependency links; recall@k on labelled proof steps." href="/srvdb/guides/theorem-proving/" />
+	<LinkCard title="Build a local RAG app" description="Retrieval plus a local LLM, step by step." href="/srvdb/guides/local-rag/" />
+</CardGrid>
+
+Want another example? Ask in
+[GitHub Discussions](https://github.com/Srinivas26k/srvdb/discussions).

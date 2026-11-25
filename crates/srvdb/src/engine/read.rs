@@ -61,7 +61,9 @@ impl SrvDB {
             }
         } else {
             // Flat search (O(n))
-            let raw_results = if let Some(ref scalar) = self.scalar_storage {
+            let raw_results = if self.rabitq.is_some() {
+                self.search_rabitq(&query.data, k)?
+            } else if let Some(ref scalar) = self.scalar_storage {
                 scalar.search(&query.data, k, &self.deleted)?
             } else if self.config.enabled {
                 if let Some(ref qstorage) = self.quantized_storage {

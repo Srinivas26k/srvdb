@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "srvdb"
-version = "0.3.0"
+version = "0.4.0"
 description = "SrvDB: embedded vector database for local and offline AI (RAG, semantic search). Crash-safe, no server, Rust core."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -40,6 +40,14 @@ bench = [
     "scikit-learn>=1.3.2",
 ]
 
+# Framework adapters in srvdb.integrations; never imported by `import srvdb`
+langchain = [
+    "langchain-core>=0.3",
+]
+llamaindex = [
+    "llama-index-core>=0.12",
+]
+
 [project.urls]
 Homepage = "https://github.com/Srinivas26k/srvdb"
 Repository = "https://github.com/Srinivas26k/srvdb"
@@ -49,6 +57,7 @@ Documentation = "https://github.com/Srinivas26k/srvdb/blob/master/README.md"
 manifest-path = "crates/srvdb-py/Cargo.toml"
 python-source = "python"
 module-name = "srvdb._low_level"
+features = ["extension-module"]
 
 [dependency-groups]
 dev = [
@@ -58,7 +67,7 @@ dev = [
 [tool.ruff]
 target-version = "py39"
 line-length = 88
-src = ["python", "tests/python", "scripts", "benchmarks"]
+src = ["python", "tests/python", "scripts", "benchmarks", "examples/gallery"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "EXE"]

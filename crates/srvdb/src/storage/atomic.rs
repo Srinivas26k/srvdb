@@ -19,8 +19,22 @@ pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
         .with_context(|| format!("{} has no file name", path.display()))?;
     let tmp = dir.join(format!(".{}.tmp", name.to_string_lossy()));
 
-    let mut file =
-        File::create(&tmp).with_context(|| format!("failed to create {}", tmp.display()))?;
+    // A leftover temp file (or a symlink planted there) is removed, not
+    // followed: remove_file unlinks a symlink itself, and create_new fails
+    // rather than open anything that reappears at that path.
+    match fs::remove_file(&tmp) {
+        Ok(()) => {}
+        // Nothing left over from an earlier crash: the usual case
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            return Err(e).with_context(|| format!("failed to remove stale {}", tmp.display()))
+        }
+    }
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&tmp)
+        .with_context(|| format!("failed to create {}", tmp.display()))?;
     file.write_all(bytes)
         .and_then(|()| file.sync_all())
         .with_context(|| format!("failed to write {}", tmp.display()))?;
@@ -58,5 +72,28 @@ mod tests {
         assert_eq!(fs::read(&path).unwrap(), b"second");
         let names: Vec<_> = fs::read_dir(dir.path()).unwrap().collect();
         assert_eq!(names.len(), 1);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlink_at_the_temp_path_is_not_followed() {
+        let dir = TempDir::new().unwrap();
+        let victim = dir.path().join("victim.txt");
+        fs::write(&victim, b"keep me").unwrap();
+        std::os::unix::fs::symlink(&victim, dir.path().join(".index.bin.tmp")).unwrap();
+        let path = dir.path().join("index.bin");
+        write_atomic(&path, b"new").unwrap();
+        assert_eq!(fs::read(&victim).unwrap(), b"keep me");
+        assert_eq!(fs::read(&path).unwrap(), b"new");
+        assert!(!fs::symlink_metadata(&path).unwrap().is_symlink());
+    }
+
+    #[test]
+    fn stale_temp_file_is_replaced() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join(".index.bin.tmp"), b"partial garbage").unwrap();
+        let path = dir.path().join("index.bin");
+        write_atomic(&path, b"ok").unwrap();
+        assert_eq!(fs::read(&path).unwrap(), b"ok");
     }
 }

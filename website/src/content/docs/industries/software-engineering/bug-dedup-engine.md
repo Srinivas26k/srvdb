@@ -47,10 +47,10 @@ A complete, runnable **Bug Dedup Engine** reference implementation is in progres
 
 ## SrvDB features it uses
 
-- **[True cosine scores](/srvdb/guides/index-modes/)**: scores in [-1, 1] mean the same in every mode, so thresholds are stable.
-- **[`search_batch`](/srvdb/reference/python-api/)**: runs many queries at once, in parallel inside Rust.
+- **[Cosine scores](/srvdb/guides/index-modes/)**: flat, HNSW and IVF return true cosine scores in [-1, 1], so thresholds are stable across them; SQ8 and PQ scores are approximations.
+- **[`search_batch`](/srvdb/reference/python/)**: runs many queries at once, in parallel inside Rust.
 - **[`upsert`](/srvdb/guides/delete-upsert-compact/)**: inserts new items and replaces changed ones, so the knowledge base stays current.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 
 ## Use cases
 
@@ -69,7 +69,7 @@ A complete, runnable **Bug Dedup Engine** reference implementation is in progres
 import json
 import srvdb
 
-db = srvdb.Database("./bug-dedup-engine-db", dimension=384)
+db = srvdb.create("./bug-dedup-engine-db", dimension=384, index="flat", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def likely_duplicates(bug_report, k=5):
     hits = db.search(embed(bug_report), k)
@@ -93,7 +93,7 @@ def likely_duplicates(bug_report, k=5):
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

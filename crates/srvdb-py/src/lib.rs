@@ -3,9 +3,16 @@
 //! Only type conversion and error mapping live here; database logic is in
 //! the `srvdb` crate.
 
+mod constructors;
 mod database;
 mod errors;
+mod graph;
+mod lifecycle;
 mod operations;
+mod rabitq;
+mod report;
+mod search;
+mod where_arg;
 mod writes;
 
 use database::PyDatabase;
@@ -14,6 +21,12 @@ use pyo3::prelude::*;
 #[pymodule]
 fn _low_level(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDatabase>()?;
+    m.add_class::<rabitq::PySearchOutcome>()?;
+    m.add_function(wrap_pyfunction!(lifecycle::create, m)?)?;
+    m.add_function(wrap_pyfunction!(lifecycle::open, m)?)?;
+    m.add_function(wrap_pyfunction!(lifecycle::delete, m)?)?;
+    m.add_function(wrap_pyfunction!(lifecycle::rebuild_checksums, m)?)?;
+    m.add_function(wrap_pyfunction!(graph::drop_links, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add(
         "__doc__",

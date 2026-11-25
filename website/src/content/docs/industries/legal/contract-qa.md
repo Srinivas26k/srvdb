@@ -27,7 +27,7 @@ A complete, runnable **Contract Q&A** reference implementation is in progress. T
 1. Each deal's documents get their own SrvDB database.
 2. Questions retrieve clauses; a local LLM answers citing them.
 3. Deleting a deal's database removes it completely.
-4. `persist()` after ingestion.
+4. `save()` after ingestion.
 
 ## What changes
 
@@ -50,7 +50,7 @@ A complete, runnable **Contract Q&A** reference implementation is in progress. T
 - **[Several databases](/srvdb/start/use-cases/)**: each database is a directory, so different data types or tenants stay separate.
 - **[Exact search (`flat`)](/srvdb/guides/index-modes/)**: every query compares against every stored vector, so results are exact and explainable.
 - **[`delete` and `compact()`](/srvdb/guides/delete-upsert-compact/)**: remove items immediately from search, then reclaim disk space.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 
 ## Use cases
 
@@ -69,7 +69,7 @@ A complete, runnable **Contract Q&A** reference implementation is in progress. T
 import json
 import srvdb
 
-db = srvdb.Database("./contract-qa-db", dimension=768)
+db = srvdb.create("./contract-qa-db", dimension=768, index="flat", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -78,7 +78,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def ask_contracts(question, k=5):
     hits = db.search(embed(question), k)
@@ -93,7 +93,7 @@ def ask_contracts(question, k=5):
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

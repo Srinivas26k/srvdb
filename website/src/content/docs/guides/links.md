@@ -1,0 +1,101 @@
+---
+title: Links between records
+description: Connect records with typed, directed links and follow them during search.
+---
+
+Records often relate to each other: a paper cites another, a chunk belongs
+to a section, a ticket duplicates a ticket. `db.link(a, "cites", b)` stores
+that relationship, `db.neighbors(id)` reads it back, and
+`db.search(q, k, expand=("cites", 2))` follows it from the search hits.
+
+```python
+import srvdb
+
+db = srvdb.create("./papers", dimension=128, index="flat")
+vectors = [[float(i == j) for j in range(128)] for i in range(4)]
+db.add(["intro", "method", "results", "appendix"], vectors, ["{}"] * 4)
+
+db.link("intro", "cites", "method")
+db.link("method", "cites", "results")
+db.save()  # links are durable from here, together with the records
+
+print(db.neighbors("intro"))
+# [('cites', 'method')]
+print([(id_, hop) for id_, _, hop in db.search(vectors[0], k=1, expand=("cites", 2))])
+# [('intro', 0), ('method', 1), ('results', 2)]
+```
+
+## Links
+
+- A link is directed: `a -cites-> b` says nothing about `b -cites-> a`.
+- The link type is a name of lowercase letters, digits and `_`, starting
+  with a letter, at most 64 characters (`cites`, `part_of`, `v2`). Anything
+  else raises `ValueError`.
+- Linking twice returns `False` and changes nothing; `db.unlink` returns
+  whether the link existed.
+- A record may have at most 1,024 outgoing and 100,000 incoming links; a
+  database at most 1,000,000 links and 1,024 link type names. The graph
+  is kept in memory (about 100 bytes per link).
+- Both ends must exist, and a record cannot link to itself.
+
+## Durability
+
+Links follow the same rule as records: they are visible at once and
+durable after `db.save()`, written in the same commit as the records. After
+a crash the database reopens with exactly the links of the last `save()`,
+never a link to a record that was not saved. Links made after the last
+`save()` are gone after reopening, however the process ended.
+
+## Delete, upsert and compact
+
+```python
+import srvdb
+
+db = srvdb.create("./graph", dimension=128, index="flat")
+vectors = [[float(i == j) for j in range(128)] for i in range(3)]
+db.add(["a", "b", "c"], vectors, ["{}"] * 3)
+db.link("a", "cites", "b")
+db.link("b", "cites", "c")
+
+db.upsert(["b"], [vectors[1]], ['{"v": 2}'])
+print(db.neighbors("a"), db.neighbors("b"))
+# [('cites', 'b')] [('cites', 'c')]
+
+db.delete(["b"])
+db.compact()
+print(db.neighbors("a"))
+# []
+```
+
+- Deleting a record removes every link it is part of, in both directions.
+- `upsert` keeps the record's links on its new version.
+- `compact` keeps links intact while it renumbers records internally.
+
+## Search expansion
+
+`expand=(link_type, hops)` runs the normal search for the `k` hits, then
+follows outgoing links of `link_type` breadth-first:
+
+- `hops` is 1 to 3. Pass `(link_type, hops, max_results)` to cap the
+  number of linked records added (default 100, at most 1,000).
+- Results become `(id, score, hop)` tuples: hits have hop 0, linked
+  records follow, ordered by hop. Each record appears once, at its
+  smallest hop.
+- A linked record's score is the score of the record it was reached from,
+  not its own similarity to the query.
+- `expand` works with vector, keyword (`text=`) and hybrid searches: the
+  hits of any of them are expanded. It cannot be combined with `where`,
+  because linked records would not be filtered, or with `certify` or
+  `deadline_ms` (RaBitQ), because linked records would not be certified;
+  both raise `ValueError`.
+
+## Opening with an older SrvDB
+
+SrvDB 0.3 and earlier ignore links. If one of them adds, deletes or
+compacts records after links were saved, the links may point at the
+wrong records, so a newer SrvDB refuses to open the database with a
+`RuntimeError` that says so. Close it and call
+[`srvdb.drop_links(path)`](/srvdb/reference/python/drop-links/) to
+remove the links; vectors and metadata are kept. Then link again.
+
+The design and its guarantees are recorded in ADR 0016.

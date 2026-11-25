@@ -25,7 +25,7 @@ A complete, runnable **Phishing Hunter** reference implementation is in progress
 ## How SrvDB powers Phishing Hunter
 
 1. Confirmed phishing emails (subject, body, sender display name) are embedded as a reference set in SrvDB.
-2. Every new or user-reported email is scored by cosine similarity against that set; scores mean the same thing in every mode, so one threshold works.
+2. Every new or user-reported email is scored by cosine similarity against that set; in flat, HNSW and IVF the scores are true cosines, so one threshold works across them.
 3. Emails above the threshold go to quarantine review; near-identical reports are grouped automatically.
 4. Analyst verdicts are added with `upsert`, so the reference set learns every new campaign.
 
@@ -48,10 +48,10 @@ A complete, runnable **Phishing Hunter** reference implementation is in progress
 ## SrvDB features it uses
 
 - **[Exact search (`flat`)](/srvdb/guides/index-modes/)**: every query compares against every stored vector, so results are exact and explainable.
-- **[True cosine scores](/srvdb/guides/index-modes/)**: scores in [-1, 1] mean the same in every mode, so thresholds are stable.
+- **[Cosine scores](/srvdb/guides/index-modes/)**: flat, HNSW and IVF return true cosine scores in [-1, 1], so thresholds are stable across them; SQ8 and PQ scores are approximations.
 - **[`upsert`](/srvdb/guides/delete-upsert-compact/)**: inserts new items and replaces changed ones, so the knowledge base stays current.
-- **[`search_batch`](/srvdb/reference/python-api/)**: runs many queries at once, in parallel inside Rust.
-- **[Crash-safe `persist()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
+- **[`search_batch`](/srvdb/reference/python/)**: runs many queries at once, in parallel inside Rust.
+- **[Crash-safe `save()`](/srvdb/guides/durability/)**: after it returns, data survives a crash or power loss and reopens exactly as committed.
 
 ## Use cases
 
@@ -71,7 +71,7 @@ A complete, runnable **Phishing Hunter** reference implementation is in progress
 import json
 import srvdb
 
-db = srvdb.Database("./phishing-hunter-db", dimension=384)
+db = srvdb.create("./phishing-hunter-db", dimension=384, index="flat", exist_ok=True)
 
 def ingest(items):
     """items: list of (id, text, metadata dict)"""
@@ -80,7 +80,7 @@ def ingest(items):
         embeddings=[embed(t) for _, t, _ in items],
         metadatas=[json.dumps(m) for _, _, m in items],
     )
-    db.persist()                      # crash-safe checkpoint
+    db.save()                         # crash-safe checkpoint
 
 def score_email(email_text, k=5):
     hits = db.search(embed(email_text), k)
@@ -96,7 +96,7 @@ def score_email(email_text, k=5):
 
 1. **Prototype:** load a sample of real data with `flat` mode and check that searches return what an expert expects.
 2. **Measure:** if you move to an approximate mode, compare its results with `flat` on the same queries (recall).
-3. **Pipeline:** add continuous `upsert` and decide when to call `persist()`.
+3. **Pipeline:** add continuous `upsert` and decide when to call `save()`.
 4. **Harden:** test restarts and crashes, add logging, review every output path with domain experts.
 5. **Deploy:** ship the database directory with the application or service.
 

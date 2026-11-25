@@ -1,0 +1,21 @@
+---
+// Environment block: hardware, OS, commit, library versions and command.
+interface Props { env: Record<string, any>; params: Record<string, any> }
+const { env, params } = Astro.props;
+const versions = Object.entries(env.versions ?? {}).map(([k, v]) => `${k} ${v ?? 'not installed'}`).join(', ');
+---
+<dl class="bench-env">
+	<dt>CPU</dt><dd>{env.cpu_model} ({env.physical_cores} cores, {env.logical_cores} threads)</dd>
+	<dt>RAM</dt><dd>{env.ram_gib} GiB</dd>
+	<dt>OS</dt><dd>{env.os}, Python {env.python}</dd>
+	<dt>SrvDB commit</dt><dd><code>{env.commit}</code></dd>
+	<dt>Versions</dt><dd>{versions}</dd>
+	<dt>Parameters</dt><dd>k={params.k}, HNSW M={params.hnsw_m}, ef_construction={params.hnsw_ef_construction}, ef_search sweep {params.ef_search_sweep.join(', ')}, IVF nlist {params.ivf_nlist}, nprobe sweep {params.nprobe_sweep.join(', ')} (SrvDB IVF nprobe {params.srvdb_ivf_nprobe}), threads {params.threads.join(' and ')}</dd>
+	<dt>Command</dt><dd><code>{env.command}</code></dd>
+</dl>
+
+<style>
+	.bench-env { display: grid; grid-template-columns: max-content 1fr; gap: var(--srv-space-1) var(--srv-space-4); font-size: var(--sl-text-sm); }
+	.bench-env dt { font-weight: 600; margin: 0; }
+	.bench-env dd { margin: 0; }
+</style>
