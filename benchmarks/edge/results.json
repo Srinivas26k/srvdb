@@ -1,0 +1,446 @@
+{
+  "libraries": {
+    "srvdb": {
+      "version": "0.4.0",
+      "site_packages_mib": 6.0,
+      "transitive_packages": 0,
+      "packages": [
+        "pip==26.3",
+        "srvdb==0.4.0"
+      ],
+      "wheels": {
+        "linux_x86_64": {
+          "filename": "srvdb-0.4.0-cp39-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+          "mib": 1.7
+        },
+        "linux_aarch64": {
+          "filename": "srvdb-0.4.0-cp39-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+          "mib": 1.56
+        },
+        "macos_arm64": {
+          "filename": "srvdb-0.4.0-cp39-abi3-macosx_11_0_arm64.whl",
+          "mib": 1.51
+        },
+        "win_amd64": {
+          "filename": "srvdb-0.4.0-cp39-abi3-win_amd64.whl",
+          "mib": 1.73
+        },
+        "sdist_mib": 0.26,
+        "prebuilt_linux_aarch64": true
+      },
+      "import_only": {
+        "ok": true,
+        "peak_rss_mib": 38.6
+      },
+      "create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 47.3
+      },
+      "offline_create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 47.6,
+        "inet_connect_attempts": 0,
+        "inet_connect_targets": []
+      },
+      "documented": {
+        "runtime": "in-process library",
+        "doc": "https://srinivas26k.github.io/srvdb/",
+        "telemetry": "none: the library makes no network calls (AGENTS.md section 9)",
+        "aarch64_ci": ".github/workflows/ci.yml job test-rust-arm64 'Rust core tests (aarch64, NEON)' on ubuntu-24.04-arm; job wheel-arm64 builds the aarch64 wheel"
+      }
+    },
+    "chroma": {
+      "version": "1.5.9",
+      "site_packages_mib": 448.5,
+      "transitive_packages": 83,
+      "packages": [
+        "PyPika==0.51.1",
+        "PyYAML==6.0.4",
+        "Pygments==2.21.0",
+        "aiohappyeyeballs==2.7.1",
+        "aiohttp-retry==2.9.1",
+        "aiohttp==3.14.5",
+        "aiosignal==1.4.0",
+        "annotated-doc==0.0.7",
+        "annotated-types==0.8.0",
+        "anyio==4.16.0",
+        "attrs==26.1.0",
+        "bcrypt==5.0.0",
+        "build==1.6.1",
+        "certifi==2026.11.20",
+        "charset-normalizer==3.5.3",
+        "chromadb==1.5.9",
+        "click==8.5.1",
+        "durationpy==0.12",
+        "filelock==4.3.1",
+        "flatbuffers==25.12.19",
+        "frozenlist==1.8.0",
+        "fsspec==2026.9.0",
+        "googleapis-common-protos==1.76.0",
+        "grpcio==1.85.4",
+        "h11==0.16.0",
+        "hf-xet==1.8.0",
+        "httpcore2==2.16.2",
+        "httpcore==1.0.9",
+        "httptools==0.9.0",
+        "httpx2==2.16.2",
+        "httpx==0.28.1",
+        "huggingface_hub==2.5.0",
+        "idna==3.20",
+        "importlib_resources==7.1.0",
+        "jsonschema-specifications==2025.9.1",
+        "jsonschema==4.26.0",
+        "kubernetes==37.0.3",
+        "markdown-it-py==4.3.0",
+        "mdurl==0.1.2",
+        "mmh3==5.3.1",
+        "multidict==7.2.1",
+        "numpy==2.5.5",
+        "oauthlib==4.0.1",
+        "onnxruntime==1.32.0",
+        "opentelemetry-api==1.45.2",
+        "opentelemetry-exporter-otlp-common==0.66b2",
+        "opentelemetry-exporter-otlp-proto-common==1.45.2",
+        "opentelemetry-exporter-otlp-proto-grpc==1.45.2",
+        "opentelemetry-proto==1.45.2",
+        "opentelemetry-sdk==1.45.2",
+        "opentelemetry-semantic-conventions==0.66b2",
+        "orjson==3.13.0",
+        "overrides==7.7.0",
+        "packaging==26.4",
+        "pip==26.3",
+        "propcache==0.5.4",
+        "protobuf==7.36.2",
+        "pybase64==1.5.2",
+        "pydantic-settings==2.16.3",
+        "pydantic==2.14.4",
+        "pydantic_core==2.50.5",
+        "pyproject_hooks==1.3.3",
+        "python-dateutil==4.0.0",
+        "python-dotenv==1.2.4",
+        "referencing==0.37.0",
+        "requests-oauthlib==2.0.0",
+        "requests==2.34.2",
+        "rich==15.0.0",
+        "rpds-py==2026.9.1",
+        "shellingham==1.5.4",
+        "tenacity==9.2.1",
+        "tokenizers==0.23.3",
+        "tqdm==4.70.1",
+        "truststore==0.10.5",
+        "typer==0.29.3",
+        "typing-inspection==0.4.5",
+        "typing_extensions==4.16.0",
+        "tzdata==2026.6",
+        "urllib3==2.8.0",
+        "uvicorn==0.54.0",
+        "uvloop==0.23.0",
+        "watchfiles==1.3.0",
+        "websocket-client==1.9.2",
+        "websockets==17.4",
+        "yarl==1.25.1"
+      ],
+      "wheels": {
+        "linux_x86_64": {
+          "filename": "chromadb-1.5.9-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+          "mib": 22.24
+        },
+        "linux_aarch64": {
+          "filename": "chromadb-1.5.9-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+          "mib": 21.63
+        },
+        "macos_arm64": {
+          "filename": "chromadb-1.5.9-cp39-abi3-macosx_11_0_arm64.whl",
+          "mib": 20.69
+        },
+        "win_amd64": {
+          "filename": "chromadb-1.5.9-cp39-abi3-win_amd64.whl",
+          "mib": 22.45
+        },
+        "sdist_mib": 2.48,
+        "prebuilt_linux_aarch64": true
+      },
+      "import_only": {
+        "ok": true,
+        "peak_rss_mib": 85.5
+      },
+      "create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 124.6
+      },
+      "offline_create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 124.5,
+        "inet_connect_attempts": 0,
+        "inet_connect_targets": []
+      },
+      "documented": {
+        "runtime": "in-process with chromadb.PersistentClient (a client/server mode also exists)",
+        "doc": "https://docs.trychroma.com/docs/run-chroma/clients",
+        "telemetry": "setting anonymized_telemetry defaults to True (chromadb/config.py); in chromadb 1.5.9 the Posthog client's capture() is a no-op (chromadb/telemetry/product/posthog.py)"
+      }
+    },
+    "lancedb": {
+      "version": "0.41.0",
+      "site_packages_mib": 433.1,
+      "transitive_packages": 15,
+      "packages": [
+        "annotated-types==0.8.0",
+        "deprecation==2.1.0",
+        "lance-namespace-urllib3-client==0.13.0",
+        "lance-namespace==0.13.0",
+        "lancedb==0.41.0",
+        "numpy==2.5.5",
+        "packaging==26.4",
+        "pip==26.3",
+        "pyarrow==26.0.1",
+        "pydantic==2.14.4",
+        "pydantic_core==2.50.5",
+        "python-dateutil==4.0.0",
+        "tqdm==4.70.1",
+        "typing-inspection==0.4.5",
+        "typing_extensions==4.16.0",
+        "tzdata==2026.6",
+        "urllib3==2.8.0"
+      ],
+      "wheels": {
+        "linux_x86_64": {
+          "filename": "lancedb-0.41.0-cp310-abi3-manylinux_2_28_x86_64.whl",
+          "mib": 73.32
+        },
+        "linux_aarch64": {
+          "filename": "lancedb-0.41.0-cp310-abi3-manylinux_2_28_aarch64.whl",
+          "mib": 69.79
+        },
+        "macos_arm64": {
+          "filename": "lancedb-0.41.0-cp310-abi3-macosx_11_0_arm64.whl",
+          "mib": 65.83
+        },
+        "win_amd64": {
+          "filename": "lancedb-0.41.0-cp310-abi3-win_amd64.whl",
+          "mib": 81.63
+        },
+        "sdist_mib": 2.03,
+        "prebuilt_linux_aarch64": true
+      },
+      "import_only": {
+        "ok": true,
+        "peak_rss_mib": 182.6
+      },
+      "create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 238.9
+      },
+      "offline_create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 238.9,
+        "inet_connect_attempts": 0,
+        "inet_connect_targets": []
+      },
+      "documented": {
+        "runtime": "in-process library (embedded, local directory)",
+        "doc": "https://docs.lancedb.com/",
+        "telemetry": "no phone-home found; lancedb/otel.py only bridges metrics into a MeterProvider the application supplies"
+      }
+    },
+    "faiss": {
+      "version": "1.16.0",
+      "site_packages_mib": 132.3,
+      "transitive_packages": 2,
+      "packages": [
+        "faiss-cpu==1.16.0",
+        "numpy==2.5.5",
+        "packaging==26.4",
+        "pip==26.3"
+      ],
+      "wheels": {
+        "linux_x86_64": {
+          "filename": "faiss_cpu-1.16.0-cp310-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+          "mib": 18.58
+        },
+        "linux_aarch64": {
+          "filename": "faiss_cpu-1.16.0-cp310-abi3-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+          "mib": 10.35
+        },
+        "macos_arm64": {
+          "filename": "faiss_cpu-1.16.0-cp310-abi3-macosx_15_0_arm64.whl",
+          "mib": 5.01
+        },
+        "win_amd64": {
+          "filename": "faiss_cpu-1.16.0-cp312-cp312-win_amd64.whl",
+          "mib": 15.86
+        },
+        "sdist_mib": null,
+        "prebuilt_linux_aarch64": true
+      },
+      "import_only": {
+        "ok": true,
+        "peak_rss_mib": 58.0
+      },
+      "create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 65.8
+      },
+      "offline_create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 65.3,
+        "inet_connect_attempts": 0,
+        "inet_connect_targets": []
+      },
+      "documented": {
+        "runtime": "in-process library",
+        "doc": "https://github.com/facebookresearch/faiss/wiki/Getting-started",
+        "telemetry": "none found in package source"
+      }
+    },
+    "hnswlib": {
+      "version": "0.8.0",
+      "site_packages_mib": 72.5,
+      "transitive_packages": 1,
+      "packages": [
+        "hnswlib==0.8.0",
+        "numpy==2.5.5",
+        "pip==26.3"
+      ],
+      "wheels": {
+        "linux_x86_64": null,
+        "linux_aarch64": null,
+        "macos_arm64": null,
+        "win_amd64": null,
+        "sdist_mib": 0.03,
+        "prebuilt_linux_aarch64": false
+      },
+      "import_only": {
+        "ok": true,
+        "peak_rss_mib": 38.8
+      },
+      "create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 41.4
+      },
+      "offline_create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 41.6,
+        "inet_connect_attempts": 0,
+        "inet_connect_targets": []
+      },
+      "documented": {
+        "runtime": "in-process library",
+        "doc": "https://github.com/nmslib/hnswlib",
+        "telemetry": "none found in package source"
+      }
+    },
+    "usearch": {
+      "version": "2.26.6",
+      "site_packages_mib": 120.6,
+      "transitive_packages": 3,
+      "packages": [
+        "numkong==7.8.7",
+        "numpy==2.5.5",
+        "pip==26.3",
+        "tqdm==4.70.1",
+        "usearch==2.26.6"
+      ],
+      "wheels": {
+        "linux_x86_64": {
+          "filename": "usearch-2.26.6-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",
+          "mib": 2.25
+        },
+        "linux_aarch64": {
+          "filename": "usearch-2.26.6-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",
+          "mib": 2.16
+        },
+        "macos_arm64": {
+          "filename": "usearch-2.26.6-cp312-cp312-macosx_11_0_arm64.whl",
+          "mib": 0.43
+        },
+        "win_amd64": {
+          "filename": "usearch-2.26.6-cp312-cp312-win_amd64.whl",
+          "mib": 0.33
+        },
+        "sdist_mib": 1.03,
+        "prebuilt_linux_aarch64": true
+      },
+      "import_only": {
+        "ok": true,
+        "peak_rss_mib": 45.8
+      },
+      "create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 49.5
+      },
+      "offline_create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 49.1,
+        "inet_connect_attempts": 0,
+        "inet_connect_targets": []
+      },
+      "documented": {
+        "runtime": "in-process library",
+        "doc": "https://unum-cloud.github.io/USearch/python/",
+        "telemetry": "none found in package source"
+      }
+    },
+    "sqlite-vec": {
+      "version": "0.1.9",
+      "site_packages_mib": 2.5,
+      "transitive_packages": 0,
+      "packages": [
+        "pip==26.3",
+        "sqlite-vec==0.1.9"
+      ],
+      "wheels": {
+        "linux_x86_64": {
+          "filename": "sqlite_vec-0.1.9-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux1_x86_64.whl",
+          "mib": 0.16
+        },
+        "linux_aarch64": {
+          "filename": "sqlite_vec-0.1.9-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+          "mib": 0.15
+        },
+        "macos_arm64": {
+          "filename": "sqlite_vec-0.1.9-py3-none-macosx_11_0_arm64.whl",
+          "mib": 0.16
+        },
+        "win_amd64": {
+          "filename": "sqlite_vec-0.1.9-py3-none-win_amd64.whl",
+          "mib": 0.28
+        },
+        "sdist_mib": null,
+        "prebuilt_linux_aarch64": true
+      },
+      "import_only": {
+        "ok": true,
+        "peak_rss_mib": 39.3
+      },
+      "create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 40.4
+      },
+      "offline_create_add_1000": {
+        "ok": true,
+        "peak_rss_mib": 40.1,
+        "inet_connect_attempts": 0,
+        "inet_connect_targets": []
+      },
+      "documented": {
+        "runtime": "in-process SQLite extension",
+        "doc": "https://alexgarcia.xyz/sqlite-vec/python.html",
+        "telemetry": "none found in package source"
+      }
+    }
+  },
+  "command": "python benchmarks/edge/measure.py",
+  "environment": {
+    "commit": "ea8f811dad81be3ffda18307de39f0daead3872a",
+    "os": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "kernel": "7.0.0-43-generic",
+    "cpu": "AMD Ryzen 5 3550H with Radeon Vega Mobile Gfx",
+    "cpus": 8,
+    "ram_gib": 16.9,
+    "python": "3.12.13",
+    "numpy": "2.5.5",
+    "workdir_filesystem": "ext2/ext3"
+  },
+  "offline_method": "unshare -rn (new unprivileged user + network namespace, no interfaces up); strace -f -e trace=connect counts AF_INET/AF_INET6 connect() attempts"
+}
