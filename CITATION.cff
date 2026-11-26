@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use SrvDB or its benchmarks, please cite the paper below."
+title: "SrvDB"
+type: software
+authors:
+  - family-names: Nampalli
+    given-names: Srinivas
+repository-code: "https://github.com/Srinivas26k/srvdb"
+url: "https://srinivas26k.github.io/srvdb/"
+license: Apache-2.0
+version: 0.4.0
+keywords:
+  - vector database
+  - approximate nearest neighbor search
+  - quantization
+  - RaBitQ
+  - crash consistency
+  - edge AI
+  - Rust
+preferred-citation:
+  type: article
+  title: "The Index Is a Cache: Rethinking Vector Search for Edge AI"
+  authors:
+    - family-names: Nampalli
+      given-names: Srinivas
+  year: 2026
+  publisher:
+    name: Zenodo
+  doi: "10.5281/zenodo.24568281"
+  url: "https://doi.org/10.5281/zenodo.24568281"
+  notes: "Preprint"

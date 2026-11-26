@@ -14,6 +14,7 @@
   <a href="https://pypi.org/project/srvdb/"><img src="https://img.shields.io/pypi/pyversions/srvdb?color=F2B134&labelColor=1B2A4A" alt="Python versions"></a>
   <a href="https://github.com/Srinivas26k/srvdb/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Srinivas26k/srvdb/ci.yml?branch=master&label=CI&labelColor=1B2A4A" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-C8102E?labelColor=1B2A4A" alt="License: Apache-2.0"></a>
+  <a href="https://doi.org/10.5281/zenodo.24568281"><img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.24568281-1B2A4A?labelColor=1B2A4A&color=F2B134" alt="Paper DOI: 10.5281/zenodo.24568281"></a>
 </p>
 
 <p align="center">
@@ -188,6 +189,30 @@ benchmark hardware and roadmap work:
 [razorpay.me/@nampallisrinivas](https://razorpay.me/@nampallisrinivas) or the
 [Sponsor page](https://srinivas26k.github.io/srvdb/project/sponsor/).
 Commercial support and consulting: **srinivasvarma764@gmail.com**
+
+## Cite SrvDB
+
+If SrvDB or its benchmarks help your work, please cite the paper:
+
+> Srinivas Nampalli. *The Index Is a Cache: Rethinking Vector Search for
+> Edge AI.* Preprint, Zenodo, 2026.
+> [doi:10.5281/zenodo.24568281](https://doi.org/10.5281/zenodo.24568281)
+
+```bibtex
+@misc{nampalli_2026_24568281,
+  author    = {Nampalli, Srinivas},
+  title     = {The Index Is a Cache: Rethinking Vector Search for Edge AI},
+  month     = nov,
+  year      = 2026,
+  publisher = {Zenodo},
+  version   = {v1},
+  doi       = {10.5281/zenodo.24568281},
+  url       = {https://doi.org/10.5281/zenodo.24568281}
+}
+```
+
+GitHub's **Cite this repository** button (from `CITATION.cff`) gives the
+same reference in other formats.
 
 ## License
 
