@@ -1,0 +1,1095 @@
+{
+  "libraries": {
+    "srvdb": {
+      "trials": 400,
+      "counts": {
+        "OK": 320,
+        "EXTRA_PARTIAL": 80,
+        "LOST_ACKED": 0,
+        "SILENT_CORRUPTION": 0,
+        "CORRUPT_OPEN": 0
+      },
+      "wilson95": {
+        "OK": [
+          0.75803,
+          0.83626
+        ],
+        "EXTRA_PARTIAL": [
+          0.16374,
+          0.24197
+        ],
+        "LOST_ACKED": [
+          0.0,
+          0.00951
+        ],
+        "SILENT_CORRUPTION": [
+          0.0,
+          0.00951
+        ],
+        "CORRUPT_OPEN": [
+          0.0,
+          0.00951
+        ]
+      },
+      "violations": 0,
+      "writer_finished_before_kill": 0,
+      "calibrated_window_s": 5.8649,
+      "median_trial_s": 11.046,
+      "examples": {
+        "EXTRA_PARTIAL": [
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 2,
+            "visible": 300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 17,
+            "seed": 278418271,
+            "kill_delay_s": 1.17367,
+            "writer_finished_before_kill": false,
+            "trial_s": 9.365
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 5,
+            "visible": 600,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 23,
+            "seed": 1729723892,
+            "kill_delay_s": 4.52637,
+            "writer_finished_before_kill": false,
+            "trial_s": 12.752
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 4,
+            "visible": 500,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 30,
+            "seed": 1951087166,
+            "kill_delay_s": 5.57693,
+            "writer_finished_before_kill": false,
+            "trial_s": 19.704
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 3,
+            "visible": 400,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 39,
+            "seed": 536031235,
+            "kill_delay_s": 3.45329,
+            "writer_finished_before_kill": false,
+            "trial_s": 14.888
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 1,
+            "visible": 200,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 46,
+            "seed": 1512051090,
+            "kill_delay_s": 0.61909,
+            "writer_finished_before_kill": false,
+            "trial_s": 7.382
+          }
+        ]
+      }
+    },
+    "srvdb-hnsw": {
+      "trials": 400,
+      "counts": {
+        "OK": 242,
+        "EXTRA_PARTIAL": 158,
+        "LOST_ACKED": 0,
+        "SILENT_CORRUPTION": 0,
+        "CORRUPT_OPEN": 0
+      },
+      "wilson95": {
+        "OK": [
+          0.55631,
+          0.65169
+        ],
+        "EXTRA_PARTIAL": [
+          0.34831,
+          0.44369
+        ],
+        "LOST_ACKED": [
+          0.0,
+          0.00951
+        ],
+        "SILENT_CORRUPTION": [
+          0.0,
+          0.00951
+        ],
+        "CORRUPT_OPEN": [
+          0.0,
+          0.00951
+        ]
+      },
+      "violations": 0,
+      "writer_finished_before_kill": 0,
+      "calibrated_window_s": 9.5795,
+      "median_trial_s": 12.783,
+      "examples": {
+        "EXTRA_PARTIAL": [
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 12,
+            "visible": 1300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 1,
+            "seed": 1227219624,
+            "kill_delay_s": 10.05793,
+            "writer_finished_before_kill": false,
+            "trial_s": 18.444
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 7,
+            "visible": 800,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 6,
+            "seed": 84988925,
+            "kill_delay_s": 9.33262,
+            "writer_finished_before_kill": false,
+            "trial_s": 17.509
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 6,
+            "visible": 700,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 10,
+            "seed": 1381208113,
+            "kill_delay_s": 7.87268,
+            "writer_finished_before_kill": false,
+            "trial_s": 16.454
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 4,
+            "visible": 500,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 12,
+            "seed": 227252018,
+            "kill_delay_s": 4.66813,
+            "writer_finished_before_kill": false,
+            "trial_s": 13.26
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 8,
+            "visible": 900,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 16,
+            "seed": 1951836979,
+            "kill_delay_s": 7.55129,
+            "writer_finished_before_kill": false,
+            "trial_s": 13.302
+          }
+        ]
+      }
+    },
+    "chroma": {
+      "trials": 400,
+      "counts": {
+        "OK": 200,
+        "EXTRA_PARTIAL": 200,
+        "LOST_ACKED": 0,
+        "SILENT_CORRUPTION": 0,
+        "CORRUPT_OPEN": 0
+      },
+      "wilson95": {
+        "OK": [
+          0.45123,
+          0.54877
+        ],
+        "EXTRA_PARTIAL": [
+          0.45123,
+          0.54877
+        ],
+        "LOST_ACKED": [
+          0.0,
+          0.00951
+        ],
+        "SILENT_CORRUPTION": [
+          0.0,
+          0.00951
+        ],
+        "CORRUPT_OPEN": [
+          0.0,
+          0.00951
+        ]
+      },
+      "violations": 0,
+      "writer_finished_before_kill": 0,
+      "calibrated_window_s": 6.4648,
+      "median_trial_s": 9.014,
+      "examples": {
+        "EXTRA_PARTIAL": [
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 3,
+            "visible": 400,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 0,
+            "seed": 1360551038,
+            "kill_delay_s": 2.14679,
+            "writer_finished_before_kill": false,
+            "trial_s": 8.916
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 4,
+            "visible": 500,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 4,
+            "seed": 1771364371,
+            "kill_delay_s": 3.48634,
+            "writer_finished_before_kill": false,
+            "trial_s": 8.663
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 1,
+            "visible": 200,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 8,
+            "seed": 1157297395,
+            "kill_delay_s": 0.40838,
+            "writer_finished_before_kill": false,
+            "trial_s": 6.566
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 7,
+            "visible": 800,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 9,
+            "seed": 187851595,
+            "kill_delay_s": 6.66527,
+            "writer_finished_before_kill": false,
+            "trial_s": 12.803
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 1,
+            "visible": 200,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 10,
+            "seed": 264372680,
+            "kill_delay_s": 0.45274,
+            "writer_finished_before_kill": false,
+            "trial_s": 7.513
+          }
+        ]
+      }
+    },
+    "lancedb": {
+      "trials": 400,
+      "counts": {
+        "OK": 393,
+        "EXTRA_PARTIAL": 7,
+        "LOST_ACKED": 0,
+        "SILENT_CORRUPTION": 0,
+        "CORRUPT_OPEN": 0
+      },
+      "wilson95": {
+        "OK": [
+          0.96432,
+          0.9915
+        ],
+        "EXTRA_PARTIAL": [
+          0.0085,
+          0.03568
+        ],
+        "LOST_ACKED": [
+          0.0,
+          0.00951
+        ],
+        "SILENT_CORRUPTION": [
+          0.0,
+          0.00951
+        ],
+        "CORRUPT_OPEN": [
+          0.0,
+          0.00951
+        ]
+      },
+      "violations": 0,
+      "writer_finished_before_kill": 4,
+      "calibrated_window_s": 0.8956,
+      "median_trial_s": 4.935,
+      "examples": {
+        "EXTRA_PARTIAL": [
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 11,
+            "visible": 1200,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 33,
+            "seed": 120065211,
+            "kill_delay_s": 0.7224,
+            "writer_finished_before_kill": false,
+            "trial_s": 4.419
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 6,
+            "visible": 700,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 55,
+            "seed": 1811421926,
+            "kill_delay_s": 0.52659,
+            "writer_finished_before_kill": false,
+            "trial_s": 5.973
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 5,
+            "visible": 600,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 66,
+            "seed": 1993435539,
+            "kill_delay_s": 0.3107,
+            "writer_finished_before_kill": false,
+            "trial_s": 5.021
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 1,
+            "visible": 200,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 91,
+            "seed": 2009010230,
+            "kill_delay_s": 0.02292,
+            "writer_finished_before_kill": false,
+            "trial_s": 4.581
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 5,
+            "visible": 600,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 131,
+            "seed": 1673340125,
+            "kill_delay_s": 0.27418,
+            "writer_finished_before_kill": false,
+            "trial_s": 4.624
+          }
+        ]
+      }
+    },
+    "faiss": {
+      "trials": 400,
+      "counts": {
+        "OK": 398,
+        "EXTRA_PARTIAL": 0,
+        "LOST_ACKED": 0,
+        "SILENT_CORRUPTION": 0,
+        "CORRUPT_OPEN": 2
+      },
+      "wilson95": {
+        "OK": [
+          0.98196,
+          0.99863
+        ],
+        "EXTRA_PARTIAL": [
+          0.0,
+          0.00951
+        ],
+        "LOST_ACKED": [
+          0.0,
+          0.00951
+        ],
+        "SILENT_CORRUPTION": [
+          0.0,
+          0.00951
+        ],
+        "CORRUPT_OPEN": [
+          0.00137,
+          0.01804
+        ]
+      },
+      "violations": 2,
+      "writer_finished_before_kill": 0,
+      "calibrated_window_s": 0.9479,
+      "median_trial_s": 1.434,
+      "examples": {
+        "CORRUPT_OPEN": [
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 10,
+            "error": "RuntimeError: Error in std::unique_ptr<faiss::Index> faiss::read_index_up(IOReader*, int) at /project/faiss/impl/index_read.cpp:1749: Error: 'ret == (1)' failed: read error in /data/build/veccrash/work/faiss-147/store/index.faiss: 0 != 1 (Success)",
+            "trial": 147,
+            "seed": 390941853,
+            "kill_delay_s": 0.6446,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.819
+          },
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 14,
+            "error": "RuntimeError: Error in void faiss::read_xb_vector(VectorT&, IOReader*) [with VectorT = MaybeOwnedVector<unsigned char>] at /project/faiss/impl/index_read.cpp:279: Error: 'ret == (size)' failed: read error in /data/build/veccrash/work/faiss-243/store/index.faiss: 262062 != 768000 (Success)",
+            "trial": 243,
+            "seed": 1163333036,
+            "kill_delay_s": 1.02426,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.77
+          }
+        ]
+      }
+    },
+    "faiss-atomic": {
+      "trials": 400,
+      "counts": {
+        "OK": 260,
+        "EXTRA_PARTIAL": 140,
+        "LOST_ACKED": 0,
+        "SILENT_CORRUPTION": 0,
+        "CORRUPT_OPEN": 0
+      },
+      "wilson95": {
+        "OK": [
+          0.60203,
+          0.69511
+        ],
+        "EXTRA_PARTIAL": [
+          0.30489,
+          0.39797
+        ],
+        "LOST_ACKED": [
+          0.0,
+          0.00951
+        ],
+        "SILENT_CORRUPTION": [
+          0.0,
+          0.00951
+        ],
+        "CORRUPT_OPEN": [
+          0.0,
+          0.00951
+        ]
+      },
+      "violations": 0,
+      "writer_finished_before_kill": 0,
+      "calibrated_window_s": 2.385,
+      "median_trial_s": 2.225,
+      "examples": {
+        "EXTRA_PARTIAL": [
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 2,
+            "visible": 300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 1,
+            "seed": 1008656601,
+            "kill_delay_s": 0.38263,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.396
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 10,
+            "visible": 1100,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 5,
+            "seed": 1103772947,
+            "kill_delay_s": 2.25969,
+            "writer_finished_before_kill": false,
+            "trial_s": 3.271
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 12,
+            "visible": 1300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 6,
+            "seed": 1667837164,
+            "kill_delay_s": 2.39018,
+            "writer_finished_before_kill": false,
+            "trial_s": 3.301
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 9,
+            "visible": 1000,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 10,
+            "seed": 1908150405,
+            "kill_delay_s": 1.96418,
+            "writer_finished_before_kill": false,
+            "trial_s": 2.856
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 2,
+            "visible": 300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 11,
+            "seed": 101910509,
+            "kill_delay_s": 0.33068,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.338
+          }
+        ]
+      }
+    },
+    "hnswlib": {
+      "trials": 400,
+      "counts": {
+        "OK": 394,
+        "EXTRA_PARTIAL": 2,
+        "LOST_ACKED": 0,
+        "SILENT_CORRUPTION": 0,
+        "CORRUPT_OPEN": 4
+      },
+      "wilson95": {
+        "OK": [
+          0.96767,
+          0.99311
+        ],
+        "EXTRA_PARTIAL": [
+          0.00137,
+          0.01804
+        ],
+        "LOST_ACKED": [
+          0.0,
+          0.00951
+        ],
+        "SILENT_CORRUPTION": [
+          0.0,
+          0.00951
+        ],
+        "CORRUPT_OPEN": [
+          0.0039,
+          0.02543
+        ]
+      },
+      "violations": 4,
+      "writer_finished_before_kill": 0,
+      "calibrated_window_s": 0.9961,
+      "median_trial_s": 1.289,
+      "examples": {
+        "EXTRA_PARTIAL": [
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 10,
+            "visible": 1100,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 2,
+            "seed": 915635184,
+            "kill_delay_s": 0.85787,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.65
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 2,
+            "visible": 300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 140,
+            "seed": 665329297,
+            "kill_delay_s": 0.08452,
+            "writer_finished_before_kill": false,
+            "trial_s": 0.726
+          }
+        ],
+        "CORRUPT_OPEN": [
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 9,
+            "error": "RuntimeError: Index seems to be corrupted or unsupported",
+            "trial": 81,
+            "seed": 367112065,
+            "kill_delay_s": 0.71434,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.413
+          },
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 12,
+            "error": "RuntimeError: Index seems to be corrupted or unsupported",
+            "trial": 138,
+            "seed": 789345064,
+            "kill_delay_s": 0.91639,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.742
+          },
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 8,
+            "error": "RuntimeError: Index seems to be corrupted or unsupported",
+            "trial": 394,
+            "seed": 1417233695,
+            "kill_delay_s": 0.60642,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.066
+          },
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 12,
+            "error": "RuntimeError: Index seems to be corrupted or unsupported",
+            "trial": 398,
+            "seed": 9787499,
+            "kill_delay_s": 0.91937,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.44
+          }
+        ]
+      }
+    },
+    "usearch": {
+      "trials": 400,
+      "counts": {
+        "OK": 391,
+        "EXTRA_PARTIAL": 3,
+        "LOST_ACKED": 0,
+        "SILENT_CORRUPTION": 0,
+        "CORRUPT_OPEN": 6
+      },
+      "wilson95": {
+        "OK": [
+          0.9578,
+          0.98812
+        ],
+        "EXTRA_PARTIAL": [
+          0.00255,
+          0.02182
+        ],
+        "LOST_ACKED": [
+          0.0,
+          0.00951
+        ],
+        "SILENT_CORRUPTION": [
+          0.0,
+          0.00951
+        ],
+        "CORRUPT_OPEN": [
+          0.00689,
+          0.03233
+        ]
+      },
+      "violations": 6,
+      "writer_finished_before_kill": 0,
+      "calibrated_window_s": 1.0666,
+      "median_trial_s": 1.485,
+      "examples": {
+        "EXTRA_PARTIAL": [
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 12,
+            "visible": 1300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 108,
+            "seed": 644267040,
+            "kill_delay_s": 0.98066,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.718
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 12,
+            "visible": 1300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 141,
+            "seed": 1234030268,
+            "kill_delay_s": 1.01532,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.842
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 12,
+            "visible": 1300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 206,
+            "seed": 749626591,
+            "kill_delay_s": 1.08035,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.916
+          }
+        ],
+        "CORRUPT_OPEN": [
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 9,
+            "error": "ValueError: Not a dense USearch index!",
+            "trial": 132,
+            "seed": 683216793,
+            "kill_delay_s": 0.78813,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.64
+          },
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 10,
+            "error": "ValueError: End of file reached!",
+            "trial": 140,
+            "seed": 836048713,
+            "kill_delay_s": 0.8492,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.74
+          },
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 13,
+            "error": "RuntimeError: Failed to pull nodes from the stream",
+            "trial": 168,
+            "seed": 2044365747,
+            "kill_delay_s": 1.13887,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.946
+          },
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 11,
+            "error": "ValueError: Not a dense USearch index!",
+            "trial": 238,
+            "seed": 1804994719,
+            "kill_delay_s": 0.77588,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.556
+          },
+          {
+            "outcome": "CORRUPT_OPEN",
+            "acked_batches": 7,
+            "error": "ValueError: Not a dense USearch index!",
+            "trial": 345,
+            "seed": 1990708815,
+            "kill_delay_s": 0.51921,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.536
+          }
+        ]
+      }
+    },
+    "sqlite-vec": {
+      "trials": 400,
+      "counts": {
+        "OK": 195,
+        "EXTRA_PARTIAL": 205,
+        "LOST_ACKED": 0,
+        "SILENT_CORRUPTION": 0,
+        "CORRUPT_OPEN": 0
+      },
+      "wilson95": {
+        "OK": [
+          0.43887,
+          0.53637
+        ],
+        "EXTRA_PARTIAL": [
+          0.46363,
+          0.56113
+        ],
+        "LOST_ACKED": [
+          0.0,
+          0.00951
+        ],
+        "SILENT_CORRUPTION": [
+          0.0,
+          0.00951
+        ],
+        "CORRUPT_OPEN": [
+          0.0,
+          0.00951
+        ]
+      },
+      "violations": 0,
+      "writer_finished_before_kill": 0,
+      "calibrated_window_s": 1.6454,
+      "median_trial_s": 2.167,
+      "examples": {
+        "EXTRA_PARTIAL": [
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 7,
+            "visible": 800,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 0,
+            "seed": 1764004947,
+            "kill_delay_s": 0.92862,
+            "writer_finished_before_kill": false,
+            "trial_s": 2.358
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 10,
+            "visible": 1100,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 3,
+            "seed": 1621251422,
+            "kill_delay_s": 1.43754,
+            "writer_finished_before_kill": false,
+            "trial_s": 3.039
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 6,
+            "visible": 700,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 4,
+            "seed": 1457076225,
+            "kill_delay_s": 0.58439,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.977
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 1,
+            "visible": 200,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 5,
+            "seed": 1208641266,
+            "kill_delay_s": 0.00431,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.374
+          },
+          {
+            "outcome": "EXTRA_PARTIAL",
+            "acked_batches": 2,
+            "visible": 300,
+            "missing_acked": 0,
+            "missing_acked_batches": [],
+            "wrong_values": 0,
+            "unknown_ids": 0,
+            "extra_ids": 100,
+            "partial_batches": 0,
+            "trial": 6,
+            "seed": 1861994359,
+            "kill_delay_s": 0.1819,
+            "writer_finished_before_kill": false,
+            "trial_s": 1.449
+          }
+        ]
+      }
+    }
+  },
+  "config": {
+    "trials": 400,
+    "seed": 20261126,
+    "dim": 128,
+    "batch": 100,
+    "batches": 20
+  },
+  "command": "python benchmarks/veccrash/run.py --trials 400 --workers 4 --batches 20",
+  "environment": {
+    "commit": "ea8f811dad81be3ffda18307de39f0daead3872a",
+    "os": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "kernel": "7.0.0-43-generic",
+    "cpu": "AMD Ryzen 5 3550H with Radeon Vega Mobile Gfx",
+    "cpus": 8,
+    "ram_gib": 16.9,
+    "python": "3.12.13",
+    "numpy": "2.5.5",
+    "workdir_filesystem": "ext2/ext3",
+    "libraries": {
+      "srvdb": {
+        "package": "srvdb",
+        "version": "0.4.0",
+        "licence": "Apache-2.0"
+      },
+      "chroma": {
+        "package": "chromadb",
+        "version": "1.5.9",
+        "licence": "Apache Software License"
+      },
+      "lancedb": {
+        "package": "lancedb",
+        "version": "0.41.0",
+        "licence": "Apache Software License"
+      },
+      "faiss": {
+        "package": "faiss-cpu",
+        "version": "1.16.0",
+        "licence": "MIT"
+      },
+      "hnswlib": {
+        "package": "hnswlib",
+        "version": "0.8.0",
+        "licence": ""
+      },
+      "usearch": {
+        "package": "usearch",
+        "version": "2.26.6",
+        "licence": "Apache-2.0"
+      },
+      "sqlite-vec": {
+        "package": "sqlite-vec",
+        "version": "0.1.9",
+        "licence": "MIT License, Apache License, Version 2.0",
+        "sqlite_version": "3.50.4"
+      }
+    }
+  }
+}
