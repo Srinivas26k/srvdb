@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Memory and recall benchmark (`benchmarks/social/`): bytes per vector
+  and recall@10 for every mode on DBpedia OpenAI ada-002 (100k),
+  NYTimes-256, GloVe-100 and a synthetic set, with FAISS and turbovec
+  baselines, a generated `REPORT.md`, social-media PNGs and a website
+  page, Benchmarks > Memory and recall. No speed numbers.
+
 ## [0.4.0] - 2026-11-25
 
 ### Added

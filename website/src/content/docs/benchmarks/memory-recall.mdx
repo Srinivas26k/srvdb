@@ -61,8 +61,8 @@ Speed is not measured here; it waits for an idle-machine run.
 							<td>{fmt(codes(m))}</td>
 							<td>{fmt(codes(ds.modes.flat) / codes(m), 1)}×</td>
 							<td>{fmt(m.disk_bytes_per_vector_total)}</td>
-							<td>{fmt(m.recall_at_10, 3)}</td>
-							<td>{nr ? fmt(nr.recall_at_10, 3) : '–'}</td>
+							<td>{fmt(m.recall_at_10, 4)}</td>
+							<td>{nr ? fmt(nr.recall_at_10, 4) : '–'}</td>
 							<td>{fmt(m.peak_rss_mib)}</td>
 						</tr>
 					);
