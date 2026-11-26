@@ -1,0 +1,2123 @@
+{
+ "datasets": {
+  "nytimes-256-angular": {
+   "provenance": {
+    "dim": 256,
+    "queries": 1000,
+    "source": "http://ann-benchmarks.com/nytimes-256-angular.hdf5",
+    "licence": "derived from UCI Bag of Words (NYTimes), CC BY 4.0",
+    "files": [
+     {
+      "file": "nytimes-256-angular.hdf5",
+      "bytes": 315208288,
+      "sha256": "6ad5d2cde6d6a6f21528d541901304ebfd40885d6ce6afae37bccbe278254a93",
+      "size_verified": true,
+      "sha256_verified_against_source": false,
+      "downloaded_this_run": true,
+      "fetch_seconds": 88.4
+     }
+    ],
+    "n": 290000,
+    "ground_truth": "ann-benchmarks neighbors (first queries)"
+   },
+   "prepare_seconds": 0.3,
+   "modes": {
+    "flat": {
+     "mode": "flat",
+     "index": "flat",
+     "options": {},
+     "rerank_override": null,
+     "n": 290000,
+     "dim": 256,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9846,
+     "disk_bytes_by_role": {
+      "other": 1471,
+      "full_vectors": 349920406,
+      "ids_metadata": 9101312
+     },
+     "disk_bytes_total": 359023189,
+     "disk_bytes_per_vector_total": 1238.01,
+     "disk_bytes_per_vector_search_codes": 1206.62,
+     "memory_report": {
+      "mode": "flat",
+      "bits": null,
+      "dimension": 256,
+      "count": 290000,
+      "vector_bytes": 296960000,
+      "index_bytes": 0,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 296960000,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": true
+     },
+     "memory_report_bytes_per_vector": 1024.0,
+     "peak_rss_mib": 838.7,
+     "input_arrays_mib": 284.2
+    },
+    "sq8": {
+     "mode": "sq8",
+     "index": "sq8",
+     "options": {},
+     "rerank_override": null,
+     "n": 290000,
+     "dim": 256,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9768,
+     "disk_bytes_by_role": {
+      "quantizer": 2078,
+      "other": 421,
+      "ids_metadata": 9101312,
+      "codes": 87480406
+     },
+     "disk_bytes_total": 96584217,
+     "disk_bytes_per_vector_total": 333.05,
+     "disk_bytes_per_vector_search_codes": 301.66,
+     "memory_report": {
+      "mode": "sq8",
+      "bits": null,
+      "dimension": 256,
+      "count": 290000,
+      "vector_bytes": 74240000,
+      "index_bytes": 2048,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 74242048,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 256.01,
+     "peak_rss_mib": 633.4,
+     "input_arrays_mib": 284.2
+    },
+    "pq": {
+     "mode": "pq",
+     "index": "pq",
+     "options": {},
+     "rerank_override": null,
+     "n": 290000,
+     "dim": 256,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.5881,
+     "disk_bytes_by_role": {
+      "other": 113,
+      "codes": 10935406,
+      "quantizer": 270429,
+      "ids_metadata": 9101312
+     },
+     "disk_bytes_total": 20307260,
+     "disk_bytes_per_vector_total": 70.03,
+     "disk_bytes_per_vector_search_codes": 37.71,
+     "memory_report": {
+      "mode": "pq",
+      "bits": null,
+      "dimension": 256,
+      "count": 290000,
+      "vector_bytes": 9280000,
+      "index_bytes": 262144,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 9542144,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 32.9,
+     "peak_rss_mib": 521.9,
+     "input_arrays_mib": 284.2
+    },
+    "rabitq4": {
+     "mode": "rabitq4",
+     "index": "rabitq",
+     "options": {
+      "bits": 4
+     },
+     "rerank_override": null,
+     "n": 290000,
+     "dim": 256,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9848,
+     "disk_bytes_by_role": {
+      "other": 1692,
+      "quantizer": 41,
+      "full_vectors": 349920406,
+      "ids_metadata": 9101312,
+      "codes": 41571409
+     },
+     "disk_bytes_total": 400594860,
+     "disk_bytes_per_vector_total": 1381.36,
+     "disk_bytes_per_vector_search_codes": 143.35,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 4,
+      "dimension": 256,
+      "count": 290000,
+      "vector_bytes": 39442048,
+      "index_bytes": 262144,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 39704192,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 136.91,
+     "peak_rss_mib": 769.3,
+     "input_arrays_mib": 284.2
+    },
+    "rabitq2": {
+     "mode": "rabitq2",
+     "index": "rabitq",
+     "options": {
+      "bits": 2
+     },
+     "rerank_override": null,
+     "n": 290000,
+     "dim": 256,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9827,
+     "disk_bytes_by_role": {
+      "other": 1604,
+      "quantizer": 41,
+      "full_vectors": 349920406,
+      "ids_metadata": 9101312,
+      "codes": 21416017
+     },
+     "disk_bytes_total": 380439380,
+     "disk_bytes_per_vector_total": 1311.86,
+     "disk_bytes_per_vector_search_codes": 73.85,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 2,
+      "dimension": 256,
+      "count": 290000,
+      "vector_bytes": 20881024,
+      "index_bytes": 262144,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 21143168,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 72.91,
+     "peak_rss_mib": 754.4,
+     "input_arrays_mib": 284.2
+    },
+    "rabitq1": {
+     "mode": "rabitq1",
+     "index": "rabitq",
+     "options": {
+      "bits": 1
+     },
+     "rerank_override": null,
+     "n": 290000,
+     "dim": 256,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9469,
+     "disk_bytes_by_role": {
+      "other": 1561,
+      "quantizer": 41,
+      "full_vectors": 349920406,
+      "ids_metadata": 9101312,
+      "codes": 11338321
+     },
+     "disk_bytes_total": 370361641,
+     "disk_bytes_per_vector_total": 1277.11,
+     "disk_bytes_per_vector_search_codes": 39.1,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 1,
+      "dimension": 256,
+      "count": 290000,
+      "vector_bytes": 11600512,
+      "index_bytes": 262144,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 11862656,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 40.91,
+     "peak_rss_mib": 783.4,
+     "input_arrays_mib": 284.2
+    },
+    "rabitq4-norerank": {
+     "mode": "rabitq4-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 4
+     },
+     "rerank_override": 0,
+     "n": 290000,
+     "dim": 256,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9133,
+     "disk_bytes_by_role": {
+      "other": 1692,
+      "quantizer": 41,
+      "full_vectors": 349920406,
+      "ids_metadata": 9101312,
+      "codes": 41571409
+     },
+     "disk_bytes_total": 400594860,
+     "disk_bytes_per_vector_total": 1381.36,
+     "disk_bytes_per_vector_search_codes": 143.35,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 4,
+      "dimension": 256,
+      "count": 290000,
+      "vector_bytes": 39442048,
+      "index_bytes": 262144,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 39704192,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 136.91,
+     "peak_rss_mib": 541.6,
+     "input_arrays_mib": 284.2
+    },
+    "rabitq2-norerank": {
+     "mode": "rabitq2-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 2
+     },
+     "rerank_override": 0,
+     "n": 290000,
+     "dim": 256,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.7652,
+     "disk_bytes_by_role": {
+      "other": 1604,
+      "quantizer": 41,
+      "full_vectors": 349920406,
+      "ids_metadata": 9101312,
+      "codes": 21416017
+     },
+     "disk_bytes_total": 380439380,
+     "disk_bytes_per_vector_total": 1311.86,
+     "disk_bytes_per_vector_search_codes": 73.85,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 2,
+      "dimension": 256,
+      "count": 290000,
+      "vector_bytes": 20881024,
+      "index_bytes": 262144,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 21143168,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 72.91,
+     "peak_rss_mib": 517.7,
+     "input_arrays_mib": 284.2
+    },
+    "rabitq1-norerank": {
+     "mode": "rabitq1-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 1
+     },
+     "rerank_override": 0,
+     "n": 290000,
+     "dim": 256,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.5859,
+     "disk_bytes_by_role": {
+      "other": 1561,
+      "quantizer": 41,
+      "full_vectors": 349920406,
+      "ids_metadata": 9101312,
+      "codes": 11338321
+     },
+     "disk_bytes_total": 370361641,
+     "disk_bytes_per_vector_total": 1277.11,
+     "disk_bytes_per_vector_search_codes": 39.1,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 1,
+      "dimension": 256,
+      "count": 290000,
+      "vector_bytes": 11600512,
+      "index_bytes": 262144,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 11862656,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 40.91,
+     "peak_rss_mib": 513.9,
+     "input_arrays_mib": 284.2
+    }
+   },
+   "competitors": [
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 4-bit",
+     "code_bytes_per_vector": 148.0,
+     "recall_at_10": 0.9066,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 4
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 4-bit + refine",
+     "code_bytes_per_vector": 148.0,
+     "recall_at_10": 0.9854,
+     "rerank_k_factor": 10,
+     "params": {
+      "nb_bits": 4
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 2-bit",
+     "code_bytes_per_vector": 84.0,
+     "recall_at_10": 0.7672,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 2
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 2-bit + refine",
+     "code_bytes_per_vector": 84.0,
+     "recall_at_10": 0.9829,
+     "rerank_k_factor": 20,
+     "params": {
+      "nb_bits": 2
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 1-bit",
+     "code_bytes_per_vector": 40.0,
+     "recall_at_10": 0.5838,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 1
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 1-bit + refine",
+     "code_bytes_per_vector": 40.0,
+     "recall_at_10": 0.9395,
+     "rerank_k_factor": 40,
+     "params": {
+      "nb_bits": 1
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexScalarQuantizer QT_8bit",
+     "code_bytes_per_vector": 256.0,
+     "recall_at_10": 0.9773,
+     "rerank_k_factor": null,
+     "params": {},
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexPQ M=32 x 8-bit",
+     "code_bytes_per_vector": 32.0,
+     "recall_at_10": 0.6038,
+     "rerank_k_factor": null,
+     "params": {
+      "M": 32
+     },
+     "note": "M = largest divisor of dim <= dim/8"
+    },
+    {
+     "library": "faiss",
+     "index": "OPQ + PQ M=32 x 8-bit",
+     "code_bytes_per_vector": 32.0,
+     "recall_at_10": 0.6069,
+     "rerank_k_factor": null,
+     "params": {
+      "M": 32
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexBinaryFlat sign bits",
+     "code_bytes_per_vector": 32.0,
+     "recall_at_10": 0.4504,
+     "rerank_k_factor": null,
+     "params": {},
+     "note": "pgvector-style bit + float rerank"
+    },
+    {
+     "library": "faiss",
+     "index": "IndexBinaryFlat sign bits + rerank",
+     "code_bytes_per_vector": 32.0,
+     "recall_at_10": 0.8219,
+     "rerank_k_factor": 40,
+     "params": {},
+     "note": "pgvector-style bit + float rerank"
+    },
+    {
+     "library": "turbovec",
+     "index": "TurboQuantIndex 4-bit",
+     "code_bytes_per_vector": 133.03,
+     "recall_at_10": 0.914,
+     "rerank_k_factor": null,
+     "params": {
+      "bits": 4,
+      "calibration_rows": 1024
+     },
+     "note": "bytes = serialized index / n (includes header)"
+    },
+    {
+     "library": "turbovec",
+     "index": "TurboQuantIndex 2-bit",
+     "code_bytes_per_vector": 68.57,
+     "recall_at_10": 0.7718,
+     "rerank_k_factor": null,
+     "params": {
+      "bits": 2,
+      "calibration_rows": 1024
+     },
+     "note": "bytes = serialized index / n (includes header)"
+    }
+   ]
+  },
+  "glove-100-angular": {
+   "provenance": {
+    "dim": 100,
+    "queries": 1000,
+    "source": "http://ann-benchmarks.com/glove-100-angular.hdf5",
+    "licence": "GloVe vectors, PDDL 1.0",
+    "files": [
+     {
+      "file": "glove-100-angular.hdf5",
+      "bytes": 485413888,
+      "sha256": "544af1d5e84e112cd4749571dcfd8ca109818a572f850af75a3a09e093a953c4",
+      "size_verified": true,
+      "sha256_verified_against_source": false,
+      "downloaded_this_run": true,
+      "fetch_seconds": 26.4
+     }
+    ],
+    "n": 1183514,
+    "ground_truth": "ann-benchmarks neighbors (first queries)"
+   },
+   "prepare_seconds": 32.5,
+   "modes": {
+    "flat": {
+     "mode": "flat",
+     "index": "flat",
+     "options": {},
+     "rerank_override": null,
+     "n": 1183514,
+     "dim": 100,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9999,
+     "disk_bytes_by_role": {
+      "other": 2302,
+      "full_vectors": 691982523,
+      "ids_metadata": 37494784
+     },
+     "disk_bytes_total": 729479609,
+     "disk_bytes_per_vector_total": 616.37,
+     "disk_bytes_per_vector_search_codes": 584.68,
+     "memory_report": {
+      "mode": "flat",
+      "bits": null,
+      "dimension": 100,
+      "count": 1183514,
+      "vector_bytes": 473405600,
+      "index_bytes": 0,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 473405600,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": true
+     },
+     "memory_report_bytes_per_vector": 400.0,
+     "peak_rss_mib": 1619.9,
+     "input_arrays_mib": 451.9
+    },
+    "sq8": {
+     "mode": "sq8",
+     "index": "sq8",
+     "options": {},
+     "rerank_override": null,
+     "n": 1183514,
+     "dim": 100,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9765,
+     "disk_bytes_by_role": {
+      "quantizer": 827,
+      "other": 627,
+      "ids_metadata": 37494784,
+      "codes": 172997169
+     },
+     "disk_bytes_total": 210493407,
+     "disk_bytes_per_vector_total": 177.85,
+     "disk_bytes_per_vector_search_codes": 146.17,
+     "memory_report": {
+      "mode": "sq8",
+      "bits": null,
+      "dimension": 100,
+      "count": 1183514,
+      "vector_bytes": 118351400,
+      "index_bytes": 800,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 118352200,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 100.0,
+     "peak_rss_mib": 1331.8,
+     "input_arrays_mib": 451.9
+    },
+    "pq": {
+     "mode": "pq",
+     "index": "pq",
+     "options": {},
+     "rerank_override": null,
+     "n": 1183514,
+     "dim": 100,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.3927,
+     "disk_bytes_by_role": {
+      "other": 211,
+      "codes": 43250841,
+      "quantizer": 108879,
+      "ids_metadata": 37494784
+     },
+     "disk_bytes_total": 80854715,
+     "disk_bytes_per_vector_total": 68.32,
+     "disk_bytes_per_vector_search_codes": 36.54,
+     "memory_report": {
+      "mode": "pq",
+      "bits": null,
+      "dimension": 100,
+      "count": 1183514,
+      "vector_bytes": 29587850,
+      "index_bytes": 102400,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 29690250,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 25.09,
+     "peak_rss_mib": 1220.5,
+     "input_arrays_mib": 451.9
+    },
+    "rabitq4": {
+     "mode": "rabitq4",
+     "index": "rabitq",
+     "options": {
+      "bits": 4
+     },
+     "rerank_override": null,
+     "n": 1183514,
+     "dim": 100,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9999,
+     "disk_bytes_by_role": {
+      "other": 2642,
+      "quantizer": 40,
+      "full_vectors": 691982523,
+      "ids_metadata": 37494784,
+      "codes": 86098060
+     },
+     "disk_bytes_total": 815578049,
+     "disk_bytes_per_vector_total": 689.12,
+     "disk_bytes_per_vector_search_codes": 72.75,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 4,
+      "dimension": 100,
+      "count": 1183514,
+      "vector_bytes": 68644112,
+      "index_bytes": 40000,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 68684112,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 58.03,
+     "peak_rss_mib": 1377.9,
+     "input_arrays_mib": 451.9
+    },
+    "rabitq2": {
+     "mode": "rabitq2",
+     "index": "rabitq",
+     "options": {
+      "bits": 2
+     },
+     "rerank_override": null,
+     "n": 1183514,
+     "dim": 100,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9758,
+     "disk_bytes_by_role": {
+      "other": 2504,
+      "quantizer": 40,
+      "full_vectors": 691982523,
+      "ids_metadata": 37494784,
+      "codes": 46239985
+     },
+     "disk_bytes_total": 775719836,
+     "disk_bytes_per_vector_total": 655.44,
+     "disk_bytes_per_vector_search_codes": 39.07,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 2,
+      "dimension": 100,
+      "count": 1183514,
+      "vector_bytes": 39056112,
+      "index_bytes": 40000,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 39096112,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 33.03,
+     "peak_rss_mib": 1413.5,
+     "input_arrays_mib": 451.9
+    },
+    "rabitq1": {
+     "mode": "rabitq1",
+     "index": "rabitq",
+     "options": {
+      "bits": 1
+     },
+     "rerank_override": null,
+     "n": 1183514,
+     "dim": 100,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.7685,
+     "disk_bytes_by_role": {
+      "other": 2440,
+      "quantizer": 40,
+      "full_vectors": 691982523,
+      "ids_metadata": 37494784,
+      "codes": 27108109
+     },
+     "disk_bytes_total": 756587896,
+     "disk_bytes_per_vector_total": 639.27,
+     "disk_bytes_per_vector_search_codes": 22.9,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 1,
+      "dimension": 100,
+      "count": 1183514,
+      "vector_bytes": 24853872,
+      "index_bytes": 40000,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 24893872,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 21.03,
+     "peak_rss_mib": 1509.5,
+     "input_arrays_mib": 451.9
+    },
+    "rabitq4-norerank": {
+     "mode": "rabitq4-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 4
+     },
+     "rerank_override": 0,
+     "n": 1183514,
+     "dim": 100,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.8439,
+     "disk_bytes_by_role": {
+      "other": 2642,
+      "quantizer": 40,
+      "full_vectors": 691982523,
+      "ids_metadata": 37494784,
+      "codes": 86098060
+     },
+     "disk_bytes_total": 815578049,
+     "disk_bytes_per_vector_total": 689.12,
+     "disk_bytes_per_vector_search_codes": 72.75,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 4,
+      "dimension": 100,
+      "count": 1183514,
+      "vector_bytes": 68644112,
+      "index_bytes": 40000,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 68684112,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 58.03,
+     "peak_rss_mib": 985.5,
+     "input_arrays_mib": 451.9
+    },
+    "rabitq2-norerank": {
+     "mode": "rabitq2-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 2
+     },
+     "rerank_override": 0,
+     "n": 1183514,
+     "dim": 100,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.5294,
+     "disk_bytes_by_role": {
+      "other": 2504,
+      "quantizer": 40,
+      "full_vectors": 691982523,
+      "ids_metadata": 37494784,
+      "codes": 46239985
+     },
+     "disk_bytes_total": 775719836,
+     "disk_bytes_per_vector_total": 655.44,
+     "disk_bytes_per_vector_search_codes": 39.07,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 2,
+      "dimension": 100,
+      "count": 1183514,
+      "vector_bytes": 39056112,
+      "index_bytes": 40000,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 39096112,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 33.03,
+     "peak_rss_mib": 958.0,
+     "input_arrays_mib": 451.9
+    },
+    "rabitq1-norerank": {
+     "mode": "rabitq1-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 1
+     },
+     "rerank_override": 0,
+     "n": 1183514,
+     "dim": 100,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.2385,
+     "disk_bytes_by_role": {
+      "other": 2440,
+      "quantizer": 40,
+      "full_vectors": 691982523,
+      "ids_metadata": 37494784,
+      "codes": 27108109
+     },
+     "disk_bytes_total": 756587896,
+     "disk_bytes_per_vector_total": 639.27,
+     "disk_bytes_per_vector_search_codes": 22.9,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 1,
+      "dimension": 100,
+      "count": 1183514,
+      "vector_bytes": 24853872,
+      "index_bytes": 40000,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 24893872,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 21.03,
+     "peak_rss_mib": 945.3,
+     "input_arrays_mib": 451.9
+    }
+   },
+   "competitors": [
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 4-bit",
+     "code_bytes_per_vector": 71.0,
+     "recall_at_10": 0.8446,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 4
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 4-bit + refine",
+     "code_bytes_per_vector": 71.0,
+     "recall_at_10": 0.9998,
+     "rerank_k_factor": 10,
+     "params": {
+      "nb_bits": 4
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 2-bit",
+     "code_bytes_per_vector": 46.0,
+     "recall_at_10": 0.5545,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 2
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 2-bit + refine",
+     "code_bytes_per_vector": 46.0,
+     "recall_at_10": 0.9859,
+     "rerank_k_factor": 20,
+     "params": {
+      "nb_bits": 2
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 1-bit",
+     "code_bytes_per_vector": 21.0,
+     "recall_at_10": 0.269,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 1
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 1-bit + refine",
+     "code_bytes_per_vector": 21.0,
+     "recall_at_10": 0.8298,
+     "rerank_k_factor": 40,
+     "params": {
+      "nb_bits": 1
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexScalarQuantizer QT_8bit",
+     "code_bytes_per_vector": 100.0,
+     "recall_at_10": 0.9763,
+     "rerank_k_factor": null,
+     "params": {},
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexPQ M=10 x 8-bit",
+     "code_bytes_per_vector": 10.0,
+     "recall_at_10": 0.1819,
+     "rerank_k_factor": null,
+     "params": {
+      "M": 10
+     },
+     "note": "M = largest divisor of dim <= dim/8"
+    },
+    {
+     "library": "faiss",
+     "index": "OPQ + PQ M=10 x 8-bit",
+     "code_bytes_per_vector": 10.0,
+     "recall_at_10": 0.1825,
+     "rerank_k_factor": null,
+     "params": {
+      "M": 10
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexBinaryFlat sign bits",
+     "code_bytes_per_vector": 13.0,
+     "recall_at_10": 0.1367,
+     "rerank_k_factor": null,
+     "params": {},
+     "note": "pgvector-style bit + float rerank"
+    },
+    {
+     "library": "faiss",
+     "index": "IndexBinaryFlat sign bits + rerank",
+     "code_bytes_per_vector": 13.0,
+     "recall_at_10": 0.5082,
+     "rerank_k_factor": 40,
+     "params": {},
+     "note": "pgvector-style bit + float rerank"
+    },
+    {
+     "library": "turbovec",
+     "index": "TurboQuantIndex",
+     "skipped": "dim 100 not a multiple of 8"
+    }
+   ]
+  },
+  "dbpedia-openai-100k": {
+   "provenance": {
+    "dim": 1536,
+    "n": 100000,
+    "queries": 1000,
+    "source": "https://huggingface.co/datasets/KShivendu/dbpedia-entities-openai-1M",
+    "licence": "MIT (Hugging Face dataset card)",
+    "model": "OpenAI text-embedding-ada-002",
+    "revision": "af9b8869cc2d8debbd254d77737865bb09a2067f",
+    "files": [
+     {
+      "file": "train-00000-of-00026-3c7b99d1c7eda36e.parquet",
+      "bytes": 366570546,
+      "sha256": "81c446646185677e1c8a348595064acd8ebd51b23b1159281aec050f9bd3f1db",
+      "size_verified": true,
+      "sha256_verified_against_source": true,
+      "downloaded_this_run": true,
+      "fetch_seconds": 125.8
+     },
+     {
+      "file": "train-00001-of-00026-2b24035a6390fdcb.parquet",
+      "bytes": 361784660,
+      "sha256": "3312fdf9f4e5787017abf696d7e62f0e52f78f5d618484fd2549b9385eab4f43",
+      "size_verified": true,
+      "sha256_verified_against_source": true,
+      "downloaded_this_run": true,
+      "fetch_seconds": 127.1
+     },
+     {
+      "file": "train-00002-of-00026-b05ce48965853dad.parquet",
+      "bytes": 366492050,
+      "sha256": "42f31fab88c22717cf79da46e768ccd2bf987f979e485cd8659257bbca3d41cb",
+      "size_verified": true,
+      "sha256_verified_against_source": true,
+      "downloaded_this_run": true,
+      "fetch_seconds": 117.7
+     }
+    ],
+    "subset": "first 100000 rows base, next 1000 rows queries",
+    "ground_truth": "numpy exact cosine brute force"
+   },
+   "prepare_seconds": 400.8,
+   "modes": {
+    "flat": {
+     "mode": "flat",
+     "index": "flat",
+     "options": {},
+     "rerank_override": null,
+     "n": 100000,
+     "dim": 1536,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 1.0,
+     "disk_bytes_by_role": {
+      "other": 2975,
+      "full_vectors": 622080121,
+      "ids_metadata": 3117056
+     },
+     "disk_bytes_total": 625200152,
+     "disk_bytes_per_vector_total": 6252.0,
+     "disk_bytes_per_vector_search_codes": 6220.8,
+     "memory_report": {
+      "mode": "flat",
+      "bits": null,
+      "dimension": 1536,
+      "count": 100000,
+      "vector_bytes": 614400000,
+      "index_bytes": 0,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 614400000,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": true
+     },
+     "memory_report_bytes_per_vector": 6144.0,
+     "peak_rss_mib": 1397.2,
+     "input_arrays_mib": 591.8
+    },
+    "sq8": {
+     "mode": "sq8",
+     "index": "sq8",
+     "options": {},
+     "rerank_override": null,
+     "n": 100000,
+     "dim": 1536,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9963,
+     "disk_bytes_by_role": {
+      "quantizer": 12318,
+      "other": 798,
+      "ids_metadata": 3117056,
+      "codes": 155520121
+     },
+     "disk_bytes_total": 158650293,
+     "disk_bytes_per_vector_total": 1586.5,
+     "disk_bytes_per_vector_search_codes": 1555.2,
+     "memory_report": {
+      "mode": "sq8",
+      "bits": null,
+      "dimension": 1536,
+      "count": 100000,
+      "vector_bytes": 153600000,
+      "index_bytes": 12288,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 153612288,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 1536.12,
+     "peak_rss_mib": 977.2,
+     "input_arrays_mib": 591.8
+    },
+    "pq": {
+     "mode": "pq",
+     "index": "pq",
+     "options": {},
+     "rerank_override": null,
+     "n": 100000,
+     "dim": 1536,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.7882,
+     "disk_bytes_by_role": {
+      "other": 163,
+      "codes": 19440121,
+      "quantizer": 1622431,
+      "ids_metadata": 3117056
+     },
+     "disk_bytes_total": 24179771,
+     "disk_bytes_per_vector_total": 241.8,
+     "disk_bytes_per_vector_search_codes": 194.4,
+     "memory_report": {
+      "mode": "pq",
+      "bits": null,
+      "dimension": 1536,
+      "count": 100000,
+      "vector_bytes": 19200000,
+      "index_bytes": 1572864,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 20772864,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 207.73,
+     "peak_rss_mib": 835.1,
+     "input_arrays_mib": 591.8
+    },
+    "rabitq4": {
+     "mode": "rabitq4",
+     "index": "rabitq",
+     "options": {
+      "bits": 4
+     },
+     "rerank_override": null,
+     "n": 100000,
+     "dim": 1536,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 1.0,
+     "disk_bytes_by_role": {
+      "other": 3383,
+      "quantizer": 41,
+      "full_vectors": 622080121,
+      "ids_metadata": 3117056,
+      "codes": 108055702
+     },
+     "disk_bytes_total": 733256303,
+     "disk_bytes_per_vector_total": 7332.56,
+     "disk_bytes_per_vector_search_codes": 1080.56,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 4,
+      "dimension": 1536,
+      "count": 100000,
+      "vector_bytes": 77600000,
+      "index_bytes": 9437184,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 87037184,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 870.37,
+     "peak_rss_mib": 1451.2,
+     "input_arrays_mib": 591.8
+    },
+    "rabitq2": {
+     "mode": "rabitq2",
+     "index": "rabitq",
+     "options": {
+      "bits": 2
+     },
+     "rerank_override": null,
+     "n": 100000,
+     "dim": 1536,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 1.0,
+     "disk_bytes_by_role": {
+      "other": 3204,
+      "quantizer": 41,
+      "full_vectors": 622080121,
+      "ids_metadata": 3117056,
+      "codes": 54307990
+     },
+     "disk_bytes_total": 679508412,
+     "disk_bytes_per_vector_total": 6795.08,
+     "disk_bytes_per_vector_search_codes": 543.08,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 2,
+      "dimension": 1536,
+      "count": 100000,
+      "vector_bytes": 39200000,
+      "index_bytes": 9437184,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 48637184,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 486.37,
+     "peak_rss_mib": 1415.3,
+     "input_arrays_mib": 591.8
+    },
+    "rabitq1": {
+     "mode": "rabitq1",
+     "index": "rabitq",
+     "options": {
+      "bits": 1
+     },
+     "rerank_override": null,
+     "n": 100000,
+     "dim": 1536,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9999,
+     "disk_bytes_by_role": {
+      "other": 3109,
+      "quantizer": 41,
+      "full_vectors": 622080121,
+      "ids_metadata": 3117056,
+      "codes": 27434134
+     },
+     "disk_bytes_total": 652634461,
+     "disk_bytes_per_vector_total": 6526.34,
+     "disk_bytes_per_vector_search_codes": 274.34,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 1,
+      "dimension": 1536,
+      "count": 100000,
+      "vector_bytes": 20000000,
+      "index_bytes": 9437184,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 29437184,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 294.37,
+     "peak_rss_mib": 1399.9,
+     "input_arrays_mib": 591.8
+    },
+    "rabitq4-norerank": {
+     "mode": "rabitq4-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 4
+     },
+     "rerank_override": 0,
+     "n": 100000,
+     "dim": 1536,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9443,
+     "disk_bytes_by_role": {
+      "other": 3383,
+      "quantizer": 41,
+      "full_vectors": 622080121,
+      "ids_metadata": 3117056,
+      "codes": 108055702
+     },
+     "disk_bytes_total": 733256303,
+     "disk_bytes_per_vector_total": 7332.56,
+     "disk_bytes_per_vector_search_codes": 1080.56,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 4,
+      "dimension": 1536,
+      "count": 100000,
+      "vector_bytes": 77600000,
+      "index_bytes": 9437184,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 87037184,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 870.37,
+     "peak_rss_mib": 1097.4,
+     "input_arrays_mib": 591.8
+    },
+    "rabitq2-norerank": {
+     "mode": "rabitq2-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 2
+     },
+     "rerank_override": 0,
+     "n": 100000,
+     "dim": 1536,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.8354,
+     "disk_bytes_by_role": {
+      "other": 3204,
+      "quantizer": 41,
+      "full_vectors": 622080121,
+      "ids_metadata": 3117056,
+      "codes": 54307990
+     },
+     "disk_bytes_total": 679508412,
+     "disk_bytes_per_vector_total": 6795.08,
+     "disk_bytes_per_vector_search_codes": 543.08,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 2,
+      "dimension": 1536,
+      "count": 100000,
+      "vector_bytes": 39200000,
+      "index_bytes": 9437184,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 48637184,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 486.37,
+     "peak_rss_mib": 1058.1,
+     "input_arrays_mib": 591.8
+    },
+    "rabitq1-norerank": {
+     "mode": "rabitq1-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 1
+     },
+     "rerank_override": 0,
+     "n": 100000,
+     "dim": 1536,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.7035,
+     "disk_bytes_by_role": {
+      "other": 3109,
+      "quantizer": 41,
+      "full_vectors": 622080121,
+      "ids_metadata": 3117056,
+      "codes": 27434134
+     },
+     "disk_bytes_total": 652634461,
+     "disk_bytes_per_vector_total": 6526.34,
+     "disk_bytes_per_vector_search_codes": 274.34,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 1,
+      "dimension": 1536,
+      "count": 100000,
+      "vector_bytes": 20000000,
+      "index_bytes": 9437184,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 29437184,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 294.37,
+     "peak_rss_mib": 1038.9,
+     "input_arrays_mib": 591.8
+    }
+   },
+   "competitors": [
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 4-bit",
+     "code_bytes_per_vector": 788.0,
+     "recall_at_10": 0.9653,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 4
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 4-bit + refine",
+     "code_bytes_per_vector": 788.0,
+     "recall_at_10": 1.0,
+     "rerank_k_factor": 10,
+     "params": {
+      "nb_bits": 4
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 2-bit",
+     "code_bytes_per_vector": 404.0,
+     "recall_at_10": 0.9039,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 2
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 2-bit + refine",
+     "code_bytes_per_vector": 404.0,
+     "recall_at_10": 1.0,
+     "rerank_k_factor": 20,
+     "params": {
+      "nb_bits": 2
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 1-bit",
+     "code_bytes_per_vector": 200.0,
+     "recall_at_10": 0.8165,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 1
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 1-bit + refine",
+     "code_bytes_per_vector": 200.0,
+     "recall_at_10": 1.0,
+     "rerank_k_factor": 40,
+     "params": {
+      "nb_bits": 1
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexScalarQuantizer QT_8bit",
+     "code_bytes_per_vector": 1536.0,
+     "recall_at_10": 0.9774,
+     "rerank_k_factor": null,
+     "params": {},
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexPQ M=192 x 8-bit",
+     "code_bytes_per_vector": 192.0,
+     "recall_at_10": 0.7153,
+     "rerank_k_factor": null,
+     "params": {
+      "M": 192
+     },
+     "note": "M = largest divisor of dim <= dim/8"
+    },
+    {
+     "library": "faiss",
+     "index": "IndexBinaryFlat sign bits",
+     "code_bytes_per_vector": 192.0,
+     "recall_at_10": 0.674,
+     "rerank_k_factor": null,
+     "params": {},
+     "note": "pgvector-style bit + float rerank"
+    },
+    {
+     "library": "faiss",
+     "index": "IndexBinaryFlat sign bits + rerank",
+     "code_bytes_per_vector": 192.0,
+     "recall_at_10": 0.9994,
+     "rerank_k_factor": 40,
+     "params": {},
+     "note": "pgvector-style bit + float rerank"
+    },
+    {
+     "library": "turbovec",
+     "index": "TurboQuantIndex 4-bit",
+     "code_bytes_per_vector": 788.62,
+     "recall_at_10": 0.9572,
+     "rerank_k_factor": null,
+     "params": {
+      "bits": 4,
+      "calibration_rows": 1024
+     },
+     "note": "bytes = serialized index / n (includes header)"
+    },
+    {
+     "library": "turbovec",
+     "index": "TurboQuantIndex 2-bit",
+     "code_bytes_per_vector": 396.52,
+     "recall_at_10": 0.8786,
+     "rerank_k_factor": null,
+     "params": {
+      "bits": 2,
+      "calibration_rows": 1024
+     },
+     "note": "bytes = serialized index / n (includes header)"
+    }
+   ]
+  },
+  "synthetic-768": {
+   "provenance": {
+    "dim": 768,
+    "n": 50000,
+    "queries": 1000,
+    "source": "seeded clustered Gaussian (numpy, seed 42), offline",
+    "licence": "generated",
+    "ground_truth": "numpy exact cosine brute force"
+   },
+   "prepare_seconds": 0.2,
+   "modes": {
+    "flat": {
+     "mode": "flat",
+     "index": "flat",
+     "options": {},
+     "rerank_override": null,
+     "n": 50000,
+     "dim": 768,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 1.0,
+     "disk_bytes_by_role": {
+      "other": 793,
+      "full_vectors": 207360081,
+      "ids_metadata": 1585152
+     },
+     "disk_bytes_total": 208946026,
+     "disk_bytes_per_vector_total": 4178.92,
+     "disk_bytes_per_vector_search_codes": 4147.2,
+     "memory_report": {
+      "mode": "flat",
+      "bits": null,
+      "dimension": 768,
+      "count": 50000,
+      "vector_bytes": 153600000,
+      "index_bytes": 0,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 153600000,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": true
+     },
+     "memory_report_bytes_per_vector": 3072.0,
+     "peak_rss_mib": 451.8,
+     "input_arrays_mib": 149.4
+    },
+    "sq8": {
+     "mode": "sq8",
+     "index": "sq8",
+     "options": {},
+     "rerank_override": null,
+     "n": 50000,
+     "dim": 768,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9637,
+     "disk_bytes_by_role": {
+      "quantizer": 6174,
+      "other": 253,
+      "ids_metadata": 1585152,
+      "codes": 51840081
+     },
+     "disk_bytes_total": 53431660,
+     "disk_bytes_per_vector_total": 1068.63,
+     "disk_bytes_per_vector_search_codes": 1036.8,
+     "memory_report": {
+      "mode": "sq8",
+      "bits": null,
+      "dimension": 768,
+      "count": 50000,
+      "vector_bytes": 38400000,
+      "index_bytes": 6144,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 38406144,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 768.12,
+     "peak_rss_mib": 323.1,
+     "input_arrays_mib": 149.4
+    },
+    "pq": {
+     "mode": "pq",
+     "index": "pq",
+     "options": {},
+     "rerank_override": null,
+     "n": 50000,
+     "dim": 768,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.1235,
+     "disk_bytes_by_role": {
+      "other": 93,
+      "codes": 6480081,
+      "quantizer": 811229,
+      "ids_metadata": 1585152
+     },
+     "disk_bytes_total": 8876555,
+     "disk_bytes_per_vector_total": 177.53,
+     "disk_bytes_per_vector_search_codes": 129.6,
+     "memory_report": {
+      "mode": "pq",
+      "bits": null,
+      "dimension": 768,
+      "count": 50000,
+      "vector_bytes": 4800000,
+      "index_bytes": 786432,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 5586432,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 111.73,
+     "peak_rss_mib": 284.7,
+     "input_arrays_mib": 149.4
+    },
+    "rabitq4": {
+     "mode": "rabitq4",
+     "index": "rabitq",
+     "options": {
+      "bits": 4
+     },
+     "rerank_override": null,
+     "n": 50000,
+     "dim": 768,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 1.0,
+     "disk_bytes_by_role": {
+      "other": 929,
+      "quantizer": 41,
+      "full_vectors": 207360081,
+      "ids_metadata": 1585152,
+      "codes": 24136885
+     },
+     "disk_bytes_total": 233083088,
+     "disk_bytes_per_vector_total": 4661.66,
+     "disk_bytes_per_vector_search_codes": 482.74,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 4,
+      "dimension": 768,
+      "count": 50000,
+      "vector_bytes": 19606144,
+      "index_bytes": 2359296,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 21965440,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 439.31,
+     "peak_rss_mib": 467.4,
+     "input_arrays_mib": 149.4
+    },
+    "rabitq2": {
+     "mode": "rabitq2",
+     "index": "rabitq",
+     "options": {
+      "bits": 2
+     },
+     "rerank_override": null,
+     "n": 50000,
+     "dim": 768,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.99,
+     "disk_bytes_by_role": {
+      "other": 882,
+      "quantizer": 41,
+      "full_vectors": 207360081,
+      "ids_metadata": 1585152,
+      "codes": 12192949
+     },
+     "disk_bytes_total": 221139105,
+     "disk_bytes_per_vector_total": 4422.78,
+     "disk_bytes_per_vector_search_codes": 243.86,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 2,
+      "dimension": 768,
+      "count": 50000,
+      "vector_bytes": 10003072,
+      "index_bytes": 2359296,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 12362368,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 247.25,
+     "peak_rss_mib": 449.5,
+     "input_arrays_mib": 149.4
+    },
+    "rabitq1": {
+     "mode": "rabitq1",
+     "index": "rabitq",
+     "options": {
+      "bits": 1
+     },
+     "rerank_override": null,
+     "n": 50000,
+     "dim": 768,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.9934,
+     "disk_bytes_by_role": {
+      "other": 858,
+      "quantizer": 41,
+      "full_vectors": 207360081,
+      "ids_metadata": 1585152,
+      "codes": 6220981
+     },
+     "disk_bytes_total": 215167113,
+     "disk_bytes_per_vector_total": 4303.34,
+     "disk_bytes_per_vector_search_codes": 124.42,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 1,
+      "dimension": 768,
+      "count": 50000,
+      "vector_bytes": 5201536,
+      "index_bytes": 2359296,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 7560832,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 151.22,
+     "peak_rss_mib": 452.1,
+     "input_arrays_mib": 149.4
+    },
+    "rabitq4-norerank": {
+     "mode": "rabitq4-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 4
+     },
+     "rerank_override": 0,
+     "n": 50000,
+     "dim": 768,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.7301,
+     "disk_bytes_by_role": {
+      "other": 929,
+      "quantizer": 41,
+      "full_vectors": 207360081,
+      "ids_metadata": 1585152,
+      "codes": 24136885
+     },
+     "disk_bytes_total": 233083088,
+     "disk_bytes_per_vector_total": 4661.66,
+     "disk_bytes_per_vector_search_codes": 482.74,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 4,
+      "dimension": 768,
+      "count": 50000,
+      "vector_bytes": 19606144,
+      "index_bytes": 2359296,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 21965440,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 439.31,
+     "peak_rss_mib": 348.9,
+     "input_arrays_mib": 149.4
+    },
+    "rabitq2-norerank": {
+     "mode": "rabitq2-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 2
+     },
+     "rerank_override": 0,
+     "n": 50000,
+     "dim": 768,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.3626,
+     "disk_bytes_by_role": {
+      "other": 882,
+      "quantizer": 41,
+      "full_vectors": 207360081,
+      "ids_metadata": 1585152,
+      "codes": 12192949
+     },
+     "disk_bytes_total": 221139105,
+     "disk_bytes_per_vector_total": 4422.78,
+     "disk_bytes_per_vector_search_codes": 243.86,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 2,
+      "dimension": 768,
+      "count": 50000,
+      "vector_bytes": 10003072,
+      "index_bytes": 2359296,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 12362368,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 247.25,
+     "peak_rss_mib": 329.7,
+     "input_arrays_mib": 149.4
+    },
+    "rabitq1-norerank": {
+     "mode": "rabitq1-norerank",
+     "index": "rabitq",
+     "options": {
+      "bits": 1
+     },
+     "rerank_override": 0,
+     "n": 50000,
+     "dim": 768,
+     "queries": 1000,
+     "k": 10,
+     "recall_at_10": 0.1677,
+     "disk_bytes_by_role": {
+      "other": 858,
+      "quantizer": 41,
+      "full_vectors": 207360081,
+      "ids_metadata": 1585152,
+      "codes": 6220981
+     },
+     "disk_bytes_total": 215167113,
+     "disk_bytes_per_vector_total": 4303.34,
+     "disk_bytes_per_vector_search_codes": 124.42,
+     "memory_report": {
+      "mode": "rabitq",
+      "bits": 1,
+      "dimension": 768,
+      "count": 50000,
+      "vector_bytes": 5201536,
+      "index_bytes": 2359296,
+      "links_bytes": 0,
+      "keyword_bytes": 0,
+      "total_bytes": 7560832,
+      "budget_bytes": null,
+      "limit_bytes": null,
+      "capacity": null,
+      "exact": false
+     },
+     "memory_report_bytes_per_vector": 151.22,
+     "peak_rss_mib": 328.0,
+     "input_arrays_mib": 149.4
+    }
+   },
+   "competitors": [
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 4-bit",
+     "code_bytes_per_vector": 404.0,
+     "recall_at_10": 0.7422,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 4
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 4-bit + refine",
+     "code_bytes_per_vector": 404.0,
+     "recall_at_10": 1.0,
+     "rerank_k_factor": 10,
+     "params": {
+      "nb_bits": 4
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 2-bit",
+     "code_bytes_per_vector": 212.0,
+     "recall_at_10": 0.3709,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 2
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 2-bit + refine",
+     "code_bytes_per_vector": 212.0,
+     "recall_at_10": 0.9909,
+     "rerank_k_factor": 20,
+     "params": {
+      "nb_bits": 2
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 1-bit",
+     "code_bytes_per_vector": 104.0,
+     "recall_at_10": 0.1664,
+     "rerank_k_factor": null,
+     "params": {
+      "nb_bits": 1
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexRaBitQ 1-bit + refine",
+     "code_bytes_per_vector": 104.0,
+     "recall_at_10": 0.9922,
+     "rerank_k_factor": 40,
+     "params": {
+      "nb_bits": 1
+     },
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexScalarQuantizer QT_8bit",
+     "code_bytes_per_vector": 768.0,
+     "recall_at_10": 0.9562,
+     "rerank_k_factor": null,
+     "params": {},
+     "note": ""
+    },
+    {
+     "library": "faiss",
+     "index": "IndexPQ M=96 x 8-bit",
+     "code_bytes_per_vector": 96.0,
+     "recall_at_10": 0.1037,
+     "rerank_k_factor": null,
+     "params": {
+      "M": 96
+     },
+     "note": "M = largest divisor of dim <= dim/8"
+    },
+    {
+     "library": "faiss",
+     "index": "IndexBinaryFlat sign bits",
+     "code_bytes_per_vector": 96.0,
+     "recall_at_10": 0.1198,
+     "rerank_k_factor": null,
+     "params": {},
+     "note": "pgvector-style bit + float rerank"
+    },
+    {
+     "library": "faiss",
+     "index": "IndexBinaryFlat sign bits + rerank",
+     "code_bytes_per_vector": 96.0,
+     "recall_at_10": 0.9756,
+     "rerank_k_factor": 40,
+     "params": {},
+     "note": "pgvector-style bit + float rerank"
+    },
+    {
+     "library": "turbovec",
+     "index": "TurboQuantIndex 4-bit",
+     "code_bytes_per_vector": 404.79,
+     "recall_at_10": 0.7045,
+     "rerank_k_factor": null,
+     "params": {
+      "bits": 4,
+      "calibration_rows": 1024
+     },
+     "note": "bytes = serialized index / n (includes header)"
+    },
+    {
+     "library": "turbovec",
+     "index": "TurboQuantIndex 2-bit",
+     "code_bytes_per_vector": 204.74,
+     "recall_at_10": 0.3589,
+     "rerank_k_factor": null,
+     "params": {
+      "bits": 2,
+      "calibration_rows": 1024
+     },
+     "note": "bytes = serialized index / n (includes header)"
+    }
+   ]
+  }
+ },
+ "environment": {
+  "cpu": "AMD Ryzen 5 3550H with Radeon Vega Mobile Gfx",
+  "logical_cpus": 8,
+  "ram_gib": 16.9,
+  "os": "Linux 7.0.0-43-generic",
+  "python": "3.12.13",
+  "srvdb_version": "0.4.0",
+  "git_commit": "6a3635f8f90c2d558d1811a77e22fab710e80a4d",
+  "git_tree_dirty": false,
+  "command": "python benchmarks/social/run.py --crash",
+  "date_utc": "2026-11-26T15:17:55Z"
+ },
+ "crash_test": {
+  "command": "SRVDB_CRASH_ITERATIONS=250 cargo test --release --locked -p srvdb --test test_crash -- --nocapture",
+  "passed": true,
+  "per_mode": {
+   "hnsw": {
+    "kills": 250,
+    "committed_verified": 16700
+   },
+   "churn": {
+    "kills": 250,
+    "committed_verified": 142150
+   },
+   "sq8": {
+    "kills": 250,
+    "committed_verified": 575950
+   },
+   "flat": {
+    "kills": 250,
+    "committed_verified": 539300
+   }
+  },
+  "kills_total": 1000,
+  "committed_lost": 0
+ },
+ "competitor_run": {
+  "git_commit": "6c7456b4fc58a3ef2176f3c4acfe1e156c5cc26c",
+  "command": ".competitor-venv/bin/python benchmarks/social/competitors.py synthetic-768"
+ },
+ "competitor_versions": {
+  "faiss-cpu": {
+   "version": "1.16.0",
+   "licence": "MIT"
+  },
+  "turbovec": {
+   "version": "1.1.2",
+   "licence": "MIT"
+  },
+  "numpy": {
+   "version": "2.5.5",
+   "licence": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
+  }
+ }
+}
