@@ -143,6 +143,7 @@ export default defineConfig({
 						{ label: 'Design decisions', slug: 'project/decisions' },
 						{ label: 'Roadmap', slug: 'project/roadmap' },
 						{ label: 'Benchmarks', slug: 'benchmarks' },
+						{ label: 'Memory and recall', slug: 'benchmarks/memory-recall' },
 						{ label: 'Integrations', slug: 'project/integrations', badge: { text: 'Soon', variant: 'caution' } },
 						{ label: 'Contributing', slug: 'project/contributing' },
 						{ label: 'Community', slug: 'project/community' },
