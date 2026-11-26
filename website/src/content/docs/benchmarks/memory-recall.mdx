@@ -1,0 +1,102 @@
+---
+title: Memory and recall
+description: Bytes per vector and recall@10 for every SrvDB mode on DBpedia OpenAI embeddings, NYTimes and GloVe, with the environment and command to reproduce them.
+---
+
+import { Image } from 'astro:assets';
+import data from '../../../data/benchmarks/memory-recall.json';
+import memory from '../../../assets/benchmarks/memory-landscape.png';
+import recall from '../../../assets/benchmarks/recall_vs_memory-landscape.png';
+
+export const env = data.environment;
+export const LABEL = {
+	flat: 'float32 (flat)', sq8: 'SQ8', pq: 'PQ',
+	rabitq4: 'RaBitQ 4-bit', rabitq2: 'RaBitQ 2-bit', rabitq1: 'RaBitQ 1-bit',
+};
+export const NAMES = {
+	'dbpedia-openai-100k': 'DBpedia, OpenAI ada-002 (1536-d, 100k)',
+	'nytimes-256-angular': 'NYTimes (256-d, ann-benchmarks)',
+	'glove-100-angular': 'GloVe-100 (100-d, ann-benchmarks)',
+	'synthetic-768': 'Synthetic clustered (768-d, seed 42)',
+};
+export const codes = (m) => m.memory_report.vector_bytes / m.n;
+export const fmt = (v, d = 0) => v.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+
+How much memory does each SrvDB mode need per vector, and what recall
+does it keep? Every number on this page is read at build time from
+[`website/src/data/benchmarks/memory-recall.json`](https://github.com/Srinivas26k/srvdb/blob/master/website/src/data/benchmarks/memory-recall.json),
+a copy of `benchmarks/social/results.json`. Nothing is typed by hand.
+Speed is not measured here; it waits for an idle-machine run.
+
+<Image src={memory} alt="Bar chart of search code bytes per vector for each SrvDB mode on DBpedia OpenAI ada-002 embeddings" />
+
+<Image src={recall} alt="Bar chart of recall@10 for each SrvDB mode on DBpedia OpenAI ada-002 embeddings" />
+
+## What the columns mean
+
+- **Search bytes/vector**: what a search scans per vector,
+  `db.memory_report()["vector_bytes"] / n`. float32 for flat, codes otherwise.
+- **Disk total/vector**: every file in the database directory divided by n.
+  Files are preallocated beyond n, and RaBitQ keeps the float32 vectors on
+  disk for exact rerank, so this is larger than the search bytes.
+- **Recall@10**: against the dataset's ground truth (ann-benchmarks
+  neighbours, or exact numpy search), default settings. "No rerank" is
+  RaBitQ with `set_rabitq_rerank(0)`.
+- **Peak RSS**: of the measuring process, including the benchmark's own
+  copy of the vectors.
+
+{Object.entries(data.datasets).map(([name, ds]) => (
+	<>
+		<h2 id={name}>{NAMES[name] ?? name}</h2>
+		<p>Source: <a href={ds.provenance.source}>{ds.provenance.source}</a>. Licence: {ds.provenance.licence}. Ground truth: {ds.provenance.ground_truth}.</p>
+		<table>
+			<thead><tr><th>Mode</th><th>Search bytes/vector</th><th>Smaller than float32</th><th>Disk total/vector</th><th>Recall@10</th><th>No rerank</th><th>Peak RSS (MiB)</th></tr></thead>
+			<tbody>
+				{Object.keys(LABEL).filter((k) => ds.modes[k]).map((k) => {
+					const m = ds.modes[k];
+					const nr = ds.modes[`${k}-norerank`];
+					return (
+						<tr>
+							<td>{LABEL[k]}</td>
+							<td>{fmt(codes(m))}</td>
+							<td>{fmt(codes(ds.modes.flat) / codes(m), 1)}×</td>
+							<td>{fmt(m.disk_bytes_per_vector_total)}</td>
+							<td>{fmt(m.recall_at_10, 3)}</td>
+							<td>{nr ? fmt(nr.recall_at_10, 3) : '–'}</td>
+							<td>{fmt(m.peak_rss_mib)}</td>
+						</tr>
+					);
+				})}
+			</tbody>
+		</table>
+	</>
+))}
+
+## Known weak spot: PQ
+
+PQ recall is low on every dataset here (see the tables). This is tracked
+in [issue #95](https://github.com/Srinivas26k/srvdb/issues/95); use RaBitQ
+for compressed search until it is fixed.
+
+## Environment
+
+<ul>
+	<li>CPU: {env.cpu} ({env.logical_cpus} logical CPUs), {env.ram_gib} GiB RAM</li>
+	<li>OS: {env.os}, Python {env.python}</li>
+	<li>SrvDB {env.srvdb_version}, commit <code>{env.git_commit.slice(0, 7)}</code></li>
+	<li>Command: <code>{env.command}</code></li>
+</ul>
+
+## Reproduce
+
+```bash
+uv venv -p 3.12 .bench-venv
+uv pip install -p .bench-venv/bin/python numpy matplotlib h5py pyarrow maturin
+VIRTUAL_ENV=$PWD/.bench-venv .bench-venv/bin/maturin develop --release
+.bench-venv/bin/python benchmarks/social/run.py
+```
+
+Datasets are downloaded by the benchmark script (never by SrvDB) into a
+gitignored cache and verified by size and SHA256. See
+[`benchmarks/social/README.md`](https://github.com/Srinivas26k/srvdb/blob/master/benchmarks/social/README.md)
+and the full [report](https://github.com/Srinivas26k/srvdb/blob/master/benchmarks/social/REPORT.md).
