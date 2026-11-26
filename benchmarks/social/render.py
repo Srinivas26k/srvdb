@@ -68,7 +68,7 @@ def memory(env, name, ds, size, out):
     rows = [
         Row(
             lbl,
-            f"{sub} · recall@10 {modes[k]['recall_at_10']:.3f}",
+            f"{sub} · recall@10 {modes[k]['recall_at_10']:.4f}",
             code_bytes(modes[k]),
             f"{code_bytes(modes[k]):,.0f} B",
             k == hero,
@@ -102,13 +102,13 @@ def recall(env, name, ds, size, out):
             "baseline" if k == "flat" else f"{flat / b:.1f}× smaller"
         )
         if nr:
-            sub += f" · no rerank {nr['recall_at_10']:.3f}"
+            sub += f" · no rerank {nr['recall_at_10']:.4f}"
         rows.append(
             Row(
                 lbl,
                 sub,
                 modes[k]["recall_at_10"],
-                f"{modes[k]['recall_at_10']:.3f}",
+                f"{modes[k]['recall_at_10']:.4f}",
                 k == hero,
             )
         )
@@ -123,67 +123,71 @@ def recall(env, name, ds, size, out):
 
 
 def hero_card(env, name, ds, size, out):
+    import textwrap
+
     import matplotlib.image as mpimg
 
     modes = ds["modes"]
     k = hero_key(modes)
+    m = modes[k]
     lbl = dict((a, b) for a, b, _ in ROWS)[k]
-    ratio = code_bytes(modes["flat"]) / code_bytes(modes[k])
-    fig, top = charts.figure(size, "", "", footer(env, name, ds))
+    ratio = code_bytes(modes["flat"]) / code_bytes(m)
+    fig, _ = charts.figure(size, "", "", footer(env, name, ds))
     sq = size == "square"
-    ax = fig.add_axes(
-        (0.05, 0.62 if sq else 0.5, 0.25 if sq else 0.2, 0.3 if sq else 0.4)
-    )
+    w, h = charts.SIZES[size]
+    ax = fig.add_axes((0.05, 0.66, 0.26, 0.26) if sq else (0.04, 0.42, 0.22, 0.4))
     ax.imshow(mpimg.imread(EAGLE))
     ax.axis("off")
-    x = 0.05 if sq else 0.3
-    fig.text(
-        x,
-        0.52 if sq else 0.82,
-        f"{lbl}: {ratio:.0f}× smaller search codes",
-        fontsize=40 if sq else 44,
-        fontweight="bold",
-        color=ACCENT,
-        va="top",
-    )
-    fig.text(
-        x,
-        0.44 if sq else 0.68,
-        f"recall@10 {modes[k]['recall_at_10']:.3f} on {NICE[name]} "
-        f"({modes[k]['dim']:,}-d, {modes[k]['n']:,} vectors)",
-        fontsize=24,
-        color=INK,
-        va="top",
-    )
-    fig.text(
-        x,
-        0.38 if sq else 0.6,
-        f"{code_bytes(modes['flat']):,.0f} B → "
-        f"{code_bytes(modes[k]):,.0f} B per vector scanned; "
-        "full float32 vectors stay on disk for exact rerank",
-        fontsize=15,
-        color=GREY,
-        va="top",
-    )
+    x, y = (0.06, 0.6) if sq else (0.3, 0.85)
+    width = 0.88 if sq else 0.66  # usable fraction of the figure width
     crash = env.get("_crash")
+    lines = [
+        (f"{lbl}: {ratio:.0f}× smaller search codes", 46, ACCENT, "bold", 0.62),
+        (
+            f"recall@10 {m['recall_at_10']:.4f} on {NICE[name]} embeddings "
+            f"({m['dim']:,}-d, {m['n']:,} vectors)",
+            24,
+            INK,
+            "normal",
+            0.55,
+        ),
+        (
+            f"{code_bytes(modes['flat']):,.0f} B → {code_bytes(m):,.0f} B per vector "
+            "scanned; float32 vectors stay on disk for exact rerank",
+            16,
+            GREY,
+            "normal",
+            0.55,
+        ),
+    ]
     if crash and crash.get("passed"):
+        lines.append(
+            (
+                f"Committed records lost after {crash['kills_total']:,} kill -9s: 0",
+                20,
+                INK,
+                "normal",
+                0.55,
+            )
+        )
+    lines.append(
+        ("SrvDB · embedded vector database · Rust + Python", 20, INK, "bold", 0.6)
+    )
+    for text, fs, color, weight, cw in lines:
+        # cw: average glyph width as a fraction of the font size.
+        chars = int(width * w * 72 / (fs * cw))
+        text = textwrap.fill(text, chars)
         fig.text(
             x,
-            0.32 if sq else 0.53,
-            f"Committed records lost after {crash['kills_total']:,} kill -9s: 0",
-            fontsize=18,
-            color=INK,
+            y,
+            text,
+            fontsize=fs,
+            color=color,
+            fontweight=weight,
             va="top",
+            linespacing=1.2,
         )
-    fig.text(
-        x,
-        0.22 if sq else 0.36,
-        "SrvDB · embedded vector database · Rust + Python",
-        fontsize=20,
-        color=INK,
-        fontweight="bold",
-        va="top",
-    )
+        y -= (fs * 1.25 * (text.count("\n") + 1) / 72 + 0.3) / h
     charts.save(fig, out)
 
 

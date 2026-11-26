@@ -70,9 +70,33 @@ before insertion; on normalised vectors cosine and angular rankings agree.
 - **Peak RSS** of the measuring process (`ru_maxrss`), which includes the
   benchmark's own copies of the base and query arrays (`input_arrays_mib`).
 
+## Competitors (separate venv, never SrvDB dependencies)
+
+```bash
+uv venv -p 3.12 .competitor-venv
+uv pip install -p .competitor-venv/bin/python numpy==2.5.5 faiss-cpu==1.16.0 turbovec==1.1.2
+for d in nytimes-256-angular glove-100-angular dbpedia-openai-100k synthetic-768; do
+  .competitor-venv/bin/python benchmarks/social/competitors.py $d
+done
+.bench-venv/bin/python benchmarks/social/render.py
+.bench-venv/bin/python benchmarks/social/report.py
+```
+
+Runs on the arrays `run.py` cached, so it must come after `run.py`.
+FAISS `IndexRaBitQ` 4/2/1-bit with and without float32 refine (k_factor
+10/20/40, SrvDB's defaults), `IndexScalarQuantizer` QT_8bit, `IndexPQ`
+(M = largest divisor of dim <= dim/8), OPQ+PQ for dim <= 256, sign bits in
+`IndexBinaryFlat` with and without rerank (pgvector-style), and turbovec
+`TurboQuantIndex` 4/2-bit (needs dim divisible by 8, so not GloVe-100).
+Code bytes are FAISS `sa_code_size()` and turbovec `len(to_bytes()) / n`.
+faiss-cpu and turbovec are MIT.
+
 ## Files
 
 - `run.py` orchestrates, records the environment, writes `results.json`.
 - `measure.py` is the per-dataset / per-mode child process.
 - `datasets.py` downloads, verifies and loads datasets.
-- `render.py` + `charts.py` draw `img/*.png` from `results.json` only.
+- `competitors.py` runs FAISS and turbovec on the same cached data.
+- `render.py`, `charts.py`, `compare_chart.py` draw `img/*.png` from
+  `results.json` only.
+- `report.py` + `findings.py` write `REPORT.md` from `results.json` only.

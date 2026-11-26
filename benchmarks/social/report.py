@@ -1,15 +1,17 @@
-"""Write REPORT.md from results.json plus the hand-written findings.md.
+"""Write REPORT.md from results.json with findings from findings.py.
 
     python benchmarks/social/report.py
 
-Every number in the tables comes from results.json; findings.md holds the
-plain-language reading of them and is inserted verbatim.
+Every number in the tables comes from results.json; findings.py writes the
+plain-language reading, also from results.json.
 """
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
+
+from findings import findings
 
 HERE = Path(__file__).resolve().parent
 LABEL = {
@@ -62,17 +64,56 @@ def dataset_section(name: str, ds: dict) -> list[str]:
         lines.append(f"- Subset: {p['subset']} (revision `{p['revision']}`)")
     for f in p.get("files", []):
         lines.append(
-            f"- File `{f['file']}`: {f['bytes']:,} bytes, sha256 `{f['sha256']}`"
+            f"- File `{f['file']}`: {f['bytes']:,} bytes, "
+            f"fetch {f['fetch_seconds']} s, "
+            f"sha256 `{f['sha256']}`"
             + (
                 " (verified against source)"
                 if f["sha256_verified_against_source"]
                 else ""
             )
         )
-    lines.append(
-        f"- Preparation (download + load + ground truth): {ds['prepare_seconds']} s"
+    lines.append(f"- Preparation in this run (cache reused): {ds['prepare_seconds']} s")
+    return [*lines, "", *table(ds), "", *competitor_table(ds)]
+
+
+def competitor_table(ds: dict) -> list[str]:
+    rows = ds.get("competitors") or []
+    if not rows:
+        return []
+    out = [
+        "Competitors on the same base, queries and ground truth:",
+        "",
+        "| Library | Index | Code bytes/vector | Rerank k_factor | Recall@10 |",
+        "|---|---|--:|--:|--:|",
+    ]
+    for c in rows:
+        if "skipped" in c:
+            out.append(
+                f"| {c['library']} | {c['index']} | skipped: {c['skipped']} | | |"
+            )
+            continue
+        kf = c["rerank_k_factor"] or "-"
+        out.append(
+            f"| {c['library']} | {c['index']} | {c['code_bytes_per_vector']:,.2f} "
+            f"| {kf} | {c['recall_at_10']:.4f} |"
+        )
+    return [*out, ""]
+
+
+def competitor_env(res: dict) -> list[str]:
+    run, versions = res.get("competitor_run"), res.get("competitor_versions")
+    if not run:
+        return []
+    libs = ", ".join(
+        f"{k} {v['version']} ({v['licence']})" for k, v in versions.items()
     )
-    return [*lines, "", *table(ds), ""]
+    return [
+        f"- Competitors: {libs}; commit `{run['git_commit']}`; command "
+        "`.competitor-venv/bin/python benchmarks/social/competitors.py <dataset>`, "
+        "one dataset per process",
+        "",
+    ]
 
 
 def main() -> None:
@@ -93,6 +134,7 @@ def main() -> None:
         + (" (tree had uncommitted changes)" if env["git_tree_dirty"] else ""),
         f"- Command: `{env['command']}` (run {env['date_utc']})",
         "",
+        *competitor_env(res),
         "## Method",
         "",
         "Each dataset is prepared in its own process (download, verify, "
@@ -106,7 +148,7 @@ def main() -> None:
         "mode's process and includes the benchmark's own copy of the vectors. "
         "'No rerank' is RaBitQ after `set_rabitq_rerank(0)`.",
         "",
-        (HERE / "findings.md").read_text().rstrip(),
+        findings(res),
         "",
         "## Results by dataset",
         "",

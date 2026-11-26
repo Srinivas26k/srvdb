@@ -68,3 +68,4 @@ examples/gallery/output/
 # social benchmark data cache and venv
 benchmarks/social/.data/
 .bench-venv/
+.competitor-venv/

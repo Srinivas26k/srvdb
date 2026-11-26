@@ -44,6 +44,7 @@ def draw(env, name, nice, ds, size, footer, out) -> None:
         footer,
     )
     top, bottom = band
+    bottom += 0.05  # room for the x-axis label above the footer
     sq = size == "square"
     if sq and comp:
         bottom += 0.24  # room for the key under the plot
@@ -54,15 +55,22 @@ def draw(env, name, nice, ds, size, footer, out) -> None:
             continue
         m = modes[key]
         x, y = m["memory_report"]["vector_bytes"] / m["n"], m["recall_at_10"]
-        ax.scatter(x, y, s=160, color=ACCENT, zorder=4, edgecolor="white")
+        ax.scatter(x, y, s=160, color=ACCENT, zorder=5, edgecolor="white")
         ax.annotate(
             label,
             (x, y),
-            xytext=(8, 6),
+            xytext=(10, -18) if key == "pq" else (10, 6),
             textcoords="offset points",
             fontsize=13,
             color=ACCENT,
             fontweight="bold",
+            zorder=6,
+            bbox={
+                "boxstyle": "round,pad=0.15",
+                "fc": "white",
+                "ec": "none",
+                "alpha": 0.8,
+            },
         )
     for c in comp:
         shade, marker = _style(c["index"])
@@ -81,6 +89,13 @@ def draw(env, name, nice, ds, size, footer, out) -> None:
     ax.set_xlabel("code bytes per vector (log scale)", color=GREY, fontsize=13)
     ax.set_ylabel("recall@10", color=GREY, fontsize=13)
     ax.set_ylim(0, 1.04)
+    xs = [
+        m["memory_report"]["vector_bytes"] / m["n"]
+        for k, m in modes.items()
+        if k != "flat"
+    ]
+    xs += [c["code_bytes_per_vector"] for c in comp]
+    ax.set_xlim(min(xs) / 1.3, max(xs) * 1.6)
     ax.grid(color="#ECEDF1", lw=1, zorder=0)
     ax.tick_params(colors=GREY, labelsize=12, length=0)
     ax.xaxis.set_major_formatter(

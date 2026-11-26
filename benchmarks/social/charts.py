@@ -53,8 +53,8 @@ def figure(size: str, title: str, subtitle: str, footer: str):
     w, h = SIZES[size]
     fig = plt.figure(figsize=(w, h), dpi=100, facecolor="white")
     title = textwrap.fill(title, int(w * 3.0))
-    subtitle = textwrap.fill(subtitle, int(w * 9.5))
-    footer = textwrap.fill(footer, int(w * 13))
+    subtitle = textwrap.fill(subtitle, int(w * 8))
+    footer = textwrap.fill(footer, int(w * 11))
     y = 1 - 0.5 / h
     fig.text(
         0.045,
@@ -128,7 +128,7 @@ def bars(
         inv = ax.transData.inverted()
         right = [inv.transform(t.get_window_extent(renderer).p1)[0] for t in ends]
         for i, (a, b) in enumerate(zip(rows, rows[1:])):
-            if b.value <= 0 or a.value <= b.value:
+            if b.value <= 0 or a.value < b.value * 1.1:
                 continue
             y0, y1 = ys[i], ys[i + 1]
             # From just right of row a's value text down to row b's.
