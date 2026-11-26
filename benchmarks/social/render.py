@@ -14,6 +14,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import charts  # noqa: E402
+import compare_chart  # noqa: E402
 from charts import ACCENT, GREY, INK, Row  # noqa: E402
 
 ROOT = HERE.parent.parent
@@ -196,6 +197,16 @@ def main() -> None:
         for size in charts.SIZES:
             memory(env, name, ds, size, IMG / f"memory-{name}-{size}.png")
             recall(env, name, ds, size, IMG / f"recall-{name}-{size}.png")
+            if ds.get("competitors"):
+                compare_chart.draw(
+                    env,
+                    name,
+                    NICE[name],
+                    ds,
+                    size,
+                    footer(env, name, ds),
+                    IMG / f"compare-{name}-{size}.png",
+                )
             if name == HEADLINE:
                 memory(env, name, ds, size, IMG / f"memory-{size}.png")
                 recall(env, name, ds, size, IMG / f"recall_vs_memory-{size}.png")
