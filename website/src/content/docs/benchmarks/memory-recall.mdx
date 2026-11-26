@@ -45,23 +45,36 @@ Speed is not measured here; it waits for an idle-machine run.
 - **Peak RSS**: of the measuring process, including the benchmark's own
   copy of the vectors.
 
-{Object.entries(data.datasets).map(([name, ds]) => (
+**How to read the tables:** **bold recall** is the highest recall on that
+dataset. The row marked **★ best trade-off** is the smallest mode whose
+recall is within 0.005 of exact float32 search. That's the mode to pick when
+you want exact-search quality at the lowest memory. PQ is never marked, even
+though it is small, because its recall is far below exact search.
+
+{Object.entries(data.datasets).map(([name, ds]) => {
+	const keys = Object.keys(LABEL).filter((k) => ds.modes[k]);
+	const top = Math.max(...keys.map((k) => ds.modes[k].recall_at_10));
+	const near = keys.filter((k) => ds.modes[k].recall_at_10 >= ds.modes.flat.recall_at_10 - 0.005);
+	const pick = near.reduce((a, b) => (codes(ds.modes[b]) < codes(ds.modes[a]) ? b : a), near[0]);
+	return (
 	<>
 		<h2 id={name}>{NAMES[name] ?? name}</h2>
 		<p>Source: <a href={ds.provenance.source}>{ds.provenance.source}</a>. Licence: {ds.provenance.licence}. Ground truth: {ds.provenance.ground_truth}.</p>
 		<table>
 			<thead><tr><th>Mode</th><th>Search bytes/vector</th><th>Smaller than float32</th><th>Disk total/vector</th><th>Recall@10</th><th>No rerank</th><th>Peak RSS (MiB)</th></tr></thead>
 			<tbody>
-				{Object.keys(LABEL).filter((k) => ds.modes[k]).map((k) => {
+				{keys.map((k) => {
 					const m = ds.modes[k];
 					const nr = ds.modes[`${k}-norerank`];
+					const best = k === pick && k !== 'flat';
+					const b = (on, x) => (on ? <strong>{x}</strong> : x);
 					return (
 						<tr>
-							<td>{LABEL[k]}</td>
-							<td>{fmt(codes(m))}</td>
-							<td>{fmt(codes(ds.modes.flat) / codes(m), 1)}×</td>
+							<td>{b(best, <>{LABEL[k]}{best ? ' ★ best trade-off' : ''}</>)}</td>
+							<td>{b(best, <>{fmt(codes(m))}</>)}</td>
+							<td>{b(best, <>{fmt(codes(ds.modes.flat) / codes(m), 1)}×</>)}</td>
 							<td>{fmt(m.disk_bytes_per_vector_total)}</td>
-							<td>{fmt(m.recall_at_10, 4)}</td>
+							<td>{b(m.recall_at_10 === top, <>{fmt(m.recall_at_10, 4)}</>)}</td>
 							<td>{nr ? fmt(nr.recall_at_10, 4) : '–'}</td>
 							<td>{fmt(m.peak_rss_mib)}</td>
 						</tr>
@@ -70,7 +83,8 @@ Speed is not measured here; it waits for an idle-machine run.
 			</tbody>
 		</table>
 	</>
-))}
+	);
+})}
 
 ## Known weak spot: PQ
 
